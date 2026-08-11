@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Soporte para el Formulario Oficial "Información del trabajador y sus familias"
+ * Sincronización en Vivo y Auto-Refresh de Reportes desde Google Sheets
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     filteredReports: [],
     map: null,
     markers: [],
-    googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL
+    googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
+    refreshInterval: null
   };
 
   const loginScreen = document.getElementById('admin-login-screen');
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sheetsUrlInput = document.getElementById('admin-sheets-url');
   const btnSaveSheets = document.getElementById('btn-save-sheets');
   const btnTestSheets = document.getElementById('btn-test-sheets');
+  const btnSyncLive = document.getElementById('btn-sync-live');
   const sheetsStatus = document.getElementById('admin-sheets-status');
 
   const filterSearch = document.getElementById('filter-search');
@@ -58,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnLockAdmin.addEventListener('click', () => {
       sessionStorage.removeItem('comfamiliar_admin_auth');
       state.isAuthenticated = false;
+      if (state.refreshInterval) clearInterval(state.refreshInterval);
       checkAuthentication();
     });
   }
@@ -92,10 +95,20 @@ document.addEventListener('DOMContentLoaded', () => {
     initLeafletMap();
     renderDashboard();
 
+    // Consulta inicial en vivo a Google Sheets
+    fetchLiveReportsFromSheets();
+
+    // Iniciar auto-refresh en vivo cada 10 segundos
+    if (state.refreshInterval) clearInterval(state.refreshInterval);
+    state.refreshInterval = setInterval(() => {
+      fetchLiveReportsFromSheets(true);
+    }, 10000);
+
     if (filterSearch) filterSearch.addEventListener('input', applyFilters);
     if (filterStatus) filterStatus.addEventListener('change', applyFilters);
     if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
     if (btnExportCsv) btnExportCsv.addEventListener('click', exportToCSV);
+    if (btnSyncLive) btnSyncLive.addEventListener('click', () => fetchLiveReportsFromSheets(false));
 
     if (btnSaveSheets) {
       btnSaveSheets.addEventListener('click', () => {
@@ -104,23 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('comfamiliar_sheets_url', url);
           state.googleSheetsUrl = url;
           sheetsStatus.innerHTML = '<span style="color:var(--success)">✅ URL de Google Sheets guardada.</span>';
+          fetchLiveReportsFromSheets();
         }
       });
     }
 
     if (btnTestSheets) {
-      btnTestSheets.addEventListener('click', async () => {
-        sheetsStatus.innerHTML = '⌛ Probando conexión con Google Apps Script...';
-        try {
-          const res = await fetch(state.googleSheetsUrl + '?documento=ping');
-          if (res.ok) {
-            sheetsStatus.innerHTML = '<span style="color:var(--success)">✅ Conexión exitosa con Google Sheets BASE_PX!</span>';
-          } else {
-            sheetsStatus.innerHTML = '<span style="color:var(--warning)">⚠️ Conexión respondida (Verificar permisos).</span>';
-          }
-        } catch(e) {
-          sheetsStatus.innerHTML = '<span style="color:var(--success)">✅ Endpoint guardado y listo para recibir reportes background.</span>';
-        }
+      btnTestSheets.addEventListener('click', () => {
+        fetchLiveReportsFromSheets(false);
       });
     }
   }
@@ -129,17 +133,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     const mockReports = window.INITIAL_MOCK_REPORTS || [];
     
-    // Unir sin duplicados por ID
     const mapReports = new Map();
-    localReports.forEach(r => mapReports.set(r.id || r.documento, r));
+    localReports.forEach(r => mapReports.set(r.documento || r.id, r));
     mockReports.forEach(r => {
-      if (!mapReports.has(r.id || r.documento)) {
-        mapReports.set(r.id || r.documento, r);
+      if (!mapReports.has(r.documento || r.id)) {
+        mapReports.set(r.documento || r.id, r);
       }
     });
 
     state.reports = Array.from(mapReports.values());
-    state.filteredReports = [...state.reports];
+    applyFilters();
+  }
+
+  // CALLBACK GLOBAL PARA CONSULTA JSONP DE REPORTES EN VIVO
+  window.onLiveReportsReceived = function(result) {
+    if (result && result.status === 'success' && Array.isArray(result.reports)) {
+      const mapReports = new Map();
+
+      // 1. Agregar los reportes recibidos desde Google Sheets (Prioridad)
+      result.reports.forEach(r => mapReports.set(r.documento, r));
+
+      // 2. Agregar reportes locales de este dispositivo si no están aún en Google Sheets
+      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+      localReports.forEach(r => {
+        if (!mapReports.has(r.documento)) {
+          mapReports.set(r.documento, r);
+        }
+      });
+
+      // 3. Agregar datos mock
+      const mockReports = window.INITIAL_MOCK_REPORTS || [];
+      mockReports.forEach(r => {
+        if (!mapReports.has(r.documento)) {
+          mapReports.set(r.documento, r);
+        }
+      });
+
+      state.reports = Array.from(mapReports.values());
+      applyFilters();
+
+      if (sheetsStatus) {
+        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado en Vivo: ${result.total} registros recibidos desde Google Sheets (${new Date().toLocaleTimeString()}).</span>`;
+      }
+    }
+  };
+
+  function fetchLiveReportsFromSheets(isBackground = false) {
+    if (!state.googleSheetsUrl) return;
+
+    if (!isBackground && sheetsStatus) {
+      sheetsStatus.innerHTML = '⌛ Consultando en vivo hoja REPORTES_EMERGENCIA...';
+    }
+
+    const callbackName = 'onLiveReportsReceived';
+    const scriptId = 'jsonp-live-dashboard-sync';
+    
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `${state.googleSheetsUrl}?action=getAllReports&callback=${callbackName}`;
+    script.onerror = function() {
+      if (!isBackground && sheetsStatus) {
+        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">ℹ️ Mostrando reportes locales (Sincronización en segundo plano).</span>';
+      }
+    };
+    document.body.appendChild(script);
   }
 
   function renderDashboard() {
@@ -194,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td>
             ${r.municipio || r.municipioBase || 'Pereira'}<br>
-            <small style="color:var(--text-muted); font-size:0.75rem;">${r.direccion || 'Sin dir'}</small>
+            <small style="color:var(--text-muted); font-size:0.75rem;">${r.direccionActual || r.direccion || 'Sin dir'}</small>
           </td>
           <td><span style="font-weight:800; color:var(--primary);">${r.tipoSangre || 'N/A'}</span></td>
           <td>${criticidadBadge}</td>
@@ -218,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapEl = document.getElementById('emergency-map');
     if (!mapEl || state.map) return;
 
-    // Coordenadas Pereira / Eje Cafetero
     state.map = L.map('emergency-map').setView([4.8143, -75.6946], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -230,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateMapMarkers() {
     if (!state.map) return;
 
-    // Limpiar marcadores anteriores
     state.markers.forEach(m => state.map.removeLayer(m));
     state.markers = [];
 
@@ -238,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let lat = parseFloat(r.latitud);
       let lng = parseFloat(r.longitud);
 
-      // Si no tiene GPS satelital, asignar coordenadas aproximadas por municipio
       if (isNaN(lat) || isNaN(lng)) {
         const muni = (r.municipio || '').toLowerCase();
         if (muni.includes('dosquebradas')) { lat = 4.8350 + (Math.random() - 0.5) * 0.02; lng = -75.6750 + (Math.random() - 0.5) * 0.02; }
@@ -270,9 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyFilters() {
-    const q = filterSearch.value.toLowerCase().trim();
-    const st = filterStatus.value;
-    const mun = filterMunicipio.value;
+    const q = filterSearch ? filterSearch.value.toLowerCase().trim() : '';
+    const st = filterStatus ? filterStatus.value : 'all';
+    const mun = filterMunicipio ? filterMunicipio.value : 'all';
 
     state.filteredReports = state.reports.filter(r => {
       const matchSearch = !q || 
@@ -299,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const headers = [
       "Fecha y Hora", "Documento", "Nombre Completo", "Cargo", "Email Personal", "Contrato",
       "Proceso", "Área", "Sexo", "Sede", "Teléfono Contacto", "Contacto Emergencia",
-      "Dirección Residencia", "Municipio / Barrio", "Tipo de Sangre", "Condición Salud",
+      "Dirección Residencia Habitual", "Dirección Actual en Emergencia", "Municipio / Barrio", "Tipo de Sangre",
       "Situación y Apoyo Requerido", "Personas en Hogar", "Tipo Vivienda", "Afectación Vivienda",
       "Cuenta con Lugar Seguro", "Estado Grupo Familiar", "Presencialidad Obligatoria",
       "Condiciones Óptimas (Net/Energía)", "Herramientas Trabajo Completas", "Latitud GPS", "Longitud GPS", "Criticidad"
@@ -318,10 +375,10 @@ document.addEventListener('DOMContentLoaded', () => {
       `"${r.sede || ''}"`,
       `"${r.telefono || ''}"`,
       `"${r.contactoEmergencia || ''}"`,
-      `"${r.direccion || ''}"`,
+      `"${r.direccionResidencia || ''}"`,
+      `"${r.direccionActual || r.direccion || ''}"`,
       `"${r.municipio || ''}"`,
       `"${r.tipoSangre || ''}"`,
-      `"${r.saludFisicaEmocional || ''}"`,
       `"${r.situacionYApoyo || ''}"`,
       `"${r.personasHogar || ''}"`,
       `"${r.tipoVivienda || ''}"`,

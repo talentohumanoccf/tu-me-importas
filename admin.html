@@ -22,7 +22,7 @@
   <div class="emergency-ticker">
     <div class="ticker-content">
       <div class="pulse-dot"></div>
-      <span>📊 COE COMFAMILIAR RISARALDA • TABLERO DE MONITOREO DEL FORMULARIO OFICIAL</span>
+      <span>📊 COE COMFAMILIAR RISARALDA • TABLERO DE MONITOREO EN VIVO (ACTUALIZACIÓN AUTOMÁTICA)</span>
     </div>
     <a href="usuario.html" style="color:#FFF; text-decoration:underline; font-size:0.8rem;">📱 Ver Formulario de Empleados</a>
   </div>
@@ -84,14 +84,17 @@
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
         <h2 class="card-title">
-          <span>📊</span> Monitoreo del Formulario Oficial: "Información del trabajador y sus familias"
+          <span>📊</span> Monitoreo en Vivo: "Información del trabajador y sus familias"
         </h2>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="btn-sync-live" class="nav-tab-btn" style="background: var(--secondary); border-color:var(--secondary); color:#FFF;">
+            🔄 Sincronizar en Vivo ahora
+          </button>
           <button id="btn-change-pin" class="nav-tab-btn" style="background: rgba(0,51,102,0.1); color:var(--primary); border:1px solid var(--primary);">
             🔑 Cambiar PIN
           </button>
-          <button id="btn-export-csv" class="btn-search" style="background: var(--secondary); font-size:0.9rem;">
-            📥 Exportar Reporte CSV / Excel (29 Campos)
+          <button id="btn-export-csv" class="btn-search" style="background: var(--primary); font-size:0.9rem;">
+            📥 Exportar Reporte CSV / Excel
           </button>
         </div>
       </div>
@@ -101,7 +104,7 @@
         <div class="kpi-card kpi-primary">
           <div class="kpi-header">Total Registrados</div>
           <div class="kpi-value" id="kpi-total">0</div>
-          <div class="kpi-subtext">Formularios oficiales recibidos</div>
+          <div class="kpi-subtext">Formularios recibidos en Sheets</div>
         </div>
         <div class="kpi-card kpi-success">
           <div class="kpi-header">A Salvo y Seguro</div>
@@ -127,7 +130,7 @@
 
       <!-- MAPA DE EMERGENCIA -->
       <h3 style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
-        🗺️ Ubicación Satelital de Trabajadores Registrados
+        🗺️ Ubicación Satelital de Trabajadores Registrados (Actualización Auto)
       </h3>
       <div id="emergency-map"></div>
 
@@ -183,7 +186,7 @@
         <span>⚙️</span> Integración con Google Sheets para el Equipo SST
       </h2>
       <p class="card-subtitle">
-        Sincroniza los registros del Formulario Oficial directamente a tu hoja de cálculo central.
+        El tablero consulta automáticamente tu hoja de cálculo cada 10 segundos para actualizar métricas y ubicaciones en tiempo real.
       </p>
 
       <div style="background: rgba(0,51,102,0.04); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius-md); margin-bottom: 20px;">
@@ -191,7 +194,7 @@
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <input type="url" id="admin-sheets-url" class="form-control" style="flex:1; min-width:280px;" placeholder="https://script.google.com/macros/s/.../exec">
           <button id="btn-save-sheets" class="btn-search" style="background:var(--primary);">💾 Guardar URL</button>
-          <button id="btn-test-sheets" class="btn-search" style="background:var(--secondary);">📡 Probar Conexión</button>
+          <button id="btn-test-sheets" class="btn-search" style="background:var(--secondary);">📡 Forzar Sincronización</button>
         </div>
         <div id="admin-sheets-status" style="margin-top:10px; font-weight:700; font-size:0.9rem;"></div>
       </div>
