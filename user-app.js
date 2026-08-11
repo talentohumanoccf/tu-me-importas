@@ -1,5 +1,6 @@
 /**
- * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON DIRECCIÓN Y TELÉFONO LIMPIOS PARA ACTUALIZACIÓN
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL
+ * Corrección de seguridad para lecturas de DOM (Evita TypeError de null.value)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,12 +38,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupTouchOptions();
 
-  btnVerifyCC.addEventListener('click', handleCCLookupInstant);
-  ccInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') handleCCLookupInstant();
-  });
+  if (btnVerifyCC) btnVerifyCC.addEventListener('click', handleCCLookupInstant);
+  if (ccInput) {
+    ccInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') handleCCLookupInstant();
+    });
+  }
+
+  function getValue(id, fallback = '') {
+    const el = document.getElementById(id);
+    return (el && el.value !== undefined && el.value !== null) ? el.value.trim() : fallback;
+  }
 
   function handleCCLookupInstant() {
+    if (!ccInput) return;
     const doc = ccInput.value.trim();
     if (!doc || doc.length < 5) {
       alert('⚠️ Por favor digita tu número de documento o cédula.');
@@ -71,31 +80,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Desbloquear formulario tras verificar cédula
-    greetingBox.style.display = 'block';
-    formSection.style.display = 'block';
-    formSection.scrollIntoView({ behavior: 'smooth' });
+    if (greetingBox) greetingBox.style.display = 'block';
+    if (formSection) {
+      formSection.style.display = 'block';
+      formSection.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   function applyEmployeeData(found) {
     state.employee = found;
     const fullName = found.nombre || 'Colaborador';
     
-    empName.textContent = `¡Hola, ${fullName}! 👋`;
+    if (empName) empName.textContent = `¡Hola, ${fullName}! 👋`;
     
     const cargoText = found.cargo ? `${found.cargo} ${found.proceso ? '• ' + found.proceso : ''}` : 'Colaborador Comfamiliar';
     const sedeText = found.sede ? `🏢 Sede Registrada: ${found.sede}` : '🏢 Comfamiliar Risaralda';
     
-    empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
+    if (empMeta) empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
 
-    // Nombre y Correo precompletados
     const nombreInput = document.getElementById('user-nombre-input');
     if (nombreInput) nombreInput.value = found.nombre || '';
 
     const emailInput = document.getElementById('user-email-input');
     if (emailInput) emailInput.value = found.email || '';
 
-    // SE DEJAN LIMPIOS Y VACÍOS PARA FORZAR QUE EL USUARIO DILIGENCIE DIRECCIÓN Y TELÉFONO EN VIVO
+    // DIRECCIÓN Y TELÉFONOS LIMPIOS PARA OBLIGAR ACTUALIZACIÓN
     const phoneInput = document.getElementById('user-phone-input');
     if (phoneInput) phoneInput.value = '';
 
@@ -145,114 +154,122 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  gpsBtn.addEventListener('click', () => {
-    if (!navigator.geolocation) {
-      gpsStatus.textContent = '❌ GPS no disponible en este dispositivo.';
-      return;
-    }
-    gpsStatus.textContent = '📡 Conectando a satélites GPS...';
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        state.gps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        gpsStatus.innerHTML = `<b style="color:var(--secondary)">📍 Ubicación GPS capturada correctamente</b>`;
-      },
-      () => {
-        gpsStatus.textContent = '⚠️ No se pudo obtener GPS. Puedes continuar sin él.';
-      },
-      { timeout: 8000 }
-    );
-  });
-
-  reportForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    if (!state.documento) {
-      alert('⚠️ Por favor digita tu documento antes de enviar.');
-      return;
-    }
-
-    const emp = state.employee || {};
-
-    let criticidad = 'verde';
-    if (
-      state.situacionYApoyo.includes('medicamentos') ||
-      state.situacionYApoyo.includes('alimentos') ||
-      state.afectacionVivienda.includes('graves') ||
-      state.afectacionVivienda.includes('NO me permiten') ||
-      state.lugarSeguro === 'No' ||
-      state.estadoFamilia.includes('lesionados') ||
-      state.estadoFamilia.includes('atención médica') ||
-      state.estadoFamilia.includes('Pérdida')
-    ) {
-      criticidad = 'rojo';
-    } else if (
-      state.situacionYApoyo.includes('psicológico') ||
-      state.situacionYApoyo.includes('social') ||
-      state.situacionYApoyo.includes('jurídico') ||
-      state.afectacionVivienda.includes('menores') ||
-      state.estadoFamilia.includes('leves') ||
-      state.estadoFamilia.includes('psicosocial')
-    ) {
-      criticidad = 'amarillo';
-    }
-
-    const report = {
-      id: 'rep-' + Date.now(),
-      timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
-      documento: state.documento,
-      cedula: state.documento,
-      nombre: document.getElementById('user-nombre-input').value.trim() || emp.nombre || 'No especificado',
-      cargo: emp.cargo || 'Comfamiliar Risaralda',
-      emailPersonal: document.getElementById('user-email-input').value.trim() || emp.email || '',
-      contrato: emp.contrato || '',
-      proceso: emp.proceso || '',
-      area: emp.area || '',
-      sexo: emp.sexo || '',
-      sede: emp.sede || 'Comfamiliar',
-      telefono: document.getElementById('user-phone-input').value.trim() || '',
-      contactoEmergencia: document.getElementById('user-contacto-emergencia-input').value.trim() || '',
-      direccion: document.getElementById('user-direccion-input').value.trim() || '',
-      municipio: document.getElementById('user-municipio-input').value.trim() || '',
-      tipoSangre: document.getElementById('user-sangre-select').value,
-      saludFisicaEmocional: document.getElementById('user-salud-textarea').value.trim() || 'Sin detalles',
-      situacionYApoyo: state.situacionYApoyo,
-      personasHogar: document.getElementById('user-personas-select').value,
-      tipoVivienda: document.getElementById('user-tipovivienda-select').value,
-      afectacionVivienda: state.afectacionVivienda,
-      lugarSeguro: state.lugarSeguro,
-      estadoFamilia: state.estadoFamilia,
-      presencialidadObligatoria: document.getElementById('user-presencialidad-select').value,
-      condicionesOptimas: document.getElementById('user-condiciones-select').value,
-      herramientasTrabajo: document.getElementById('user-herramientas-select').value,
-      latitud: state.gps ? state.gps.lat : '',
-      longitud: state.gps ? state.gps.lng : '',
-      criticidad: criticidad,
-      origen: 'Formulario Oficial Web'
-    };
-
-    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-    localReports.unshift(report);
-    localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
-
-    if (state.googleSheetsUrl && navigator.onLine) {
-      try {
-        fetch(state.googleSheetsUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(report)
-        }).catch(err => console.log('Envío en proceso background'));
-      } catch(err) {
-        console.log('Guardado localmente');
+  if (gpsBtn) {
+    gpsBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        if (gpsStatus) gpsStatus.textContent = '❌ GPS no disponible en este dispositivo.';
+        return;
       }
-    }
+      if (gpsStatus) gpsStatus.textContent = '📡 Conectando a satélites GPS...';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          state.gps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          if (gpsStatus) gpsStatus.innerHTML = `<b style="color:var(--secondary)">📍 Ubicación GPS capturada correctamente</b>`;
+        },
+        () => {
+          if (gpsStatus) gpsStatus.textContent = '⚠️ No se pudo obtener GPS. Puedes continuar sin él.';
+        },
+        { timeout: 8000 }
+      );
+    });
+  }
 
-    formSection.style.display = 'none';
-    successSection.style.display = 'block';
-    successSection.scrollIntoView({ behavior: 'smooth' });
-  });
+  if (reportForm) {
+    reportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-  btnReset.addEventListener('click', () => {
-    location.reload();
-  });
+      if (!state.documento) {
+        alert('⚠️ Por favor digita tu documento antes de enviar.');
+        return;
+      }
+
+      const emp = state.employee || {};
+
+      let criticidad = 'verde';
+      if (
+        state.situacionYApoyo.includes('medicamentos') ||
+        state.situacionYApoyo.includes('alimentos') ||
+        state.afectacionVivienda.includes('graves') ||
+        state.afectacionVivienda.includes('NO me permiten') ||
+        state.lugarSeguro === 'No' ||
+        state.estadoFamilia.includes('lesionados') ||
+        state.estadoFamilia.includes('atención médica') ||
+        state.estadoFamilia.includes('Pérdida')
+      ) {
+        criticidad = 'rojo';
+      } else if (
+        state.situacionYApoyo.includes('psicológico') ||
+        state.situacionYApoyo.includes('social') ||
+        state.situacionYApoyo.includes('jurídico') ||
+        state.afectacionVivienda.includes('menores') ||
+        state.estadoFamilia.includes('leves') ||
+        state.estadoFamilia.includes('psicosocial')
+      ) {
+        criticidad = 'amarillo';
+      }
+
+      const report = {
+        id: 'rep-' + Date.now(),
+        timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
+        documento: state.documento,
+        cedula: state.documento,
+        nombre: getValue('user-nombre-input', emp.nombre || 'No especificado'),
+        cargo: emp.cargo || 'Comfamiliar Risaralda',
+        emailPersonal: getValue('user-email-input', emp.email || ''),
+        contrato: emp.contrato || '',
+        proceso: emp.proceso || '',
+        area: emp.area || '',
+        sexo: emp.sexo || '',
+        sede: emp.sede || 'Comfamiliar',
+        telefono: getValue('user-phone-input', ''),
+        contactoEmergencia: getValue('user-contacto-emergencia-input', ''),
+        direccion: getValue('user-direccion-input', ''),
+        municipio: getValue('user-municipio-input', ''),
+        tipoSangre: getValue('user-sangre-select', 'O+'),
+        saludFisicaEmocional: getValue('user-salud-textarea', 'Sin detalles'),
+        situacionYApoyo: state.situacionYApoyo,
+        personasHogar: getValue('user-personas-select', '1'),
+        tipoVivienda: getValue('user-tipovivienda-select', 'Propia'),
+        afectacionVivienda: state.afectacionVivienda,
+        lugarSeguro: state.lugarSeguro,
+        estadoFamilia: state.estadoFamilia,
+        presencialidadObligatoria: getValue('user-presencialidad-select', 'No'),
+        condicionesOptimas: getValue('user-condiciones-select', 'Sí'),
+        herramientasTrabajo: getValue('user-herramientas-select', 'Sí'),
+        latitud: state.gps ? state.gps.lat : '',
+        longitud: state.gps ? state.gps.lng : '',
+        criticidad: criticidad,
+        origen: 'Formulario Oficial Web'
+      };
+
+      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+      localReports.unshift(report);
+      localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
+
+      if (state.googleSheetsUrl && navigator.onLine) {
+        try {
+          fetch(state.googleSheetsUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(report)
+          }).catch(err => console.log('Envío en proceso background'));
+        } catch(err) {
+          console.log('Guardado localmente');
+        }
+      }
+
+      if (formSection) formSection.style.display = 'none';
+      if (successSection) {
+        successSection.style.display = 'block';
+        successSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      location.reload();
+    });
+  }
 });

@@ -60,9 +60,9 @@
       <form id="user-report-form">
         <div id="user-form-section" style="display: none;">
           
-          <!-- SECCIÓN 1: DATOS GENERALES Y DE CONTACTO EN VIVO -->
+          <!-- SECCIÓN 1: DATOS GENERALES -->
           <div class="form-section-divider">
-            📋 1. Actualización de Datos y Contacto
+            📋 1. Datos Generales del Trabajador
           </div>
 
           <div class="question-block">
@@ -71,8 +71,8 @@
           </div>
 
           <div class="question-block">
-            <label style="color:var(--primary); font-weight:800;">📍 Dirección de Residencia ACTUAL (Donde te encuentras en la emergencia):</label>
-            <input type="text" id="user-direccion-input" class="form-input-mobile" placeholder="Escribe tu dirección actual (Ej: Calle 14 # 23-45)" required>
+            <label style="color:var(--primary); font-weight:800;">📍 Dirección de Residencia (Si actualmente se encuentra en otra ubicación por la emergencia, ingrese la dirección donde está hoy):</label>
+            <input type="text" id="user-direccion-input" class="form-input-mobile" placeholder="Ingresa tu dirección actual o donde estás ubicado hoy" required>
           </div>
 
           <div class="question-block">
@@ -110,18 +110,13 @@
             </select>
           </div>
 
-          <!-- SECCIÓN 2: CONDICIÓN DE SALUD FÍSICA Y EMOCIONAL -->
+          <!-- SECCIÓN 2: CONDICIÓN DE SALUD FÍSICA Y EMOCIONAL (TÍTULO DE SECCIÓN) -->
           <div class="form-section-divider">
             🩺 2. Condición de Salud Física y Emocional
           </div>
 
           <div class="question-block">
-            <label>Describe tu condición de salud física y emocional actual:</label>
-            <textarea id="user-salud-textarea" class="form-input-mobile" rows="2" placeholder="Escribe brevemente cómo te sientes física y emocionalmente..." required></textarea>
-          </div>
-
-          <div class="question-block">
-            <label>¿Cuál es su situación actual y cómo la institución lo puede apoyar?</label>
+            <label style="font-size:0.95rem; font-weight:800; color:var(--primary);">¿Cuál es su situación actual y cómo la institución lo puede apoyar?</label>
             <div class="touch-options-grid">
               <button type="button" class="touch-option-btn selected" data-group="situacionYApoyo" data-value="Estoy bien y seguro">
                 <div class="touch-icon">💚</div>
