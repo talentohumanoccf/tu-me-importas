@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Sincronización en Vivo y Auto-Refresh de Reportes desde Google Sheets
+ * Soporte para Tablero 1 (Mapa y Tabla) + Tablero 2 (Analítica Detallada de Preguntas)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     map: null,
     markers: [],
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
-    refreshInterval: null
+    refreshInterval: null,
+    activeTab: 'main' // 'main' o 'analytics'
   };
 
   const loginScreen = document.getElementById('admin-login-screen');
@@ -25,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const mainContent = document.getElementById('admin-main-content');
   const btnLockAdmin = document.getElementById('btn-lock-admin');
   const btnChangePin = document.getElementById('btn-change-pin');
+
+  const tabBtnMain = document.getElementById('tab-btn-main');
+  const tabBtnAnalytics = document.getElementById('tab-btn-analytics');
+  const tabContentMain = document.getElementById('tab-content-main');
+  const tabContentAnalytics = document.getElementById('tab-content-analytics');
   
   const sheetsUrlInput = document.getElementById('admin-sheets-url');
   const btnSaveSheets = document.getElementById('btn-save-sheets');
@@ -37,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterMunicipio = document.getElementById('filter-municipio');
   const btnExportCsv = document.getElementById('btn-export-csv');
 
+  setupTabsNavigation();
   checkAuthentication();
 
   loginForm.addEventListener('submit', (e) => {
@@ -75,6 +82,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function setupTabsNavigation() {
+    if (tabBtnMain && tabBtnAnalytics) {
+      tabBtnMain.addEventListener('click', () => switchTab('main'));
+      tabBtnAnalytics.addEventListener('click', () => switchTab('analytics'));
+    }
+  }
+
+  function switchTab(tabName) {
+    state.activeTab = tabName;
+    if (tabName === 'main') {
+      tabBtnMain.classList.add('active');
+      tabBtnAnalytics.classList.remove('active');
+      tabContentMain.style.display = 'block';
+      tabContentAnalytics.style.display = 'none';
+      if (state.map) setTimeout(() => state.map.invalidateSize(), 200);
+    } else {
+      tabBtnAnalytics.classList.add('active');
+      tabBtnMain.classList.remove('active');
+      tabContentAnalytics.style.display = 'block';
+      tabContentMain.style.display = 'none';
+      renderAnalyticsDashboard();
+    }
+  }
+
   function checkAuthentication() {
     if (state.isAuthenticated) {
       loginScreen.style.display = 'none';
@@ -95,10 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initLeafletMap();
     renderDashboard();
 
-    // Consulta inicial en vivo a Google Sheets
-    fetchLiveReportsFromSheets();
+    fetchLiveReportsFromSheets(true);
 
-    // Iniciar auto-refresh en vivo cada 10 segundos
     if (state.refreshInterval) clearInterval(state.refreshInterval);
     state.refreshInterval = setInterval(() => {
       fetchLiveReportsFromSheets(true);
@@ -108,7 +137,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterStatus) filterStatus.addEventListener('change', applyFilters);
     if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
     if (btnExportCsv) btnExportCsv.addEventListener('click', exportToCSV);
-    if (btnSyncLive) btnSyncLive.addEventListener('click', () => fetchLiveReportsFromSheets(false));
+
+    if (btnSyncLive) {
+      btnSyncLive.addEventListener('click', () => {
+        btnSyncLive.innerHTML = '⌛ Sincronizando...';
+        btnSyncLive.style.opacity = '0.7';
+        fetchLiveReportsFromSheets(false);
+        setTimeout(() => {
+          btnSyncLive.innerHTML = '🔄 Sincronizar en Vivo ahora';
+          btnSyncLive.style.opacity = '1';
+        }, 1200);
+      });
+    }
 
     if (btnSaveSheets) {
       btnSaveSheets.addEventListener('click', () => {
@@ -117,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('comfamiliar_sheets_url', url);
           state.googleSheetsUrl = url;
           sheetsStatus.innerHTML = '<span style="color:var(--success)">✅ URL de Google Sheets guardada.</span>';
-          fetchLiveReportsFromSheets();
+          fetchLiveReportsFromSheets(false);
         }
       });
     }
@@ -134,10 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mockReports = window.INITIAL_MOCK_REPORTS || [];
     
     const mapReports = new Map();
-    localReports.forEach(r => mapReports.set(r.documento || r.id, r));
+    localReports.forEach(r => {
+      if (r.documento) mapReports.set(String(r.documento).trim(), r);
+    });
     mockReports.forEach(r => {
-      if (!mapReports.has(r.documento || r.id)) {
-        mapReports.set(r.documento || r.id, r);
+      if (r.documento && !mapReports.has(String(r.documento).trim())) {
+        mapReports.set(String(r.documento).trim(), r);
       }
     });
 
@@ -145,35 +187,44 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters();
   }
 
-  // CALLBACK GLOBAL PARA CONSULTA JSONP DE REPORTES EN VIVO
   window.onLiveReportsReceived = function(result) {
-    if (result && result.status === 'success' && Array.isArray(result.reports)) {
-      const mapReports = new Map();
+    let remoteReports = [];
+    if (result && Array.isArray(result.reports)) {
+      remoteReports = result.reports;
+    } else if (result && Array.isArray(result.data)) {
+      remoteReports = result.data;
+    }
 
-      // 1. Agregar los reportes recibidos desde Google Sheets (Prioridad)
-      result.reports.forEach(r => mapReports.set(r.documento, r));
+    const mapReports = new Map();
 
-      // 2. Agregar reportes locales de este dispositivo si no están aún en Google Sheets
-      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-      localReports.forEach(r => {
-        if (!mapReports.has(r.documento)) {
-          mapReports.set(r.documento, r);
-        }
+    if (remoteReports.length > 0) {
+      remoteReports.forEach(r => {
+        if (r.documento) mapReports.set(String(r.documento).trim(), r);
       });
+    }
 
-      // 3. Agregar datos mock
-      const mockReports = window.INITIAL_MOCK_REPORTS || [];
-      mockReports.forEach(r => {
-        if (!mapReports.has(r.documento)) {
-          mapReports.set(r.documento, r);
-        }
-      });
+    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+    localReports.forEach(r => {
+      if (r.documento && !mapReports.has(String(r.documento).trim())) {
+        mapReports.set(String(r.documento).trim(), r);
+      }
+    });
 
-      state.reports = Array.from(mapReports.values());
-      applyFilters();
+    const mockReports = window.INITIAL_MOCK_REPORTS || [];
+    mockReports.forEach(r => {
+      if (r.documento && !mapReports.has(String(r.documento).trim())) {
+        mapReports.set(String(r.documento).trim(), r);
+      }
+    });
 
-      if (sheetsStatus) {
-        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado en Vivo: ${result.total} registros recibidos desde Google Sheets (${new Date().toLocaleTimeString()}).</span>`;
+    state.reports = Array.from(mapReports.values());
+    applyFilters();
+
+    if (sheetsStatus) {
+      if (remoteReports.length > 0) {
+        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado en Vivo: ${remoteReports.length} registros leídos de Google Sheets (${new Date().toLocaleTimeString()}). Total en Tablero: ${state.reports.length}</span>`;
+      } else {
+        sheetsStatus.innerHTML = `<span style="color:var(--warning)">⚠️ Conectado a Google Sheets, mostrando ${state.reports.length} reportes locales.</span>`;
       }
     }
   };
@@ -182,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.googleSheetsUrl) return;
 
     if (!isBackground && sheetsStatus) {
-      sheetsStatus.innerHTML = '⌛ Consultando en vivo hoja REPORTES_EMERGENCIA...';
+      sheetsStatus.innerHTML = '⌛ Consultando en vivo a Google Sheets...';
     }
 
     const callbackName = 'onLiveReportsReceived';
@@ -193,10 +244,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${state.googleSheetsUrl}?action=getAllReports&callback=${callbackName}`;
+    script.src = `${state.googleSheetsUrl}?action=getAllReports&callback=${callbackName}&_t=${Date.now()}`;
     script.onerror = function() {
       if (!isBackground && sheetsStatus) {
-        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">ℹ️ Mostrando reportes locales (Sincronización en segundo plano).</span>';
+        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">ℹ️ Mostrando reportes almacenados localmente.</span>';
       }
     };
     document.body.appendChild(script);
@@ -206,6 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateKPIs();
     renderTable();
     updateMapMarkers();
+    if (state.activeTab === 'analytics') {
+      renderAnalyticsDashboard();
+    }
   }
 
   function updateKPIs() {
@@ -220,6 +274,107 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('kpi-leve').textContent = leve;
     document.getElementById('kpi-urgente').textContent = urgente;
     document.getElementById('kpi-vivienda').textContent = sinLugar;
+  }
+
+  // RENDERIZADO DEL SEGUNDO TABLERO: ANALÍTICA DETALLADA DE TODAS LAS PREGUNTAS
+  function renderAnalyticsDashboard() {
+    const total = state.filteredReports.length || 1;
+
+    // 1. Apoyo Requerido
+    renderBarGroup('analytics-apoyo-list', [
+      { key: 'Estoy bien y seguro', label: '💚 Estoy bien y seguro', colorClass: 'success' },
+      { key: 'Requiero apoyo psicológico', label: '🧠 Apoyo Psicológico', colorClass: 'warning' },
+      { key: 'Requiero apoyo de trabajo social', label: '🤝 Trabajo Social', colorClass: 'warning' },
+      { key: 'Requiero apoyo jurídico', label: '⚖️ Apoyo Jurídico', colorClass: 'warning' },
+      { key: 'Requiero apoyo con medicamentos', label: '💊 Medicamentos', colorClass: 'danger' },
+      { key: 'Requiero apoyo con alimentos', label: '📦 Alimentos', colorClass: 'danger' }
+    ], 'situacionYApoyo', total);
+
+    // 2. Tipos de Sangre
+    renderBarGroup('analytics-sangre-list', [
+      { key: 'O+', label: '🩸 O Positivo (O+)', colorClass: 'primary' },
+      { key: 'O-', label: '🩸 O Negativo (O-)', colorClass: 'danger' },
+      { key: 'A+', label: '🩸 A Positivo (A+)', colorClass: 'primary' },
+      { key: 'A-', label: '🩸 A Negativo (A-)', colorClass: 'danger' },
+      { key: 'B+', label: '🩸 B Positivo (B+)', colorClass: 'primary' },
+      { key: 'No lo sé', label: '❓ Sin Registrar / No sabe', colorClass: '' }
+    ], 'tipoSangre', total);
+
+    // 3. Afectación de Vivienda
+    renderBarGroup('analytics-vivienda-list', [
+      { key: 'No presenta afectaciones', label: '💚 Sin Afectaciones', colorClass: 'success' },
+      { key: 'Presenta afectaciones menores que me permiten habitarla', label: '💛 Daños Menores (Habitable)', colorClass: 'warning' },
+      { key: 'Presenta afectaciones menores que NO me permiten habitarla', label: '🟠 Daños Menores (Inhabitable)', colorClass: 'danger' },
+      { key: 'Presenta afectaciones graves que me impiden habitarla', label: '🔴 Daños Graves (Inhabitable)', colorClass: 'danger' }
+    ], 'afectacionVivienda', total);
+
+    // 4. Grupo Familiar
+    renderBarGroup('analytics-familia-list', [
+      { key: 'Todos se encuentran bien', label: '💚 Todos se encuentran bien', colorClass: 'success' },
+      { key: 'Tengo familiares con afectaciones leves', label: '💛 Afectaciones leves en familia', colorClass: 'warning' },
+      { key: 'Tengo familiares lesionados que requieren atención', label: '🚑 Familiares lesionados', colorClass: 'danger' },
+      { key: 'Tengo familiares recibiendo atención médica', label: '🏥 En atención médica', colorClass: 'danger' },
+      { key: 'Tengo familiares que requieren apoyo psicosocial', label: '🧠 Apoyo psicosocial familiar', colorClass: 'warning' },
+      { key: 'Tengo pérdida de uno o más familiares', label: '🖤 Pérdida de familiares', colorClass: 'danger' }
+    ], 'estadoFamilia', total);
+
+    // 5. Tenencia Vivienda
+    renderBarGroup('analytics-tenencia-list', [
+      { key: 'Propia', label: '🏠 Vivienda Propia', colorClass: 'primary' },
+      { key: 'Familiar', label: '🏡 Vivienda Familiar', colorClass: 'primary' },
+      { key: 'Arrendada', label: '🔑 Vivienda Arrendada', colorClass: 'primary' },
+      { key: 'Otra', label: '📦 Otra modalidad', colorClass: '' }
+    ], 'tipoVivienda', total);
+
+    // 6. Lugar Seguro y Personas
+    renderBarGroup('analytics-seguridad-list', [
+      { key: 'Si', label: '👍 Con Lugar Seguro', colorClass: 'success' },
+      { key: 'No', label: '👎 Sin Lugar Seguro (Riesgo)', colorClass: 'danger' }
+    ], 'lugarSeguro', total);
+
+    // 7. Presencialidad
+    renderBarGroup('analytics-presencial-list', [
+      { key: 'Sí', label: '🏢 Requiere Presencialidad', colorClass: 'primary' },
+      { key: 'No', label: '💻 Puede hacer Teletrabajo', colorClass: 'success' }
+    ], 'presencialidadObligatoria', total);
+
+    // 8. Condiciones Óptimas (Net / Energía)
+    renderBarGroup('analytics-condiciones-list', [
+      { key: 'Sí', label: '⚡ Con Internet y Energía Óptimos', colorClass: 'success' },
+      { key: 'No', label: '❌ Incomunicado / Sin Luz', colorClass: 'danger' }
+    ], 'condicionesOptimas', total);
+
+    // 9. Herramientas completas
+    renderBarGroup('analytics-herramientas-list', [
+      { key: 'Sí', label: '💻 Equipos Completos (Portátil/Cargador)', colorClass: 'success' },
+      { key: 'No', label: '⚠️ Sin Equipos de Trabajo', colorClass: 'danger' }
+    ], 'herramientasTrabajo', total);
+  }
+
+  function renderBarGroup(containerId, optionsConfig, fieldName, total) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = optionsConfig.map(opt => {
+      const count = state.filteredReports.filter(r => {
+        const val = r[fieldName] || '';
+        return val.toLowerCase().includes(opt.key.toLowerCase());
+      }).length;
+
+      const pct = Math.round((count / total) * 100);
+
+      return `
+        <div class="analytics-bar-item">
+          <div class="analytics-bar-label">
+            <span>${opt.label}</span>
+            <span><strong>${count}</strong> (${pct}%)</span>
+          </div>
+          <div class="analytics-bar-bg">
+            <div class="analytics-bar-fill ${opt.colorClass}" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   function renderTable() {

@@ -1,6 +1,6 @@
 /* ==========================================================================
    COMFAMILIAR RISARALDA - PANEL DE ADMINISTRACIÓN Y SST
-   Estilos con Logo Oficial Transparente sobre Fondo Azul
+   Estilos para Navegación por Pestañas y Tablero de Analítica Detallada
    ========================================================================== */
 
 :root {
@@ -21,7 +21,7 @@
   --bg-card: #FFFFFF;
   --text-main: #1E293B;
   --text-muted: #64748B;
-  --border: #E2E8F0;
+  --border: #CBD5E1;
 
   --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --radius-sm: 8px;
@@ -111,7 +111,6 @@ body {
   gap: 14px;
 }
 
-/* LOGO TRANSPARENTE SOBRE AZUL */
 .brand-logo-img {
   height: 42px !important;
   max-height: 42px !important;
@@ -178,11 +177,45 @@ body {
 }
 
 .main-container {
-  max-width: 1200px;
-  margin: 24px auto;
+  max-width: 1240px;
+  margin: 20px auto;
   padding: 0 16px;
   width: 100%;
   flex: 1;
+}
+
+/* Navegación por Pestañas del Dashboard SST */
+.dashboard-tabs-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.dash-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.dash-tab-btn:hover {
+  color: var(--primary);
+  background: rgba(0, 51, 102, 0.04);
+}
+
+.dash-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--secondary);
+  background: #FFFFFF;
+  box-shadow: 0 -4px 12px rgba(0, 51, 102, 0.05);
 }
 
 .card {
@@ -195,26 +228,84 @@ body {
 }
 
 .card-title {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   color: var(--primary);
   font-weight: 800;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-[data-theme="dark"] .card-title {
-  color: var(--secondary);
-}
-
 .card-subtitle {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   margin-bottom: 20px;
 }
 
-/* KPIs */
+/* Grid del Tablero de Analítica */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.analytics-card {
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+
+.analytics-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 14px;
+  border-bottom: 2px solid rgba(0, 51, 102, 0.1);
+  padding-bottom: 6px;
+}
+
+.bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analytics-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.analytics-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.analytics-bar-bg {
+  height: 10px;
+  background: #E2E8F0;
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.analytics-bar-fill {
+  height: 100%;
+  background: var(--secondary);
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.analytics-bar-fill.danger { background: var(--danger); }
+.analytics-bar-fill.warning { background: var(--accent); }
+.analytics-bar-fill.primary { background: var(--primary); }
+
+/* KPIs generales */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -251,8 +342,6 @@ body {
   color: var(--primary);
   margin: 4px 0;
 }
-
-[data-theme="dark"] .kpi-value { color: #FFFFFF; }
 
 .kpi-subtext {
   font-size: 0.78rem;
