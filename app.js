@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Control Silencioso de Desconexión a Internet (ERR_NAME_NOT_RESOLVED / Off-line)
+ * Visualización de Integrantes Familiares Afectados (Abuelos, Padres, Hijos, Nietos)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -250,7 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function fetchLiveReportsFromSheets(isBackground = false) {
     if (!state.googleSheetsUrl) return;
 
-    // Si el usuario no tiene conexión a internet activa, no lanzar peticiones fallidas
     if (!navigator.onLine) {
       if (!isBackground && sheetsStatus) {
         sheetsStatus.innerHTML = '<span style="color:var(--danger)">📶 Sin conexión a Internet temporalmente. Mostrando reportes en memoria.</span>';
@@ -306,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAnalyticsDashboard() {
     const total = state.filteredReports.length || 1;
 
+    // 1. Apoyo Requerido
     renderBarGroup('analytics-apoyo-list', [
       { key: 'Estoy bien y seguro', label: '💚 Estoy bien y seguro', colorClass: 'success' },
       { key: 'Requiero apoyo psicológico', label: '🧠 Apoyo Psicológico', colorClass: 'warning' },
@@ -315,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Requiero apoyo con alimentos', label: '📦 Alimentos', colorClass: 'danger' }
     ], 'situacionYApoyo', total);
 
+    // 2. Tipos de Sangre
     renderBarGroup('analytics-sangre-list', [
       { key: 'O+', label: '🩸 O Positivo (O+)', colorClass: 'primary' },
       { key: 'O-', label: '🩸 O Negativo (O-)', colorClass: 'danger' },
@@ -324,6 +325,17 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'No lo sé', label: '❓ Sin Registrar / No sabe', colorClass: '' }
     ], 'tipoSangre', total);
 
+    // 3. NUEVA CARD: INTEGRANTES DEL GRUPO FAMILIAR AFECTADOS
+    renderBarGroup('analytics-familiares-afectados-list', [
+      { key: 'Abuelos', label: '👴 Abuelos Afectados', colorClass: 'danger' },
+      { key: 'Padres', label: '👨‍👩‍👦 Padres Afectados', colorClass: 'warning' },
+      { key: 'Hijos', label: '👶 Hijos Afectados (Menores)', colorClass: 'danger' },
+      { key: 'Nietos', label: '🍼 Nietos Afectados', colorClass: 'danger' },
+      { key: 'Hermanos', label: '👫 Hermanos Afectados', colorClass: 'warning' },
+      { key: 'Otros', label: '👥 Otros Familiares', colorClass: 'primary' }
+    ], 'estadoFamilia', total);
+
+    // 4. Afectación de Vivienda
     renderBarGroup('analytics-vivienda-list', [
       { key: 'No presenta afectaciones', label: '💚 Sin Afectaciones', colorClass: 'success' },
       { key: 'Presenta afectaciones menores que me permiten habitarla', label: '💛 Daños Menores (Habitable)', colorClass: 'warning' },
@@ -331,6 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Presenta afectaciones graves que me impiden habitarla', label: '🔴 Daños Graves (Inhabitable)', colorClass: 'danger' }
     ], 'afectacionVivienda', total);
 
+    // 5. Grupo Familiar
     renderBarGroup('analytics-familia-list', [
       { key: 'Todos se encuentran bien', label: '💚 Todos se encuentran bien', colorClass: 'success' },
       { key: 'Tengo familiares con afectaciones leves', label: '💛 Afectaciones leves en familia', colorClass: 'warning' },
@@ -340,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Tengo pérdida de uno o más familiares', label: '🖤 Pérdida de familiares', colorClass: 'danger' }
     ], 'estadoFamilia', total);
 
+    // 6. Tenencia Vivienda
     renderBarGroup('analytics-tenencia-list', [
       { key: 'Propia', label: '🏠 Vivienda Propia', colorClass: 'primary' },
       { key: 'Familiar', label: '🏡 Vivienda Familiar', colorClass: 'primary' },
@@ -347,21 +361,25 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Otra', label: '📦 Otra modalidad', colorClass: '' }
     ], 'tipoVivienda', total);
 
+    // 7. Lugar Seguro
     renderBarGroup('analytics-seguridad-list', [
       { key: 'Si', label: '👍 Con Lugar Seguro', colorClass: 'success' },
       { key: 'No', label: '👎 Sin Lugar Seguro (Riesgo)', colorClass: 'danger' }
     ], 'lugarSeguro', total);
 
+    // 8. Presencialidad
     renderBarGroup('analytics-presencial-list', [
       { key: 'Sí', label: '🏢 Requiere Presencialidad', colorClass: 'primary' },
       { key: 'No', label: '💻 Puede hacer Teletrabajo', colorClass: 'success' }
     ], 'presencialidadObligatoria', total);
 
+    // 9. Condiciones Óptimas (Net / Energía)
     renderBarGroup('analytics-condiciones-list', [
       { key: 'Sí', label: '⚡ Con Internet y Energía Óptimos', colorClass: 'success' },
       { key: 'No', label: '❌ Incomunicado / Sin Luz', colorClass: 'danger' }
     ], 'condicionesOptimas', total);
 
+    // 10. Herramientas completas
     renderBarGroup('analytics-herramientas-list', [
       { key: 'Sí', label: '💻 Equipos Completos (Portátil/Cargador)', colorClass: 'success' },
       { key: 'No', label: '⚠️ Sin Equipos de Trabajo', colorClass: 'danger' }
@@ -414,6 +432,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
       const callBtn = phoneClean ? `<a href="tel:${phoneClean}" class="action-btn-sm btn-call">📞 Llamar</a>` : '';
 
+      // Formatear texto de familia para resaltar familiares afectados entre corchetes
+      let estadoFamiliaText = r.estadoFamilia || 'Bien';
+      if (estadoFamiliaText.includes('[Afectados:')) {
+        estadoFamiliaText = estadoFamiliaText.replace('[Afectados:', '<br><span style="background:rgba(220,53,69,0.1); color:#DC3545; font-weight:800; padding:2px 6px; border-radius:6px; font-size:0.75rem;">👴👶 Afectados:').replace(']', '</span>');
+      }
+
       return `
         <tr>
           <td>
@@ -432,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${criticidadBadge}</td>
           <td>
             <strong>${r.situacionYApoyo || r.estadoSalud || 'Sin novedad'}</strong><br>
-            <small style="color:var(--text-muted)">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'} • Familia: ${r.estadoFamilia || 'Bien'}</small>
+            <small style="color:var(--text-muted)">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'}<br>👨‍👩‍👧‍👦 Familia: ${estadoFamiliaText}</small>
           </td>
           <td><small>${r.timestamp || 'Reciente'}</small></td>
           <td>

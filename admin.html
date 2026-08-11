@@ -112,7 +112,7 @@
 
     <!-- ENCABEZADO DE IMPRESIÓN OFICIAL PARA EL PDF -->
     <div class="print-only-header">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #003366; padding-bottom:12px; margin-bottom:16px;">
+      <div style="display:flex; justify-space-between; align-items:center; border-bottom:3px solid #003366; padding-bottom:12px; margin-bottom:16px;">
         <div>
           <h1 style="font-size:1.4rem; color:#003366; font-weight:800; margin:0;">COMFAMILIAR RISARALDA - INFORME EJECUTIVO DE EMERGENCIA SST</h1>
           <p style="font-size:0.85rem; color:#64748B; margin-top:2px;">Consolidado Estadístico de Salud, Seguridad y Condiciones de Hogar del Personal</p>
@@ -125,7 +125,7 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- TABLERO 1: MONITOREO GENERAL, MAPA (SIN DETALLE INDIVIDUAL DE TRABAJADORES) -->
+    <!-- TABLERO 1: MONITOREO GENERAL, MAPA Y TABLA DE CONTACTO -->
     <!-- ========================================================================= -->
     <div id="tab-content-main" class="tab-page-content">
       <div class="card">
@@ -192,7 +192,7 @@
           </div>
         </div>
 
-        <!-- TABLA DE DETALLE INDIVIDUAL DE TRABAJADORES (EXCLUIDA EN EL PDF/IMPRESIÓN) -->
+        <!-- TABLA DE DETALLE INDIVIDUAL DE TRABAJADORES -->
         <div class="reports-table-container no-print">
           <table class="reports-table">
             <thead>
@@ -216,7 +216,7 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- TABLERO 2: ANALÍTICA DETALLADA DE PREGUNTAS (SIEMPRE INCLUIDO EN EL PDF) -->
+    <!-- TABLERO 2: ANALÍTICA DETALLADA DE PREGUNTAS Y VULNERABILIDAD FAMILIAR -->
     <!-- ========================================================================= -->
     <div id="tab-content-analytics" class="tab-page-content">
       
@@ -244,17 +244,23 @@
         </div>
       </div>
 
-      <!-- SECCIÓN 2: CONDICIONES DEL HOGAR Y VIVIENDA -->
+      <!-- SECCIÓN 2: CONDICIONES DEL HOGAR, VIVIENDA Y FAMILIARES AFECTADOS -->
       <div class="card">
         <h2 class="card-title">
-          <span>🏠</span> Analítica de Vivienda y Grupo Familiar
+          <span>🏠</span> Analítica de Vivienda y Vulnerabilidad Familiar
         </h2>
         <p class="card-subtitle">
-          Diagnóstico del nivel de afectación física en hogares, tenencia de vivienda y estado de familiares.
+          Diagnóstico del nivel de afectación física en hogares, tenencia de vivienda y detalle de familiares vulnerables (Abuelos, Padres, Hijos, Nietos).
         </p>
 
         <div class="analytics-grid">
           
+          <!-- CARD DESTACADA: DETALLE DE FAMILIARES AFECTADOS (ABUELOS, PADRES, HIJOS, NIETOS) -->
+          <div class="analytics-card" style="border: 2px solid var(--primary);">
+            <h3 class="analytics-card-title" style="color:var(--primary);">👵👶 Integrantes del Grupo Familiar Afectados</h3>
+            <div id="analytics-familiares-afectados-list" class="bars-container"></div>
+          </div>
+
           <div class="analytics-card">
             <h3 class="analytics-card-title">🏚️ Afectación de Vivienda</h3>
             <div id="analytics-vivienda-list" class="bars-container"></div>
