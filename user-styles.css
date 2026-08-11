@@ -1,0 +1,348 @@
+/* ==========================================================================
+   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA (VERSIÓN USUARIO)
+   Diseño Ultra-Simplificado, Accesible e Intuitivo para Situaciones de Crisis
+   ========================================================================== */
+
+:root {
+  --primary: #003366;          /* Azul Institucional Comfamiliar */
+  --primary-light: #004D99;
+  --secondary: #00A88F;        /* Turquesa Comfamiliar */
+  --secondary-hover: #008F7A;
+  --accent: #FFB703;
+  --danger: #DC3545;
+  --danger-bg: #FEE2E2;
+  --success: #25D366;
+  --success-bg: #DCFCE7;
+  --warning-bg: #FEF3C7;
+  
+  --bg-main: #F0F4F8;
+  --bg-card: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+  --border: #CBD5E1;
+
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --radius: 16px;
+  --shadow: 0 10px 25px rgba(0, 51, 102, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Compacto */
+.user-header {
+  background: linear-gradient(135deg, var(--primary) 0%, #001F3F 100%);
+  color: #FFFFFF;
+  padding: 16px 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.brand-badge {
+  background: var(--secondary);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.admin-shortcut-link {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.admin-shortcut-link:hover {
+  background: var(--secondary);
+  color: #FFFFFF;
+}
+
+/* Ticker Alerta */
+.alert-banner {
+  background: #DC3545;
+  color: #FFFFFF;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 12px;
+}
+
+/* Contenedor Principal */
+.user-container {
+  max-width: 580px;
+  margin: 16px auto;
+  padding: 0 16px 32px 16px;
+  width: 100%;
+}
+
+.user-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0, 51, 102, 0.08);
+}
+
+/* PASO 1: CEDULA LOOKUP */
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.step-number {
+  background: var(--primary);
+  color: #FFFFFF;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.step-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.cedula-big-input-wrapper {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cedula-big-input {
+  flex: 1;
+  padding: 16px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  letter-spacing: 1px;
+  text-align: center;
+  color: var(--primary);
+  background: #F8FAFC;
+}
+
+.cedula-big-input:focus {
+  outline: none;
+  border-color: var(--secondary);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(0, 168, 143, 0.15);
+}
+
+.btn-verify-cc {
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-verify-cc:hover {
+  background: var(--primary-light);
+}
+
+/* Tarjeta Saludo Empleado */
+.greeting-box {
+  background: linear-gradient(135deg, rgba(0, 168, 143, 0.1) 0%, rgba(0, 51, 102, 0.05) 100%);
+  border-left: 5px solid var(--secondary);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.greeting-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.greeting-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* TARJETAS DE SELECCIÓN RÁPIDA (BOTONES GRANDES TOUCH) */
+.question-block {
+  margin-bottom: 24px;
+}
+
+.question-label {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.touch-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.touch-option-btn {
+  background: #FFFFFF;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.touch-option-btn:hover {
+  border-color: var(--secondary);
+  transform: translateY(-1px);
+}
+
+.touch-option-btn.selected {
+  border-color: var(--secondary);
+  background: rgba(0, 168, 143, 0.08);
+  box-shadow: 0 0 0 2px var(--secondary);
+}
+
+.touch-option-btn.selected.danger {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.touch-option-btn.selected.warning {
+  border-color: var(--accent);
+  background: var(--warning-bg);
+}
+
+.touch-icon {
+  font-size: 1.8rem;
+  min-width: 36px;
+  text-align: center;
+}
+
+.touch-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.touch-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* GPS Simplificado */
+.gps-easy-box {
+  background: #F8FAFC;
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.btn-gps-easy {
+  background: var(--secondary);
+  color: #FFFFFF;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 168, 143, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botón Grande de Envío */
+.btn-submit-user {
+  width: 100%;
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 20px;
+  border-radius: 16px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 168, 143, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.btn-submit-user:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0, 168, 143, 0.45);
+}
+
+/* Pantalla Éxito */
+.success-screen {
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.big-check {
+  width: 80px;
+  height: 80px;
+  background: var(--success-bg);
+  color: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  margin: 0 auto 20px auto;
+}

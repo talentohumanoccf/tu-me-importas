@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comfamiliar Risaralda - Reporte de Estado en Emergencia</title>
+  
+  <meta name="description" content="Portal de reporte exprés de emergencia para empleados de Comfamiliar Risaralda.">
+  <meta name="theme-color" content="#003366">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="user-styles.css">
+</head>
+<body>
+
+  <!-- Encabezado Institucional -->
+  <header class="user-header">
+    <div class="brand-title">
+      🏢 Comfamiliar Risaralda
+      <span class="brand-badge">SST</span>
+    </div>
+    <p style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">Sistema de Reporte Exprés - Emergencia Eje Cafetero</p>
+    <a href="admin.html" class="admin-shortcut-link">⚙️ Acceso Administrador / SST</a>
+  </header>
+
+  <!-- Banner de Emergencia -->
+  <div class="alert-banner">
+    🚨 ATENCIÓN DE EMERGENCIA • REPORTA TU ESTADO EN 30 SEGUNDOS
+  </div>
+
+  <main class="user-container">
+    <div class="user-card">
+
+      <!-- PASO 1: CEDULA -->
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <div class="step-title">Ingresa tu Cédula de Ciudadanía</div>
+      </div>
+
+      <div class="cedula-big-input-wrapper">
+        <input type="number" id="user-cc-input" class="cedula-big-input" placeholder="Tu número de Cédula" autocomplete="off">
+        <button type="button" id="btn-verify-cc" class="btn-verify-cc">Ingresar</button>
+      </div>
+
+      <!-- Mensaje de Bienvenida Personalizado -->
+      <div id="user-greeting-box" class="greeting-box" style="display: none;">
+        <div id="user-emp-name" class="greeting-name">¡Hola!</div>
+        <div id="user-emp-meta" class="greeting-meta">Confírmanos tu estado actual.</div>
+      </div>
+
+      <!-- FORMULARIO ULTRA-SIMPLIFICADO -->
+      <form id="user-report-form">
+        <div id="user-form-section" style="display: none;">
+          
+          <!-- PREGUNTA 1: SALUD -->
+          <div class="question-block">
+            <div class="question-label">
+              <span>🩺</span> 1. ¿Cómo te encuentras de salud?
+            </div>
+            <div class="touch-options-grid">
+              <button type="button" class="touch-option-btn selected" data-group="salud" data-value="bien">
+                <div class="touch-icon">💚</div>
+                <div>
+                  <div class="touch-title">Estoy Bien</div>
+                  <div class="touch-desc">Sin heridas ni problemas médicos de gravedad.</div>
+                </div>
+              </button>
+              <button type="button" class="touch-option-btn warning" data-group="salud" data-value="lesion_leve">
+                <div class="touch-icon">💛</div>
+                <div>
+                  <div class="touch-title">Tengo una Lesión Leve</div>
+                  <div class="touch-desc">Golpe o corte menor. Me encuentro estable.</div>
+                </div>
+              </button>
+              <button type="button" class="touch-option-btn danger" data-group="salud" data-value="emergencia_grave">
+                <div class="touch-icon">🔴</div>
+                <div>
+                  <div class="touch-title">Emergencia Médica URGENTE</div>
+                  <div class="touch-desc">Requiero ambulancia o auxilio inmediato.</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- PREGUNTA 2: FAMILIA -->
+          <div class="question-block">
+            <div class="question-label">
+              <span>👨‍👩‍👧‍👦</span> 2. ¿Cómo está tu familia?
+            </div>
+            <div class="touch-options-grid">
+              <button type="button" class="touch-option-btn selected" data-group="familia" data-value="bien">
+                <div class="touch-icon">💚</div>
+                <div>
+                  <div class="touch-title">Todos están Bien</div>
+                  <div class="touch-desc">Mi grupo familiar se encuentra a salvo.</div>
+                </div>
+              </button>
+              <button type="button" class="touch-option-btn warning" data-group="familia" data-value="afectados_menores">
+                <div class="touch-icon">💛</div>
+                <div>
+                  <div class="touch-title">Afectaciones Leves / Incomunicados</div>
+                  <div class="touch-desc">Sin heridos graves pero buscando señal.</div>
+                </div>
+              </button>
+              <button type="button" class="touch-option-btn danger" data-group="familia" data-value="emergencia_grave">
+                <div class="touch-icon">🔴</div>
+                <div>
+                  <div class="touch-title">Familiar en Riesgo Vital</div>
+                  <div class="touch-desc">Se requiere rescate o ayuda médica.</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- PREGUNTA 3: VIVIENDA -->
+          <div class="question-block">
+            <div class="question-label">
+              <span>🏠</span> 3. ¿En qué estado quedó tu vivienda?
+            </div>
+            <div class="touch-options-grid">
+              <button type="button" class="touch-option-btn selected" data-group="vivienda" data-value="bien">
+                <div class="touch-icon">💚</div>
+                <div>
+                  <div class="touch-title">Habitable y Sin Daños</div>
+                  <div class="touch-desc">Estructura segura.</div>
+                </div>
+              </button>
+              <button type="button" class="touch-option-btn warning" data-group="vivienda" data-value="daños_menores">
+                <div class="touch-icon">💛</div>
+                <div>
+                  <div class="touch-title">Daños Menores</div>
+                  <div class="touch-desc">Vidrios rotos o tejas zafadas.</div>
+                </div>
+              </button>
+              <button type="button" class="touch-option-btn danger" data-group="vivienda" data-value="inhabitable">
+                <div class="touch-icon">🔴</div>
+                <div>
+                  <div class="touch-title">Inhabitable / Destruida</div>
+                  <div class="touch-desc">Paredes o techos colapsados / Evacuados.</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- UBICACIÓN Y MUNICIPIO -->
+          <div class="question-block">
+            <div class="question-label">
+              <span>📍</span> 4. ¿En qué municipio estás?
+            </div>
+            <select id="user-municipio-select" style="width:100%; padding:14px; border-radius:12px; border:2px solid var(--border); font-size:1rem; font-weight:700; color:var(--primary); background:#FFF;">
+              <option value="Pereira">Pereira (Risaralda)</option>
+              <option value="Dosquebradas">Dosquebradas (Risaralda)</option>
+              <option value="La Virginia">La Virginia (Risaralda)</option>
+              <option value="Santa Rosa de Cabal">Santa Rosa de Cabal (Risaralda)</option>
+              <option value="Belén de Umbría">Belén de Umbría</option>
+              <option value="Marsella">Marsella</option>
+              <option value="Manizales">Manizales (Caldas)</option>
+              <option value="Armenia">Armenia (Quindío)</option>
+              <option value="Otro">Otro Municipio</option>
+            </select>
+          </div>
+
+          <div class="question-block">
+            <label style="font-weight:700; font-size:0.9rem; margin-bottom:6px; display:block;">Barrio o Dirección Actual:</label>
+            <input type="text" id="user-direccion-input" placeholder="Ej: Barrio Cuba, Calle 10 # 20-30" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); font-size:0.95rem;">
+          </div>
+
+          <div class="question-block">
+            <label style="font-weight:700; font-size:0.9rem; margin-bottom:6px; display:block;">Teléfono Celular de Contacto:</label>
+            <input type="tel" id="user-phone-input" placeholder="Ej: 312 456 7890" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); font-size:0.95rem;">
+          </div>
+
+          <!-- GPS -->
+          <div class="gps-easy-box">
+            <button type="button" id="btn-user-gps" class="btn-gps-easy">
+              📍 Compartir Mi Ubicación GPS Exacta
+            </button>
+            <div id="user-gps-status" style="font-size: 0.8rem; margin-top: 8px; color: var(--text-muted);">
+              Presiona si requieres que los brigadistas conozcan tu coordenada.
+            </div>
+          </div>
+
+          <div class="question-block">
+            <label style="font-weight:700; font-size:0.9rem; margin-bottom:6px; display:block;">Mensaje Adicional u Observaciones:</label>
+            <textarea id="user-obs-textarea" rows="2" placeholder="Escribe si necesitas agua, medicamentos o apoyo específico..." style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); font-size:0.9rem; font-family:inherit;"></textarea>
+          </div>
+
+          <!-- BOTÓN FINAL -->
+          <button type="submit" class="btn-submit-user">
+            <span>📢 ENVIAR MI REPORTE AHORA</span>
+          </button>
+
+        </div>
+      </form>
+
+      <!-- PANTALLA DE ÉXITO -->
+      <div id="user-success-section" class="success-screen" style="display: none;">
+        <div class="big-check">✅</div>
+        <h2 style="font-size: 1.6rem; color: var(--primary); font-weight: 800; margin-bottom: 8px;">¡Reporte Enviado!</h2>
+        <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 20px;">
+          Gracias por notificar tu estado. Tu información ya fue recibida por el Comité de Emergencia de <strong>Comfamiliar Risaralda</strong>.
+        </p>
+
+        <div style="background: rgba(0, 168, 143, 0.1); padding: 16px; border-radius: 12px; text-align: left; font-size: 0.9rem; margin-bottom: 24px;">
+          📌 Si tu situación cambia o requieres asistencia adicional, puedes volver a ingresar tu cédula y actualizar el reporte.
+        </div>
+
+        <button type="button" id="btn-user-reset" class="btn-submit-user" style="background: var(--primary);">
+          🔄 Enviar Otro Reporte o Finalizar
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="mock-data.js"></script>
+  <script src="user-app.js"></script>
+</body>
+</html>

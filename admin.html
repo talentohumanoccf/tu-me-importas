@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comfamiliar Risaralda - Panel de Administración y SST</title>
+  
+  <meta name="description" content="Centro de Operaciones de Emergencia y Tablero SST Comfamiliar Risaralda.">
+  <meta name="theme-color" content="#003366">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Ticker de Emergencia -->
+  <div class="emergency-ticker">
+    <div class="ticker-content">
+      <div class="pulse-dot"></div>
+      <span>📊 PUE COMFAMILIAR RISARALDA • CENTRO DE OPERACIONES DE EMERGENCIA (COE) • MANDO DE SALUD Y RIESGOS</span>
+    </div>
+    <a href="usuario.html" style="color:#FFF; text-decoration:underline; font-size:0.8rem;">📱 Ver Versión Usuario</a>
+  </div>
+
+  <!-- Encabezado -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-logo">C</div>
+      <div class="brand-text">
+        <h1>Comfamiliar Risaralda - Administrador SST</h1>
+        <p>Salud y Seguridad en el Trabajo & Gestión del Riesgo</p>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <button id="btn-lock-admin" class="nav-tab-btn" style="background:rgba(220, 53, 69, 0.2); border-color:#DC3545; display:none;">
+        🔒 Bloquear Sesión
+      </button>
+      <a href="usuario.html" class="nav-tab-btn" style="text-decoration:none;">
+        👤 Portal de Empleados
+      </a>
+      <button id="theme-toggle-btn" class="theme-toggle-btn">🌙</button>
+    </div>
+  </header>
+
+  <!-- PANTALLA DE AUTENTICACIÓN / SEGURIDAD PIN -->
+  <div id="admin-login-screen" class="modal-backdrop" style="display: flex;">
+    <div class="modal-card" style="max-width: 440px;">
+      <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
+      <h2 style="font-size: 1.5rem; color: var(--primary); font-weight: 800; margin-bottom: 6px;">Acceso Protegido SST</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+        Ingresa el PIN de seguridad asignado al Comité de Emergencias de Comfamiliar Risaralda.
+      </p>
+
+      <form id="admin-login-form">
+        <div class="form-group">
+          <input type="password" id="admin-pin-input" class="form-control" placeholder="••••••••" style="font-size: 1.5rem; text-align: center; letter-spacing: 4px; font-weight: 800;" autocomplete="off" required>
+        </div>
+        
+        <div id="login-error-msg" style="color: var(--danger); font-size: 0.85rem; font-weight: 700; display: none; margin-bottom: 12px;">
+          ❌ PIN o Clave de acceso incorrecta.
+        </div>
+
+        <button type="submit" class="btn-submit-emergency" style="background: var(--primary); margin-top: 0;">
+          🔑 Desbloquear Panel de Control
+        </button>
+
+        <div style="margin-top: 16px; font-size: 0.78rem; color: var(--text-muted); background: rgba(0,51,102,0.05); padding: 8px; border-radius: 8px;">
+          💡 <em>PIN de Demostración por defecto:</em> <strong>2026</strong> o <strong>comfamiliar2026</strong>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL PROTEGIDO -->
+  <main id="admin-main-content" class="main-container" style="display: none;">
+    
+    <!-- TARJETA PRINCIPAL DEL DASHBOARD -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+        <h2 class="card-title">
+          <span>📊</span> Tablero de Monitoreo de Emergencia Eje Cafetero
+        </h2>
+        <div style="display:flex; gap:10px;">
+          <button id="btn-change-pin" class="nav-tab-btn" style="background: rgba(0,51,102,0.1); color:var(--primary); border:1px solid var(--primary);">
+            🔑 Cambiar PIN
+          </button>
+          <button id="btn-export-csv" class="btn-search" style="background: var(--secondary); font-size:0.9rem;">
+            📥 Exportar Reporte CSV / Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIS -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-header">Total Reportados</div>
+          <div class="kpi-value" id="kpi-total">0</div>
+          <div class="kpi-subtext">Colaboradores registrados</div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-header">A Salvo</div>
+          <div class="kpi-value" id="kpi-salvo">0</div>
+          <div class="kpi-subtext">Sin afectaciones críticas</div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-header">Afectación Leve</div>
+          <div class="kpi-value" id="kpi-leve">0</div>
+          <div class="kpi-subtext">En observación</div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-header">Casos Urgentes</div>
+          <div class="kpi-value" id="kpi-urgente">0</div>
+          <div class="kpi-subtext">Atención Prioridad 1</div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-header">Viviendas Dañadas</div>
+          <div class="kpi-value" id="kpi-vivienda">0</div>
+          <div class="kpi-subtext">Inhabitables o colapsadas</div>
+        </div>
+      </div>
+
+      <!-- MAPA DE EMERGENCIA -->
+      <h3 style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
+        🗺️ Ubicación Satelital de Empleados en el Eje Cafetero
+      </h3>
+      <div id="emergency-map"></div>
+
+      <!-- FILTROS -->
+      <div class="filter-bar" style="margin-top: 24px;">
+        <div class="filter-input">
+          <input type="text" id="filter-search" class="form-control" placeholder="🔍 Buscar colaborador por Nombre, Cédula o Sede...">
+        </div>
+        <div>
+          <select id="filter-status" class="form-control">
+            <option value="all">Todos los Niveles</option>
+            <option value="rojo">🔴 Críticos / Urgentes</option>
+            <option value="amarillo">💛 Afectación Leve</option>
+            <option value="verde">💚 A Salvo</option>
+          </select>
+        </div>
+        <div>
+          <select id="filter-municipio" class="form-control">
+            <option value="all">Todos los Municipios</option>
+            <option value="Pereira">Pereira</option>
+            <option value="Dosquebradas">Dosquebradas</option>
+            <option value="La Virginia">La Virginia</option>
+            <option value="Santa Rosa de Cabal">Santa Rosa de Cabal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TABLA DE REPORTES -->
+      <div class="reports-table-container">
+        <table class="reports-table">
+          <thead>
+            <tr>
+              <th>Colaborador</th>
+              <th>Sede / Área</th>
+              <th>Ubicación</th>
+              <th>Estado</th>
+              <th>Detalles</th>
+              <th>Fecha/Hora</th>
+              <th>Acción Inmediata</th>
+            </tr>
+          </thead>
+          <tbody id="admin-reports-tbody">
+            <!-- Dinámico por JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECCIÓN CONFIGURACIÓN GOOGLE SHEETS -->
+    <div class="card">
+      <h2 class="card-title">
+        <span>⚙️</span> Integración con Google Sheets para el Equipo SST
+      </h2>
+      <p class="card-subtitle">
+        Vincula tu hoja de cálculo central para sincronizar los reportes automáticamente en tiempo real.
+      </p>
+
+      <div style="background: rgba(0,51,102,0.04); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius-md); margin-bottom: 20px;">
+        <label style="font-weight:700; color:var(--primary); display:block; margin-bottom:8px;">Endpoint de Google Apps Script Web App:</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <input type="url" id="admin-sheets-url" class="form-control" style="flex:1; min-width:280px;" placeholder="https://script.google.com/macros/s/.../exec">
+          <button id="btn-save-sheets" class="btn-search" style="background:var(--primary);">💾 Guardar URL</button>
+          <button id="btn-test-sheets" class="btn-search" style="background:var(--secondary);">📡 Probar Conexión</button>
+        </div>
+        <div id="admin-sheets-status" style="margin-top:10px; font-weight:700; font-size:0.9rem;"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+/**
+ * BASE DE DATOS MOCK ADAPTADA A LA ESTRUCTURA EXACTA DE HOJA: BASE_PX
+ * CAMPOS: DOCUMENTO, NOMBRE, CARGO, EMAIL, CONTRATO, PROCESO, AREA, Sexo, SEDE, TELEFONO, DIRECCIÓN, MUNICIPIO, MODELO TRABAJO
+ */
+
+window.MOCK_EMPLOYEES_DB = {
+  "1088234567": {
+    documento: "1088234567",
+    cedula: "1088234567",
+    nombre: "Carlos Andrés Gutiérrez Morales",
+    cargo: "Analista de Salud y Seguridad en el Trabajo",
+    email: "cgutierrez@comfamiliar.com",
+    contrato: "Término Indefinido",
+    proceso: "Gestión Humana y Riesgos",
+    area: "Salud Ocupacional (SST)",
+    sexo: "M",
+    sede: "Sede Administrativa Circunvalar",
+    telefono: "3124567890",
+    direccion: "Barrio Pinares, Cl 14 # 23-45",
+    municipio: "Pereira",
+    modeloTrabajo: "Presencial"
+  },
+  "1088987654": {
+    documento: "1088987654",
+    cedula: "1088987654",
+    nombre: "María Fernanda Jaramillo Ospina",
+    cargo: "Enfermera Jefa",
+    email: "mjaramillo@comfamiliar.com",
+    contrato: "Término Indefinido",
+    proceso: "Prestación de Servicios de Salud",
+    area: "Hospitalización - Clínica Comfamiliar",
+    sexo: "F",
+    sede: "Clínica Comfamiliar Av. 30 de Agosto",
+    telefono: "3157891234",
+    direccion: "Barrio Valher, Cra 16 # 12-08",
+    municipio: "Dosquebradas",
+    modeloTrabajo: "Presencial Turnos"
+  },
+  "42156789": {
+    documento: "42156789",
+    cedula: "42156789",
+    nombre: "Gloria Inés Bermúdez Cardona",
+    cargo: "Docente de Educación Inicial",
+    email: "gbermudez@comfamiliar.com",
+    contrato: "Fijo 10 Meses",
+    proceso: "Educación y Cultura",
+    area: "Preescolar y Primaria",
+    sexo: "F",
+    sede: "Colegio Comfamiliar Dosquebradas",
+    telefono: "3109876543",
+    direccion: "Barrio Santa Isabel, Cl 5 # 10-12",
+    municipio: "Dosquebradas",
+    modeloTrabajo: "Presencial"
+  },
+  "1088123456": {
+    documento: "1088123456",
+    cedula: "1088123456",
+    nombre: "Jorge Eliecer Bedoya Castaño",
+    cargo: "Coordinador de Recreación y Deportes",
+    email: "jbedoya@comfamiliar.com",
+    contrato: "Término Indefinido",
+    proceso: "Recreación, Deportes y Parques",
+    area: "Operación de Escenarios",
+    sexo: "M",
+    sede: "Parque Consota (Cerritos)",
+    telefono: "3206543210",
+    direccion: "Km 11 Vía Cerritos, Condominio Los Alendros",
+    municipio: "Pereira",
+    modeloTrabajo: "Presencial"
+  },
+  "1088554433": {
+    documento: "1088554433",
+    cedula: "1088554433",
+    nombre: "Juan David Londoño Ramírez",
+    cargo: "Técnico Mantenimiento de Infraestructura",
+    email: "jlondono@comfamiliar.com",
+    contrato: "Término Indefinido",
+    proceso: "Servicios Generales",
+    area: "Mantenimiento Preventivo",
+    sexo: "M",
+    sede: "Sede La Virginia",
+    telefono: "3186678899",
+    direccion: "Barrio Alfonso López, Cl 8 # 5-20",
+    municipio: "La Virginia",
+    modeloTrabajo: "Presencial"
+  }
+};
+
+/**
+ * Reportes iniciales formateados con los datos de BASE_PX
+ */
+window.INITIAL_REPORTS_MOCK = [
+  {
+    id: "rep-001",
+    timestamp: "2026-08-11 07:15:30",
+    documento: "1088234567",
+    cedula: "1088234567",
+    nombre: "Carlos Andrés Gutiérrez Morales",
+    cargo: "Analista de Salud y Seguridad en el Trabajo",
+    email: "cgutierrez@comfamiliar.com",
+    contrato: "Término Indefinido",
+    proceso: "Gestión Humana y Riesgos",
+    area: "Salud Ocupacional (SST)",
+    sexo: "M",
+    sede: "Sede Administrativa Circunvalar",
+    telefono: "3124567890",
+    direccionBase: "Barrio Pinares, Cl 14 # 23-45",
+    municipioBase: "Pereira",
+    modeloTrabajo: "Presencial",
+    estadoSalud: "bien",
+    estadoFamilia: "bien",
+    estadoVivienda: "daños_menores",
+    municipio: "Pereira",
+    direccion: "Barrio Pinares, Cl 14 # 23-45",
+    latitud: 4.8138,
+    longitud: -75.6961,
+    necesidades: ["Ninguna necesidad inmediata"],
+    observaciones: "Vivienda con fisuras leves. Todo el núcleo familiar a salvo. Reportándome para apoyar PUE.",
+    criticidad: "verde",
+    origen: "Web App"
+  },
+  {
+    id: "rep-002",
+    timestamp: "2026-08-11 08:05:45",
+    documento: "1088554433",
+    cedula: "1088554433",
+    nombre: "Juan David Londoño Ramírez",
+    cargo: "Técnico Mantenimiento de Infraestructura",
+    email: "jlondono@comfamiliar.com",
+    contrato: "Término Indefinido",
+    proceso: "Servicios Generales",
+    area: "Mantenimiento Preventivo",
+    sexo: "M",
+    sede: "Sede La Virginia",
+    telefono: "3186678899",
+    direccionBase: "Barrio Alfonso López, Cl 8 # 5-20",
+    municipioBase: "La Virginia",
+    modeloTrabajo: "Presencial",
+    estadoSalud: "lesion_leve",
+    estadoFamilia: "afectados_menores",
+    estadoVivienda: "inhabitable",
+    municipio: "La Virginia",
+    direccion: "Barrio Alfonso López, Cl 8 # 5-20",
+    latitud: 4.8986,
+    longitud: -75.8819,
+    necesidades: ["Refugio temporal / Carpa", "Agua potable / Alimentos"],
+    observaciones: "Pared posterior colapsada. Mi familia está en la cancha del barrio. Requiero kit de alimentos.",
+    criticidad: "rojo",
+    origen: "Web App"
+  }
+];
