@@ -19,7 +19,7 @@
 <body>
 
   <!-- Ticker de Emergencia -->
-  <div class="emergency-ticker">
+  <div class="emergency-ticker no-print">
     <div class="ticker-content">
       <div class="pulse-dot"></div>
       <span>📊 COE COMFAMILIAR RISARALDA • TABLERO DE MONITOREO Y ANALÍTICA DE RESPUESTAS EN VIVO</span>
@@ -33,11 +33,11 @@
       <img src="https://i.imgur.com/yyI6FWO.png" alt="Comfamiliar Risaralda Logo" class="brand-logo-img">
       <div class="brand-text">
         <h1>Comfamiliar Risaralda - Administrador SST</h1>
-        <p>Salud y Seguridad en el Trabajo & Gestión del Riesgo</p>
+        <p>Salud y Seguridad en el Trabajo & Gestión del Riesgo • Informe Ejecutivo COE</p>
       </div>
     </div>
     
-    <div class="header-actions">
+    <div class="header-actions no-print">
       <button id="btn-lock-admin" class="nav-tab-btn" style="background:rgba(220, 53, 69, 0.2); border-color:#DC3545; display:none;">
         🔒 Bloquear Sesión
       </button>
@@ -49,7 +49,7 @@
   </header>
 
   <!-- PANTALLA DE AUTENTICACIÓN / SEGURIDAD PIN -->
-  <div id="admin-login-screen" class="modal-backdrop" style="display: flex;">
+  <div id="admin-login-screen" class="modal-backdrop no-print" style="display: flex;">
     <div class="modal-card" style="max-width: 440px;">
       <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
       <h2 style="font-size: 1.5rem; color: var(--primary); font-weight: 800; margin-bottom: 6px;">Acceso Protegido SST</h2>
@@ -81,36 +81,57 @@
   <main id="admin-main-content" class="main-container" style="display: none;">
     
     <!-- BARRA DE NAVEGACIÓN ENTRE TABLEROS -->
-    <div class="dashboard-tabs-header">
+    <div class="dashboard-tabs-header no-print">
       <button id="tab-btn-main" class="dash-tab-btn active">
-        📊 1. Tablero Principal & Mapa de Ubicación
+        📊 1. Tablero Principal & Ubicación
       </button>
       <button id="tab-btn-analytics" class="dash-tab-btn">
         📈 2. Tablero de Analítica de Preguntas y Necesidades
       </button>
     </div>
 
+    <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+    <div class="card no-print" style="padding:14px 20px; margin-bottom:16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-weight:800; color:var(--primary); font-size:1rem; display:flex; align-items:center; gap:8px;">
+          <span>📋</span> Acciones del Comité de Emergencia SST:
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="btn-export-pdf" class="btn-search" style="background: #D90429; font-size:0.9rem; font-weight:800; border:none; box-shadow:0 4px 12px rgba(217,4,41,0.25);">
+            📄 Exportar Informe Ejecutivo en PDF
+          </button>
+          <button id="btn-sync-live" class="nav-tab-btn" style="background: var(--secondary); border-color:var(--secondary); color:#FFF;">
+            🔄 Sincronizar en Vivo ahora
+          </button>
+          <button id="btn-export-csv" class="btn-search" style="background: var(--primary); font-size:0.9rem;">
+            📥 Exportar CSV / Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENCABEZADO DE IMPRESIÓN OFICIAL PARA EL PDF -->
+    <div class="print-only-header">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #003366; padding-bottom:12px; margin-bottom:16px;">
+        <div>
+          <h1 style="font-size:1.4rem; color:#003366; font-weight:800; margin:0;">COMFAMILIAR RISARALDA - INFORME EJECUTIVO DE EMERGENCIA SST</h1>
+          <p style="font-size:0.85rem; color:#64748B; margin-top:2px;">Consolidado Estadístico de Salud, Seguridad y Condiciones de Hogar del Personal</p>
+        </div>
+        <div style="text-align:right; font-size:0.8rem; color:#1E293B;">
+          <strong>Fecha del Reporte:</strong> <span id="print-date-stamp"></span><br>
+          <strong>Origen:</strong> COE SST Comfamiliar Risaralda
+        </div>
+      </div>
+    </div>
+
     <!-- ========================================================================= -->
-    <!-- TABLERO 1: MONITOREO GENERAL, MAPA Y TABLA DE CONTACTO -->
+    <!-- TABLERO 1: MONITOREO GENERAL, MAPA (SIN DETALLE INDIVIDUAL DE TRABAJADORES) -->
     <!-- ========================================================================= -->
     <div id="tab-content-main" class="tab-page-content">
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
-          <h2 class="card-title">
-            <span>📊</span> Tablero Principal de Emergencia Eje Cafetero
-          </h2>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btn-sync-live" class="nav-tab-btn" style="background: var(--secondary); border-color:var(--secondary); color:#FFF;">
-              🔄 Sincronizar en Vivo ahora
-            </button>
-            <button id="btn-change-pin" class="nav-tab-btn" style="background: rgba(0,51,102,0.1); color:var(--primary); border:1px solid var(--primary);">
-              🔑 Cambiar PIN
-            </button>
-            <button id="btn-export-csv" class="btn-search" style="background: var(--primary); font-size:0.9rem;">
-              📥 Exportar Reporte CSV / Excel
-            </button>
-          </div>
-        </div>
+        <h2 class="card-title">
+          <span>📊</span> Indicadores Clave de Riesgo y Priorización (KPIs)
+        </h2>
 
         <!-- KPIS -->
         <div class="kpi-grid">
@@ -142,13 +163,13 @@
         </div>
 
         <!-- MAPA DE EMERGENCIA -->
-        <h3 style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
+        <h3 class="no-print" style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
           🗺️ Ubicación Satelital de Trabajadores Registrados
         </h3>
-        <div id="emergency-map"></div>
+        <div id="emergency-map" class="no-print"></div>
 
         <!-- FILTROS -->
-        <div class="filter-bar" style="margin-top: 24px;">
+        <div class="filter-bar no-print" style="margin-top: 24px;">
           <div class="filter-input">
             <input type="text" id="filter-search" class="form-control" placeholder="🔍 Buscar por Nombre, Cédula, Sede o Proceso...">
           </div>
@@ -171,8 +192,8 @@
           </div>
         </div>
 
-        <!-- TABLA DE REPORTES -->
-        <div class="reports-table-container">
+        <!-- TABLA DE DETALLE INDIVIDUAL DE TRABAJADORES (EXCLUIDA EN EL PDF/IMPRESIÓN) -->
+        <div class="reports-table-container no-print">
           <table class="reports-table">
             <thead>
               <tr>
@@ -195,11 +216,11 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- TABLERO 2: TABLERO DE ANALÍTICA DETALLADA DE PREGUNTAS -->
+    <!-- TABLERO 2: ANALÍTICA DETALLADA DE PREGUNTAS (SIEMPRE INCLUIDO EN EL PDF) -->
     <!-- ========================================================================= -->
-    <div id="tab-content-analytics" class="tab-page-content" style="display: none;">
+    <div id="tab-content-analytics" class="tab-page-content">
       
-      <!-- SECCIÓN 1: APOS Y SALUD -->
+      <!-- SECCIÓN 1: APOYOS Y SALUD -->
       <div class="card">
         <h2 class="card-title">
           <span>🩺</span> Analítica de Salud y Necesidades de Apoyo Institucional
@@ -210,20 +231,14 @@
 
         <div class="analytics-grid">
           
-          <!-- Card Apoyo -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">🤝 Apoyo Institucional Requerido</h3>
-            <div id="analytics-apoyo-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-apoyo-list" class="bars-container"></div>
           </div>
 
-          <!-- Card Tipos de Sangre -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">🩸 Banco de Tipos de Sangre (RH)</h3>
-            <div id="analytics-sangre-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-sangre-list" class="bars-container"></div>
           </div>
 
         </div>
@@ -240,36 +255,24 @@
 
         <div class="analytics-grid">
           
-          <!-- Card Afectación Vivienda -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">🏚️ Afectación de Vivienda</h3>
-            <div id="analytics-vivienda-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-vivienda-list" class="bars-container"></div>
           </div>
 
-          <!-- Card Grupo Familiar -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">👨‍👩‍👧‍👦 Estado del Grupo Familiar</h3>
-            <div id="analytics-familia-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-familia-list" class="bars-container"></div>
           </div>
 
-          <!-- Card Tenencia Vivienda -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">🔑 Tipo de Tenencia de Vivienda</h3>
-            <div id="analytics-tenencia-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-tenencia-list" class="bars-container"></div>
           </div>
 
-          <!-- Card Lugar Seguro y Personas -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">🛡️ Lugar Seguro & Personas en Hogar</h3>
-            <div id="analytics-seguridad-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-seguridad-list" class="bars-container"></div>
           </div>
 
         </div>
@@ -286,28 +289,19 @@
 
         <div class="analytics-grid">
           
-          <!-- Card Presencialidad -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">🏢 Presencialidad Obligatoria</h3>
-            <div id="analytics-presencial-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-presencial-list" class="bars-container"></div>
           </div>
 
-          <!-- Card Conectividad / Energía -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">⚡ Condiciones Óptimas (Net y Energía)</h3>
-            <div id="analytics-condiciones-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-condiciones-list" class="bars-container"></div>
           </div>
 
-          <!-- Card Herramientas Completas -->
           <div class="analytics-card">
             <h3 class="analytics-card-title">💻 Herramientas de Trabajo Completas</h3>
-            <div id="analytics-herramientas-list" class="bars-container">
-              <!-- Dinámico por JS -->
-            </div>
+            <div id="analytics-herramientas-list" class="bars-container"></div>
           </div>
 
         </div>
@@ -316,7 +310,7 @@
     </div>
 
     <!-- SECCIÓN CONFIGURACIÓN GOOGLE SHEETS -->
-    <div class="card">
+    <div class="card no-print">
       <h2 class="card-title">
         <span>⚙️</span> Integración con Google Sheets para el Equipo SST
       </h2>

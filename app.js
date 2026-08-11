@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Soporte para Tablero 1 (Mapa y Tabla) + Tablero 2 (Analítica Detallada de Preguntas)
+ * Exportación PDF de Informe Ejecutivo Gráfico (Sin Detalle Individual)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     markers: [],
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     refreshInterval: null,
-    activeTab: 'main' // 'main' o 'analytics'
+    activeTab: 'main'
   };
 
   const loginScreen = document.getElementById('admin-login-screen');
@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSaveSheets = document.getElementById('btn-save-sheets');
   const btnTestSheets = document.getElementById('btn-test-sheets');
   const btnSyncLive = document.getElementById('btn-sync-live');
+  const btnExportPdf = document.getElementById('btn-export-pdf');
   const sheetsStatus = document.getElementById('admin-sheets-status');
 
   const filterSearch = document.getElementById('filter-search');
@@ -138,6 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
     if (btnExportCsv) btnExportCsv.addEventListener('click', exportToCSV);
 
+    if (btnExportPdf) {
+      btnExportPdf.addEventListener('click', triggerPDFExport);
+    }
+
     if (btnSyncLive) {
       btnSyncLive.addEventListener('click', () => {
         btnSyncLive.innerHTML = '⌛ Sincronizando...';
@@ -167,6 +172,19 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchLiveReportsFromSheets(false);
       });
     }
+  }
+
+  function triggerPDFExport() {
+    const printDate = document.getElementById('print-date-stamp');
+    if (printDate) {
+      printDate.textContent = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
+    }
+
+    renderAnalyticsDashboard();
+
+    setTimeout(() => {
+      window.print();
+    }, 200);
   }
 
   function loadMockAndLocalReports() {
@@ -257,9 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateKPIs();
     renderTable();
     updateMapMarkers();
-    if (state.activeTab === 'analytics') {
-      renderAnalyticsDashboard();
-    }
+    renderAnalyticsDashboard();
   }
 
   function updateKPIs() {
@@ -276,11 +292,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('kpi-vivienda').textContent = sinLugar;
   }
 
-  // RENDERIZADO DEL SEGUNDO TABLERO: ANALÍTICA DETALLADA DE TODAS LAS PREGUNTAS
   function renderAnalyticsDashboard() {
     const total = state.filteredReports.length || 1;
 
-    // 1. Apoyo Requerido
     renderBarGroup('analytics-apoyo-list', [
       { key: 'Estoy bien y seguro', label: '💚 Estoy bien y seguro', colorClass: 'success' },
       { key: 'Requiero apoyo psicológico', label: '🧠 Apoyo Psicológico', colorClass: 'warning' },
@@ -290,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Requiero apoyo con alimentos', label: '📦 Alimentos', colorClass: 'danger' }
     ], 'situacionYApoyo', total);
 
-    // 2. Tipos de Sangre
     renderBarGroup('analytics-sangre-list', [
       { key: 'O+', label: '🩸 O Positivo (O+)', colorClass: 'primary' },
       { key: 'O-', label: '🩸 O Negativo (O-)', colorClass: 'danger' },
@@ -300,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'No lo sé', label: '❓ Sin Registrar / No sabe', colorClass: '' }
     ], 'tipoSangre', total);
 
-    // 3. Afectación de Vivienda
     renderBarGroup('analytics-vivienda-list', [
       { key: 'No presenta afectaciones', label: '💚 Sin Afectaciones', colorClass: 'success' },
       { key: 'Presenta afectaciones menores que me permiten habitarla', label: '💛 Daños Menores (Habitable)', colorClass: 'warning' },
@@ -308,7 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Presenta afectaciones graves que me impiden habitarla', label: '🔴 Daños Graves (Inhabitable)', colorClass: 'danger' }
     ], 'afectacionVivienda', total);
 
-    // 4. Grupo Familiar
     renderBarGroup('analytics-familia-list', [
       { key: 'Todos se encuentran bien', label: '💚 Todos se encuentran bien', colorClass: 'success' },
       { key: 'Tengo familiares con afectaciones leves', label: '💛 Afectaciones leves en familia', colorClass: 'warning' },
@@ -318,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Tengo pérdida de uno o más familiares', label: '🖤 Pérdida de familiares', colorClass: 'danger' }
     ], 'estadoFamilia', total);
 
-    // 5. Tenencia Vivienda
     renderBarGroup('analytics-tenencia-list', [
       { key: 'Propia', label: '🏠 Vivienda Propia', colorClass: 'primary' },
       { key: 'Familiar', label: '🏡 Vivienda Familiar', colorClass: 'primary' },
@@ -326,25 +336,21 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Otra', label: '📦 Otra modalidad', colorClass: '' }
     ], 'tipoVivienda', total);
 
-    // 6. Lugar Seguro y Personas
     renderBarGroup('analytics-seguridad-list', [
       { key: 'Si', label: '👍 Con Lugar Seguro', colorClass: 'success' },
       { key: 'No', label: '👎 Sin Lugar Seguro (Riesgo)', colorClass: 'danger' }
     ], 'lugarSeguro', total);
 
-    // 7. Presencialidad
     renderBarGroup('analytics-presencial-list', [
       { key: 'Sí', label: '🏢 Requiere Presencialidad', colorClass: 'primary' },
       { key: 'No', label: '💻 Puede hacer Teletrabajo', colorClass: 'success' }
     ], 'presencialidadObligatoria', total);
 
-    // 8. Condiciones Óptimas (Net / Energía)
     renderBarGroup('analytics-condiciones-list', [
       { key: 'Sí', label: '⚡ Con Internet y Energía Óptimos', colorClass: 'success' },
       { key: 'No', label: '❌ Incomunicado / Sin Luz', colorClass: 'danger' }
     ], 'condicionesOptimas', total);
 
-    // 9. Herramientas completas
     renderBarGroup('analytics-herramientas-list', [
       { key: 'Sí', label: '💻 Equipos Completos (Portátil/Cargador)', colorClass: 'success' },
       { key: 'No', label: '⚠️ Sin Equipos de Trabajo', colorClass: 'danger' }

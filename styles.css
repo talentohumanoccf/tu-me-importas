@@ -1,6 +1,6 @@
 /* ==========================================================================
    COMFAMILIAR RISARALDA - PANEL DE ADMINISTRACIÓN Y SST
-   Estilos para Navegación por Pestañas y Tablero de Analítica Detallada
+   Estilos para Impresión / Exportación PDF de Informe Ejecutivo Gráfico
    ========================================================================== */
 
 :root {
@@ -56,6 +56,10 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.print-only-header {
+  display: none;
 }
 
 /* Ticker Alerta */
@@ -184,7 +188,6 @@ body {
   flex: 1;
 }
 
-/* Navegación por Pestañas del Dashboard SST */
 .dashboard-tabs-header {
   display: flex;
   gap: 12px;
@@ -243,7 +246,6 @@ body {
   margin-bottom: 20px;
 }
 
-/* Grid del Tablero de Analítica */
 .analytics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -305,7 +307,6 @@ body {
 .analytics-bar-fill.warning { background: var(--accent); }
 .analytics-bar-fill.primary { background: var(--primary); }
 
-/* KPIs generales */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -460,4 +461,67 @@ body {
   border-radius: var(--radius-md);
   margin-top: 14px;
   z-index: 1;
+}
+
+/* ==========================================================================
+   REGLAS EXCLUSIVAS DE IMPRESIÓN Y EXPORTACIÓN PDF (SIN DETALLE DE TRABAJADORES)
+   ========================================================================== */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  
+  .no-print,
+  .emergency-ticker,
+  .dashboard-tabs-header,
+  .filter-bar,
+  .reports-table-container,
+  #admin-login-screen,
+  #emergency-map,
+  .header-actions {
+    display: none !important;
+  }
+
+  .print-only-header {
+    display: block !important;
+  }
+
+  .tab-page-content {
+    display: block !important;
+  }
+
+  .card {
+    border: 1px solid #CBD5E1 !important;
+    box-shadow: none !important;
+    padding: 14px !important;
+    margin-bottom: 16px !important;
+    page-break-inside: avoid;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .kpi-card {
+    padding: 10px !important;
+    border: 1px solid #CBD5E1 !important;
+  }
+
+  .kpi-value {
+    font-size: 1.6rem !important;
+  }
+
+  .analytics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .analytics-card {
+    padding: 12px !important;
+    background: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    page-break-inside: avoid;
+  }
 }
