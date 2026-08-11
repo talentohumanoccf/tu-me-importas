@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA (FORMULARIO OFICIAL ESTILOS)
+   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA (ESTILOS ESTILO GOOGLE FORMS)
    ========================================================================== */
 
 :root {
@@ -14,19 +14,18 @@
   --success-bg: #F0FDF4;
   --warning-bg: #FFFBEB;
   
-  --bg-main: #F8FAFC;
+  --bg-main: #F4F7F9;
   --bg-card: #FFFFFF;
-  --text-main: #0F172A;
+  --text-main: #1E293B;
   --text-muted: #64748B;
-  --border: #E2E8F0;
+  --border: #CBD5E1;
 
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 24px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 10px 25px rgba(0, 51, 102, 0.08);
-  --shadow-lg: 0 16px 35px rgba(0, 51, 102, 0.12);
+  --shadow-md: 0 8px 24px rgba(0, 51, 102, 0.08);
 }
 
 * {
@@ -141,21 +140,42 @@ html, body {
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 }
 
-/* Divisores de Sección del Formulario Oficial */
-.form-section-divider {
-  background: linear-gradient(135deg, var(--primary) 0%, #001F3F 100%);
-  color: #FFFFFF;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
+/* Tarjetas de Sección Estilo Google Forms */
+.form-section-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-top: 6px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin: 24px 0 16px 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-section-title {
+  font-size: 1.15rem;
   font-weight: 800;
-  margin: 22px 0 14px 0;
-  box-shadow: 0 3px 10px rgba(0, 51, 102, 0.15);
+  color: var(--primary);
+  line-height: 1.3;
+}
+
+.form-subsection-title {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 18px 0 8px 0;
+  padding-left: 4px;
+  border-left: 4px solid var(--secondary);
+}
+
+.req-star {
+  color: var(--danger);
+  font-weight: 800;
+  margin-left: 2px;
 }
 
 .user-container {
   width: 100%;
-  max-width: 540px;
+  max-width: 560px;
   margin: 0 auto;
   padding: 16px 12px 40px 12px;
 }
@@ -261,15 +281,19 @@ html, body {
 
 .question-block {
   margin-bottom: 18px;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
 }
 
 .question-block label {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   display: block;
-  line-height: 1.3;
+  line-height: 1.45;
 }
 
 .touch-options-grid {
@@ -280,27 +304,44 @@ html, body {
 
 .touch-option-btn {
   background: #FFFFFF;
-  border: 2px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s ease;
   text-align: left;
-  min-height: 56px;
+  min-height: 48px;
   width: 100%;
 }
 
 .touch-option-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.99);
+}
+
+.radio-dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #94A3B8;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.touch-option-btn.selected .radio-dot {
+  border-color: var(--secondary);
+  background: var(--secondary);
+  box-shadow: inset 0 0 0 3px #FFFFFF;
 }
 
 .touch-option-btn.selected {
   border-color: var(--secondary);
-  background: rgba(0, 168, 143, 0.08);
-  box-shadow: 0 4px 14px rgba(0, 168, 143, 0.15);
+  background: rgba(0, 168, 143, 0.06);
 }
 
 .touch-option-btn.selected.danger {
@@ -308,35 +349,27 @@ html, body {
   background: var(--danger-bg);
 }
 
+.touch-option-btn.selected.danger .radio-dot {
+  border-color: var(--danger);
+  background: var(--danger);
+  box-shadow: inset 0 0 0 3px #FFFFFF;
+}
+
 .touch-option-btn.selected.warning {
   border-color: var(--accent);
   background: var(--warning-bg);
 }
 
-.touch-icon {
-  font-size: 1.6rem;
-  min-width: 36px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
 .touch-title {
-  font-size: 0.92rem;
-  font-weight: 800;
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--text-main);
-  line-height: 1.2;
-}
-
-.touch-desc {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  margin-top: 2px;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .form-input-mobile {
   width: 100%;
-  padding: 13px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: #FFFFFF;

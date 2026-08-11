@@ -1,6 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL
- * Corrección de seguridad para lecturas de DOM (Evita TypeError de null.value)
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON DOS CAMPOS DE DIRECCIÓN
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     afectacionVivienda: 'No presenta afectaciones',
     lugarSeguro: 'Si',
     estadoFamilia: 'Todos se encuentran bien',
+    presencialidadObligatoria: 'Sí',
+    condicionesOptimas: 'Sí',
+    herramientasTrabajo: 'Sí',
+    personasHogar: '1',
+    tipoVivienda: 'Propia',
     gps: null,
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL
   };
@@ -98,18 +102,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (empMeta) empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
 
+    // Nombres y Correo precompletados si vienen en BASE_PX
     const nombreInput = document.getElementById('user-nombre-input');
     if (nombreInput) nombreInput.value = found.nombre || '';
 
     const emailInput = document.getElementById('user-email-input');
     if (emailInput) emailInput.value = found.email || '';
 
-    // DIRECCIÓN Y TELÉFONOS LIMPIOS PARA OBLIGAR ACTUALIZACIÓN
+    // Dirección de residencia habitual si viene en BASE_PX
+    const dirInput = document.getElementById('user-direccion-input');
+    if (dirInput && found.direccion && !dirInput.value) {
+      dirInput.value = found.direccion;
+    }
+
+    // CAMPOS QUE SE DEJAN LIMPIOS PARA ACTUALIZACIÓN EN LA EMERGENCIA
+    const dirActualInput = document.getElementById('user-direccion-actual-input');
+    if (dirActualInput) dirActualInput.value = '';
+
     const phoneInput = document.getElementById('user-phone-input');
     if (phoneInput) phoneInput.value = '';
-
-    const dirInput = document.getElementById('user-direccion-input');
-    if (dirInput) dirInput.value = '';
 
     const muniInput = document.getElementById('user-municipio-input');
     if (muniInput) muniInput.value = '';
@@ -208,6 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
         criticidad = 'amarillo';
       }
 
+      const dirHabitual = getValue('user-direccion-input', emp.direccion || '');
+      const dirActual = getValue('user-direccion-actual-input', '');
+
       const report = {
         id: 'rep-' + Date.now(),
         timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
@@ -223,19 +237,20 @@ document.addEventListener('DOMContentLoaded', () => {
         sede: emp.sede || 'Comfamiliar',
         telefono: getValue('user-phone-input', ''),
         contactoEmergencia: getValue('user-contacto-emergencia-input', ''),
-        direccion: getValue('user-direccion-input', ''),
+        direccionResidencia: dirHabitual,
+        direccionActual: dirActual || dirHabitual,
+        direccion: dirActual || dirHabitual,
         municipio: getValue('user-municipio-input', ''),
         tipoSangre: getValue('user-sangre-select', 'O+'),
-        saludFisicaEmocional: getValue('user-salud-textarea', 'Sin detalles'),
         situacionYApoyo: state.situacionYApoyo,
-        personasHogar: getValue('user-personas-select', '1'),
-        tipoVivienda: getValue('user-tipovivienda-select', 'Propia'),
+        personasHogar: state.personasHogar,
+        tipoVivienda: state.tipoVivienda,
         afectacionVivienda: state.afectacionVivienda,
         lugarSeguro: state.lugarSeguro,
         estadoFamilia: state.estadoFamilia,
-        presencialidadObligatoria: getValue('user-presencialidad-select', 'No'),
-        condicionesOptimas: getValue('user-condiciones-select', 'Sí'),
-        herramientasTrabajo: getValue('user-herramientas-select', 'Sí'),
+        presencialidadObligatoria: state.presencialidadObligatoria,
+        condicionesOptimas: state.condicionesOptimas,
+        herramientasTrabajo: state.herramientasTrabajo,
         latitud: state.gps ? state.gps.lat : '',
         longitud: state.gps ? state.gps.lng : '',
         criticidad: criticidad,
