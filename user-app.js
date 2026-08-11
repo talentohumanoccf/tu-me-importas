@@ -1,6 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - BÚSQUEDA ULTRARRÁPIDA (INSTANTÁNEA < 50ms)
- * Optimizado para emergencias: desbloquea el formulario de inmediato sin esperas de red.
+ * PORTAL DEL EMPLEADO - LÓGICA DE BÚSQUEDA JSONP (CERO BLOQUEOS CORS)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupTouchOptions();
 
-  // Búsqueda instantánea al presionar el botón o presionar Enter
   btnVerifyCC.addEventListener('click', handleCCLookupInstant);
   ccInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') handleCCLookupInstant();
@@ -54,13 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.documento = doc;
 
-    // 1. BÚSQUEDA LOCAL INSTANTÁNEA (< 10ms)
+    // 1. Buscar primero en la lista local de demostración
     const foundLocal = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
 
     if (foundLocal) {
       applyEmployeeData(foundLocal);
     } else {
-      // Si no está en la lista local, crear registro temporal inmediato sin bloquear
+      // 2. Si no está en la lista local, mostrar nombre provisional y consultar Google Sheets por JSONP
       applyEmployeeData({
         documento: doc,
         cedula: doc,
@@ -71,13 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
         telefono: ""
       });
 
-      // 2. CONSULTA EN SEGUNDO PLANO A GOOGLE SHEETS (Con tiempo límite ultracorto de 1.5s)
+      // Búsqueda remota vía JSONP (Compatible con file:// y cualquier origen)
       if (state.googleSheetsUrl && navigator.onLine) {
-        fetchBackgroundBasePX(doc);
+        fetchJSONPBasePX(doc);
       }
     }
 
-    // MOSTRAR FORMULARIO DE INMEDIATO SIN ESPERAR
+    // Desbloquear formulario de inmediato
     greetingBox.style.display = 'block';
     formSection.style.display = 'block';
     formSection.scrollIntoView({ behavior: 'smooth' });
@@ -85,10 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyEmployeeData(found) {
     state.employee = found;
-    const firstName = (found.nombre || 'Colaborador').split(' ')[0];
+    const rawName = found.nombre || 'Colaborador';
+    const firstName = rawName.includes('(') ? 'Colaborador' : rawName.split(' ')[0];
+    
     empName.textContent = `¡Hola, ${firstName}! 👋`;
     
-    const cargoText = found.cargo ? `${found.cargo} • ${found.proceso || found.area || ''}` : 'Colaborador Comfamiliar';
+    const cargoText = found.cargo ? `${found.cargo} ${found.proceso ? '• ' + found.proceso : ''}` : 'Colaborador Comfamiliar';
     const sedeText = found.sede ? `🏢 Sede: ${found.sede}` : '🏢 Comfamiliar Risaralda';
     const modeloText = found.modeloTrabajo ? ` • ${found.modeloTrabajo}` : '';
     
@@ -117,29 +117,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Búsqueda remota no bloqueante con timeout máximo de 1.5 segundos
-  async function fetchBackgroundBasePX(doc) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s max
-
-    try {
-      const fetchUrl = `${state.googleSheetsUrl}?documento=${encodeURIComponent(doc)}`;
-      const response = await fetch(fetchUrl, {
-        method: 'GET',
-        signal: controller.signal,
-        redirect: 'follow'
-      });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.status === 'found' && result.data) {
-          applyEmployeeData(result.data);
-        }
-      }
-    } catch (err) {
-      // Ignorar timeout o cors silenciosamente para mantener la fluidez
+  // BÚSQUEDA JSONP (Exenta de restricciones CORS de navegador)
+  window.onBasePXLookupResult = function(result) {
+    if (result && result.status === 'found' && result.data) {
+      applyEmployeeData(result.data);
     }
+  };
+
+  function fetchJSONPBasePX(doc) {
+    const callbackName = 'onBasePXLookupResult';
+    const scriptId = 'jsonp-base-px-lookup';
+    
+    // Limpiar script anterior si existía
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `${state.googleSheetsUrl}?documento=${encodeURIComponent(doc)}&callback=${callbackName}`;
+    script.onerror = function() {
+      console.log('Consulta en vivo no disponible en este momento.');
+    };
+    document.body.appendChild(script);
   }
 
   function setupTouchOptions() {
@@ -221,12 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
       origen: 'Portal Usuario BASE_PX'
     };
 
-    // Guardar siempre en LocalStorage (Instantáneo)
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     localReports.unshift(report);
     localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
 
-    // Enviar a Google Sheets en segundo plano sin congelar la UI
     if (state.googleSheetsUrl && navigator.onLine) {
       try {
         fetch(state.googleSheetsUrl, {
