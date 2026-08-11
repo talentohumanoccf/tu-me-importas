@@ -242,6 +242,7 @@
             </div>
           </div>
 
+          <!-- ESTADO DEL GRUPO FAMILIAR CON DETALLE OPCIONAL -->
           <div class="question-block">
             <label>👨‍👩‍👧‍👦 ¿Cómo se encuentra actualmente su grupo familiar? <span class="req-star">*</span></label>
             <div class="touch-options-grid">
@@ -270,6 +271,22 @@
                 <div class="touch-title">Tengo pérdida de uno o más familiares</div>
               </button>
             </div>
+
+            <!-- SUB-BOX CONDICIONAL: DETALLE DE FAMILIARES AFECTADOS -->
+            <div id="family-detail-subbox" style="display:none; margin-top:14px; background:rgba(0,51,102,0.04); border:1px dashed var(--secondary); padding:12px; border-radius:10px;">
+              <label style="font-size:0.85rem; font-weight:800; color:var(--primary); margin-bottom:8px; display:block;">
+                👵👶 ¿Quiénes son los familiares afectados? (Puedes seleccionar varios):
+              </label>
+              <div class="family-tags-grid">
+                <button type="button" class="family-tag-btn" data-tag="Abuelos">👴 Abuelos</button>
+                <button type="button" class="family-tag-btn" data-tag="Padres">👨‍👩‍👦 Padres</button>
+                <button type="button" class="family-tag-btn" data-tag="Hijos">👶 Hijos</button>
+                <button type="button" class="family-tag-btn" data-tag="Nietos">🍼 Nietos</button>
+                <button type="button" class="family-tag-btn" data-tag="Hermanos">👫 Hermanos</button>
+                <button type="button" class="family-tag-btn" data-tag="Otros">👥 Otros</button>
+              </div>
+            </div>
+
           </div>
 
           <!-- SECCIÓN: ACCESO A HERRAMIENTAS TECNOLÓGICAS Y LABORALES -->

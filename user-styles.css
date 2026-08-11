@@ -1,5 +1,6 @@
 /* ==========================================================================
-   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA (ESTILOS ESTILO GOOGLE FORMS)
+   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA
+   Estilos con Botones de Selección Rápida para Familiares Afectados
    ========================================================================== */
 
 :root {
@@ -333,6 +334,11 @@ html, body {
   transition: all 0.2s ease;
 }
 
+.touch-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .touch-option-btn.selected .radio-dot {
   border-color: var(--secondary);
   background: var(--secondary);
@@ -349,12 +355,6 @@ html, body {
   background: var(--danger-bg);
 }
 
-.touch-option-btn.selected.danger .radio-dot {
-  border-color: var(--danger);
-  background: var(--danger);
-  box-shadow: inset 0 0 0 3px #FFFFFF;
-}
-
 .touch-option-btn.selected.warning {
   border-color: var(--accent);
   background: var(--warning-bg);
@@ -365,6 +365,37 @@ html, body {
   font-weight: 600;
   color: var(--text-main);
   line-height: 1.35;
+}
+
+/* ETIQUETAS DE SELECCIÓN RÁPIDA PARA FAMILIARES AFECTADOS */
+.family-tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.family-tag-btn {
+  background: #FFFFFF;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.family-tag-btn:active {
+  transform: scale(0.96);
+}
+
+.family-tag-btn.selected {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.2);
 }
 
 .form-input-mobile {

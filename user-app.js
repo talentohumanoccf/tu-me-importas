@@ -1,5 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON FALLBACK DE SINCRO ULTRA-RESISTENTE
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON ETIQUETAS DE FAMILIARES AFECTADOS
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     afectacionVivienda: 'No presenta afectaciones',
     lugarSeguro: 'Si',
     estadoFamilia: 'Todos se encuentran bien',
+    familyTags: [],
     presencialidadObligatoria: 'Sí',
     condicionesOptimas: 'Sí',
     herramientasTrabajo: 'Sí',
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const formSection = document.getElementById('user-form-section');
   const successSection = document.getElementById('user-success-section');
+  const familySubbox = document.getElementById('family-detail-subbox');
 
   const gpsBtn = document.getElementById('btn-user-gps');
   const gpsStatus = document.getElementById('user-gps-status');
@@ -43,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReset = document.getElementById('btn-user-reset');
 
   setupTouchOptions();
+  setupFamilyTags();
 
   if (btnVerifyCC) btnVerifyCC.addEventListener('click', handleCCLookupInstant);
   if (ccInput) {
@@ -174,6 +177,33 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.classList.add('selected');
 
         state[group] = val;
+
+        if (group === 'estadoFamilia') {
+          if (val === 'Todos se encuentran bien') {
+            if (familySubbox) familySubbox.style.display = 'none';
+            state.familyTags = [];
+            document.querySelectorAll('.family-tag-btn').forEach(b => b.classList.remove('selected'));
+          } else {
+            if (familySubbox) familySubbox.style.display = 'block';
+          }
+        }
+      });
+    });
+  }
+
+  function setupFamilyTags() {
+    document.querySelectorAll('.family-tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.getAttribute('data-tag');
+        if (btn.classList.contains('selected')) {
+          btn.classList.remove('selected');
+          state.familyTags = state.familyTags.filter(t => t !== tag);
+        } else {
+          btn.classList.add('selected');
+          if (!state.familyTags.includes(tag)) {
+            state.familyTags.push(tag);
+          }
+        }
       });
     });
   }
@@ -235,6 +265,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const dirHabitual = getValue('user-direccion-input', emp.direccion || '');
       const dirActual = getValue('user-direccion-actual-input', '');
 
+      // Construir texto de estado de familia concatenando los tags seleccionados si existen
+      let estadoFamiliaFinal = state.estadoFamilia;
+      if (state.familyTags.length > 0 && state.estadoFamilia !== 'Todos se encuentran bien') {
+        estadoFamiliaFinal += ` [Afectados: ${state.familyTags.join(', ')}]`;
+      }
+
       const report = {
         id: 'rep-' + Date.now(),
         timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
@@ -260,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tipoVivienda: state.tipoVivienda,
         afectacionVivienda: state.afectacionVivienda,
         lugarSeguro: state.lugarSeguro,
-        estadoFamilia: state.estadoFamilia,
+        estadoFamilia: estadoFamiliaFinal,
         presencialidadObligatoria: state.presencialidadObligatoria,
         condicionesOptimas: state.condicionesOptimas,
         herramientasTrabajo: state.herramientasTrabajo,
@@ -302,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(report)
       }).catch(() => {
-        // Fallback vía JSONP/GET si el navegador móvil restringe POST
         const script = document.createElement('script');
         script.src = `${state.googleSheetsUrl}?action=submitReport&payload=${encodeURIComponent(JSON.stringify(report))}`;
         document.body.appendChild(script);

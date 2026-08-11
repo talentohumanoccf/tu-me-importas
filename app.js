@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Exportación PDF de Informe Ejecutivo Gráfico (Sin Detalle Individual)
+ * Control Silencioso de Desconexión a Internet (ERR_NAME_NOT_RESOLVED / Off-line)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -250,6 +250,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function fetchLiveReportsFromSheets(isBackground = false) {
     if (!state.googleSheetsUrl) return;
 
+    // Si el usuario no tiene conexión a internet activa, no lanzar peticiones fallidas
+    if (!navigator.onLine) {
+      if (!isBackground && sheetsStatus) {
+        sheetsStatus.innerHTML = '<span style="color:var(--danger)">📶 Sin conexión a Internet temporalmente. Mostrando reportes en memoria.</span>';
+      }
+      return;
+    }
+
     if (!isBackground && sheetsStatus) {
       sheetsStatus.innerHTML = '⌛ Consultando en vivo a Google Sheets...';
     }
@@ -263,11 +271,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const script = document.createElement('script');
     script.id = scriptId;
     script.src = `${state.googleSheetsUrl}?action=getAllReports&callback=${callbackName}&_t=${Date.now()}`;
+    
     script.onerror = function() {
+      script.remove();
       if (!isBackground && sheetsStatus) {
-        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">ℹ️ Mostrando reportes almacenados localmente.</span>';
+        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">ℹ️ Conexión interrumpida o fuera de línea. Se reintentará automáticamente.</span>';
       }
     };
+
     document.body.appendChild(script);
   }
 
