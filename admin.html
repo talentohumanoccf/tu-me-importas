@@ -22,9 +22,9 @@
   <div class="emergency-ticker">
     <div class="ticker-content">
       <div class="pulse-dot"></div>
-      <span>📊 PUE COMFAMILIAR RISARALDA • CENTRO DE OPERACIONES DE EMERGENCIA (COE) • MANDO DE SALUD Y RIESGOS</span>
+      <span>📊 COE COMFAMILIAR RISARALDA • TABLERO DE MONITOREO DEL FORMULARIO OFICIAL</span>
     </div>
-    <a href="usuario.html" style="color:#FFF; text-decoration:underline; font-size:0.8rem;">📱 Ver Versión Usuario</a>
+    <a href="usuario.html" style="color:#FFF; text-decoration:underline; font-size:0.8rem;">📱 Ver Formulario de Empleados</a>
   </div>
 
   <!-- Encabezado con Logo Oficial -->
@@ -84,14 +84,14 @@
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
         <h2 class="card-title">
-          <span>📊</span> Tablero de Monitoreo de Emergencia Eje Cafetero
+          <span>📊</span> Monitoreo del Formulario Oficial: "Información del trabajador y sus familias"
         </h2>
         <div style="display:flex; gap:10px;">
           <button id="btn-change-pin" class="nav-tab-btn" style="background: rgba(0,51,102,0.1); color:var(--primary); border:1px solid var(--primary);">
             🔑 Cambiar PIN
           </button>
           <button id="btn-export-csv" class="btn-search" style="background: var(--secondary); font-size:0.9rem;">
-            📥 Exportar Reporte CSV / Excel
+            📥 Exportar Reporte CSV / Excel (29 Campos)
           </button>
         </div>
       </div>
@@ -99,48 +99,48 @@
       <!-- KPIS -->
       <div class="kpi-grid">
         <div class="kpi-card kpi-primary">
-          <div class="kpi-header">Total Reportados</div>
+          <div class="kpi-header">Total Registrados</div>
           <div class="kpi-value" id="kpi-total">0</div>
-          <div class="kpi-subtext">Colaboradores registrados</div>
+          <div class="kpi-subtext">Formularios oficiales recibidos</div>
         </div>
         <div class="kpi-card kpi-success">
-          <div class="kpi-header">A Salvo</div>
+          <div class="kpi-header">A Salvo y Seguro</div>
           <div class="kpi-value" id="kpi-salvo">0</div>
-          <div class="kpi-subtext">Sin afectaciones críticas</div>
+          <div class="kpi-subtext">Sin necesidad de apoyos</div>
         </div>
         <div class="kpi-card kpi-warning">
-          <div class="kpi-header">Afectación Leve</div>
+          <div class="kpi-header">Apoyo Psicosocial / Leve</div>
           <div class="kpi-value" id="kpi-leve">0</div>
-          <div class="kpi-subtext">En observación</div>
+          <div class="kpi-subtext">Requiéren orientación</div>
         </div>
         <div class="kpi-card kpi-danger">
-          <div class="kpi-header">Casos Urgentes</div>
+          <div class="kpi-header">Prioridad Crítica</div>
           <div class="kpi-value" id="kpi-urgente">0</div>
-          <div class="kpi-subtext">Atención Prioridad 1</div>
+          <div class="kpi-subtext">Vivienda/Familia en riesgo</div>
         </div>
         <div class="kpi-card kpi-danger">
-          <div class="kpi-header">Viviendas Dañadas</div>
+          <div class="kpi-header">Sin Lugar Seguro / Daños</div>
           <div class="kpi-value" id="kpi-vivienda">0</div>
-          <div class="kpi-subtext">Inhabitables o colapsadas</div>
+          <div class="kpi-subtext">Requieren reubicación</div>
         </div>
       </div>
 
       <!-- MAPA DE EMERGENCIA -->
       <h3 style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
-        🗺️ Ubicación Satelital de Empleados en el Eje Cafetero
+        🗺️ Ubicación Satelital de Trabajadores Registrados
       </h3>
       <div id="emergency-map"></div>
 
       <!-- FILTROS -->
       <div class="filter-bar" style="margin-top: 24px;">
         <div class="filter-input">
-          <input type="text" id="filter-search" class="form-control" placeholder="🔍 Buscar colaborador por Nombre, Cédula o Sede...">
+          <input type="text" id="filter-search" class="form-control" placeholder="🔍 Buscar por Nombre, Cédula, Sede o Proceso...">
         </div>
         <div>
           <select id="filter-status" class="form-control">
             <option value="all">Todos los Niveles</option>
-            <option value="rojo">🔴 Críticos / Urgentes</option>
-            <option value="amarillo">💛 Afectación Leve</option>
+            <option value="rojo">🔴 Prioridad URGENTE</option>
+            <option value="amarillo">💛 Apoyo Leve</option>
             <option value="verde">💚 A Salvo</option>
           </select>
         </div>
@@ -160,13 +160,14 @@
         <table class="reports-table">
           <thead>
             <tr>
-              <th>Colaborador</th>
+              <th>Trabajador / Documento</th>
               <th>Sede / Área</th>
-              <th>Ubicación</th>
+              <th>Ubicación / Municipio</th>
+              <th>Sangre</th>
               <th>Estado</th>
-              <th>Detalles</th>
+              <th>Situación & Apoyo Requerido</th>
               <th>Fecha/Hora</th>
-              <th>Acción Inmediata</th>
+              <th>Contacto Rápido</th>
             </tr>
           </thead>
           <tbody id="admin-reports-tbody">
@@ -182,7 +183,7 @@
         <span>⚙️</span> Integración con Google Sheets para el Equipo SST
       </h2>
       <p class="card-subtitle">
-        Vincula tu hoja de cálculo central para sincronizar los reportes automáticamente en tiempo real.
+        Sincroniza los registros del Formulario Oficial directamente a tu hoja de cálculo central.
       </p>
 
       <div style="background: rgba(0,51,102,0.04); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius-md); margin-bottom: 20px;">

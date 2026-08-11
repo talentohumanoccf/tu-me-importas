@@ -1,5 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - LÓGICA CON MUESTRA DEL NOMBRE COMPLETO
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON DIRECCIÓN Y TELÉFONO LIMPIOS PARA ACTUALIZACIÓN
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,11 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     documento: '',
     employee: null,
-    salud: 'bien',
-    familia: 'bien',
-    vivienda: 'bien',
-    municipio: 'Pereira',
-    direccion: '',
+    situacionYApoyo: 'Estoy bien y seguro',
+    afectacionVivienda: 'No presenta afectaciones',
+    lugarSeguro: 'Si',
+    estadoFamilia: 'Todos se encuentran bien',
     gps: null,
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL
   };
@@ -64,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cargo: "Comfamiliar Risaralda",
         sede: "Eje Cafetero",
         proceso: "General",
-        telefono: ""
+        email: ""
       });
 
       if (state.googleSheetsUrl && navigator.onLine) {
@@ -72,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Desbloquear formulario tras verificar cédula
     greetingBox.style.display = 'block';
     formSection.style.display = 'block';
     formSection.scrollIntoView({ behavior: 'smooth' });
@@ -81,36 +81,32 @@ document.addEventListener('DOMContentLoaded', () => {
     state.employee = found;
     const fullName = found.nombre || 'Colaborador';
     
-    // MOSTRAR NOMBRE COMPLETO SIN RECORTAR
     empName.textContent = `¡Hola, ${fullName}! 👋`;
     
     const cargoText = found.cargo ? `${found.cargo} ${found.proceso ? '• ' + found.proceso : ''}` : 'Colaborador Comfamiliar';
-    const sedeText = found.sede ? `🏢 Sede: ${found.sede}` : '🏢 Comfamiliar Risaralda';
-    const modeloText = found.modeloTrabajo ? ` • ${found.modeloTrabajo}` : '';
+    const sedeText = found.sede ? `🏢 Sede Registrada: ${found.sede}` : '🏢 Comfamiliar Risaralda';
     
-    empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}${modeloText}`;
+    empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
 
+    // Nombre y Correo precompletados
+    const nombreInput = document.getElementById('user-nombre-input');
+    if (nombreInput) nombreInput.value = found.nombre || '';
+
+    const emailInput = document.getElementById('user-email-input');
+    if (emailInput) emailInput.value = found.email || '';
+
+    // SE DEJAN LIMPIOS Y VACÍOS PARA FORZAR QUE EL USUARIO DILIGENCIE DIRECCIÓN Y TELÉFONO EN VIVO
     const phoneInput = document.getElementById('user-phone-input');
-    if (phoneInput && found.telefono && !phoneInput.value) {
-      phoneInput.value = found.telefono;
-    }
+    if (phoneInput) phoneInput.value = '';
 
     const dirInput = document.getElementById('user-direccion-input');
-    if (dirInput && found.direccion && !dirInput.value) {
-      dirInput.value = found.direccion;
-    }
+    if (dirInput) dirInput.value = '';
 
-    if (found.municipio) {
-      const muniSelect = document.getElementById('user-municipio-select');
-      if (muniSelect) {
-        for (let opt of muniSelect.options) {
-          if (opt.value.toLowerCase() === found.municipio.toLowerCase()) {
-            muniSelect.value = opt.value;
-            break;
-          }
-        }
-      }
-    }
+    const muniInput = document.getElementById('user-municipio-input');
+    if (muniInput) muniInput.value = '';
+
+    const emergenciaInput = document.getElementById('user-contacto-emergencia-input');
+    if (emergenciaInput) emergenciaInput.value = '';
   }
 
   window.onBasePXLookupResult = function(result) {
@@ -175,11 +171,28 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const emp = state.employee;
+    const emp = state.employee || {};
+
     let criticidad = 'verde';
-    if (state.salud === 'emergencia_grave' || state.familia === 'emergencia_grave' || state.vivienda === 'inhabitable' || state.vivienda === 'colapso_total') {
+    if (
+      state.situacionYApoyo.includes('medicamentos') ||
+      state.situacionYApoyo.includes('alimentos') ||
+      state.afectacionVivienda.includes('graves') ||
+      state.afectacionVivienda.includes('NO me permiten') ||
+      state.lugarSeguro === 'No' ||
+      state.estadoFamilia.includes('lesionados') ||
+      state.estadoFamilia.includes('atención médica') ||
+      state.estadoFamilia.includes('Pérdida')
+    ) {
       criticidad = 'rojo';
-    } else if (state.salud === 'lesion_leve' || state.familia === 'afectados_menores' || state.familia === 'incomunicados' || state.vivienda === 'daños_menores') {
+    } else if (
+      state.situacionYApoyo.includes('psicológico') ||
+      state.situacionYApoyo.includes('social') ||
+      state.situacionYApoyo.includes('jurídico') ||
+      state.afectacionVivienda.includes('menores') ||
+      state.estadoFamilia.includes('leves') ||
+      state.estadoFamilia.includes('psicosocial')
+    ) {
       criticidad = 'amarillo';
     }
 
@@ -188,30 +201,33 @@ document.addEventListener('DOMContentLoaded', () => {
       timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
       documento: state.documento,
       cedula: state.documento,
-      nombre: emp.nombre,
-      cargo: emp.cargo,
-      email: emp.email || '',
+      nombre: document.getElementById('user-nombre-input').value.trim() || emp.nombre || 'No especificado',
+      cargo: emp.cargo || 'Comfamiliar Risaralda',
+      emailPersonal: document.getElementById('user-email-input').value.trim() || emp.email || '',
       contrato: emp.contrato || '',
       proceso: emp.proceso || '',
       area: emp.area || '',
       sexo: emp.sexo || '',
       sede: emp.sede || 'Comfamiliar',
-      telefonoBase: emp.telefono || '',
-      direccionBase: emp.direccion || '',
-      municipioBase: emp.municipio || '',
-      modeloTrabajo: emp.modeloTrabajo || '',
-      estadoSalud: state.salud,
-      estadoFamilia: state.familia,
-      estadoVivienda: state.vivienda,
-      municipio: document.getElementById('user-municipio-select').value,
-      direccion: document.getElementById('user-direccion-input').value.trim() || 'No especificada',
-      telefono: document.getElementById('user-phone-input')?.value || emp.telefono || 'Sin teléfono',
+      telefono: document.getElementById('user-phone-input').value.trim() || '',
+      contactoEmergencia: document.getElementById('user-contacto-emergencia-input').value.trim() || '',
+      direccion: document.getElementById('user-direccion-input').value.trim() || '',
+      municipio: document.getElementById('user-municipio-input').value.trim() || '',
+      tipoSangre: document.getElementById('user-sangre-select').value,
+      saludFisicaEmocional: document.getElementById('user-salud-textarea').value.trim() || 'Sin detalles',
+      situacionYApoyo: state.situacionYApoyo,
+      personasHogar: document.getElementById('user-personas-select').value,
+      tipoVivienda: document.getElementById('user-tipovivienda-select').value,
+      afectacionVivienda: state.afectacionVivienda,
+      lugarSeguro: state.lugarSeguro,
+      estadoFamilia: state.estadoFamilia,
+      presencialidadObligatoria: document.getElementById('user-presencialidad-select').value,
+      condicionesOptimas: document.getElementById('user-condiciones-select').value,
+      herramientasTrabajo: document.getElementById('user-herramientas-select').value,
       latitud: state.gps ? state.gps.lat : '',
       longitud: state.gps ? state.gps.lng : '',
-      necesidades: ['Reporte Exprés de Usuario'],
-      observaciones: document.getElementById('user-obs-textarea').value.trim() || 'Sin observaciones',
       criticidad: criticidad,
-      origen: 'Portal Usuario BASE_PX'
+      origen: 'Formulario Oficial Web'
     };
 
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
