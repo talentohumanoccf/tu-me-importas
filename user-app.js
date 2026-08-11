@@ -1,5 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON DOS CAMPOS DE DIRECCIÓN
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON CONTROL DE DUPLICADOS Y EMOTICONES
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     documento: '',
     employee: null,
+    isPreviousReport: false,
     situacionYApoyo: 'Estoy bien y seguro',
     afectacionVivienda: 'No presenta afectaciones',
     lugarSeguro: 'Si',
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const greetingBox = document.getElementById('user-greeting-box');
   const empName = document.getElementById('user-emp-name');
   const empMeta = document.getElementById('user-emp-meta');
+  const duplicateWarning = document.getElementById('user-duplicate-warning');
   
   const formSection = document.getElementById('user-form-section');
   const successSection = document.getElementById('user-success-section');
@@ -63,6 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     state.documento = doc;
+
+    // Verificar si esta cédula ya realizó un reporte previo localmente
+    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+    const prevReport = localReports.find(r => r.documento === doc || r.cedula === doc);
+    
+    if (prevReport) {
+      state.isPreviousReport = true;
+      if (duplicateWarning) duplicateWarning.style.display = 'block';
+    } else {
+      state.isPreviousReport = false;
+      if (duplicateWarning) duplicateWarning.style.display = 'none';
+    }
 
     const foundLocal = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
 
@@ -102,31 +116,32 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (empMeta) empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
 
-    // Nombres y Correo precompletados si vienen en BASE_PX
     const nombreInput = document.getElementById('user-nombre-input');
     if (nombreInput) nombreInput.value = found.nombre || '';
 
     const emailInput = document.getElementById('user-email-input');
     if (emailInput) emailInput.value = found.email || '';
 
-    // Dirección de residencia habitual si viene en BASE_PX
     const dirInput = document.getElementById('user-direccion-input');
     if (dirInput && found.direccion && !dirInput.value) {
       dirInput.value = found.direccion;
     }
 
-    // CAMPOS QUE SE DEJAN LIMPIOS PARA ACTUALIZACIÓN EN LA EMERGENCIA
+    // CAMPOS LIMPIOS O RELLENADOS CON REPORTE PREVIO PARA ACTUALIZAR
+    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+    const prevReport = localReports.find(r => r.documento === found.documento);
+
     const dirActualInput = document.getElementById('user-direccion-actual-input');
-    if (dirActualInput) dirActualInput.value = '';
+    if (dirActualInput) dirActualInput.value = prevReport ? prevReport.direccionActual || '' : '';
 
     const phoneInput = document.getElementById('user-phone-input');
-    if (phoneInput) phoneInput.value = '';
+    if (phoneInput) phoneInput.value = prevReport ? prevReport.telefono || '' : '';
 
     const muniInput = document.getElementById('user-municipio-input');
-    if (muniInput) muniInput.value = '';
+    if (muniInput) muniInput.value = prevReport ? prevReport.municipio || '' : '';
 
     const emergenciaInput = document.getElementById('user-contacto-emergencia-input');
-    if (emergenciaInput) emergenciaInput.value = '';
+    if (emergenciaInput) emergenciaInput.value = prevReport ? prevReport.contactoEmergencia || '' : '';
   }
 
   window.onBasePXLookupResult = function(result) {
@@ -254,11 +269,18 @@ document.addEventListener('DOMContentLoaded', () => {
         latitud: state.gps ? state.gps.lat : '',
         longitud: state.gps ? state.gps.lng : '',
         criticidad: criticidad,
+        esActualizacion: state.isPreviousReport,
         origen: 'Formulario Oficial Web'
       };
 
-      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-      localReports.unshift(report);
+      // CONTROL DE DUPLICADOS EN LOCALSTORAGE: Reemplazar el reporte anterior si existe
+      let localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+      const existingIdx = localReports.findIndex(r => r.documento === state.documento);
+      if (existingIdx >= 0) {
+        localReports[existingIdx] = report;
+      } else {
+        localReports.unshift(report);
+      }
       localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
 
       if (state.googleSheetsUrl && navigator.onLine) {

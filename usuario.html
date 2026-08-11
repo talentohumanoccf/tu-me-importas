@@ -50,10 +50,13 @@
         <button type="button" id="btn-verify-cc" class="btn-verify-cc">Ingresar ➔</button>
       </div>
 
-      <!-- Mensaje de Bienvenida Personalizado (Se despliega tras verificar la cédula) -->
+      <!-- Mensaje de Bienvenida Personalizado -->
       <div id="user-greeting-box" class="greeting-box" style="display: none;">
         <div id="user-emp-name" class="greeting-name">¡Hola!</div>
         <div id="user-emp-meta" class="greeting-meta">Confírmanos tu información a continuación para actualizar la base de datos de la emergencia.</div>
+        <div id="user-duplicate-warning" style="display:none; margin-top:10px; background:rgba(255, 183, 3, 0.15); border:1px solid #FFB703; padding:10px; border-radius:8px; font-size:0.82rem; color:#92400E; font-weight:700;">
+          💡 <em>Nota:</em> Ya existe un registro previo para este documento. Los datos que envíes ahora <strong>ACTUALIZARÁN tu registro existente</strong> (evitando registros duplicados).
+        </div>
       </div>
 
       <!-- FORMULARIO ESTRUCTURADO EXACTAMENTE COMO EL GOOGLE FORM -->
@@ -62,16 +65,16 @@
           
           <!-- SECCIÓN: DATOS GENERALES -->
           <div class="form-section-card">
-            <div class="form-section-title">Datos Generales</div>
+            <div class="form-section-title">📋 Datos Generales</div>
           </div>
 
           <div class="question-block">
-            <label>Nombres y Apellidos <span class="req-star">*</span></label>
+            <label>👤 Nombres y Apellidos <span class="req-star">*</span></label>
             <input type="text" id="user-nombre-input" class="form-input-mobile" placeholder="Tus nombres y apellidos completos" required>
           </div>
 
           <div class="question-block">
-            <label>Dirección de residencia habitual <span class="req-star">*</span></label>
+            <label>🏠 Dirección de residencia habitual <span class="req-star">*</span></label>
             <input type="text" id="user-direccion-input" class="form-input-mobile" placeholder="Ej: Calle 14 # 23-45 (Tu casa permanente)" required>
           </div>
 
@@ -81,27 +84,27 @@
           </div>
 
           <div class="question-block">
-            <label>Municipio / Barrio <span class="req-star">*</span></label>
+            <label>🏙️ Municipio / Barrio <span class="req-star">*</span></label>
             <input type="text" id="user-municipio-input" class="form-input-mobile" placeholder="Ej: Pereira / Barrio Cuba" required>
           </div>
 
           <div class="question-block">
-            <label>Número de contacto Fijo o Celular <span class="req-star">*</span></label>
+            <label>📞 Número de contacto Fijo o Celular <span class="req-star">*</span></label>
             <input type="tel" id="user-phone-input" class="form-input-mobile" placeholder="Tu celular o teléfono disponible" required>
           </div>
 
           <div class="question-block">
-            <label>Numero de contacto en caso de emergencia <span class="req-star">*</span></label>
+            <label>🆘 Numero de contacto en caso de emergencia <span class="req-star">*</span></label>
             <input type="tel" id="user-contacto-emergencia-input" class="form-input-mobile" placeholder="Nombre y celular de un familiar o contacto" required>
           </div>
 
           <div class="question-block">
-            <label>Correo electrónico personal</label>
+            <label>✉️ Correo electrónico personal</label>
             <input type="email" id="user-email-input" class="form-input-mobile" placeholder="ejemplo@correo.com">
           </div>
 
           <div class="question-block">
-            <label>Tipo de sangre <span class="req-star">*</span></label>
+            <label>🩸 Tipo de sangre <span class="req-star">*</span></label>
             <select id="user-sangre-select" class="form-input-mobile" style="font-weight:700;">
               <option value="O+">O+</option>
               <option value="O-">O-</option>
@@ -117,84 +120,72 @@
 
           <!-- SECCIÓN: CONDICIÓN DE SALUD FÍSICA Y EMOCIONAL -->
           <div class="form-section-card">
-            <div class="form-section-title">Condición de salud física y emocional</div>
+            <div class="form-section-title">🩺 Condición de salud física y emocional</div>
           </div>
 
           <div class="question-block">
             <label>¿Cual es su situación actual y cómo la institución lo puede apoyar? <span class="req-star">*</span></label>
             <div class="touch-options-grid">
               <button type="button" class="touch-option-btn selected" data-group="situacionYApoyo" data-value="Estoy bien y seguro">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Estoy bien y seguro</div>
-                </div>
+                <div class="touch-icon">💚</div>
+                <div class="touch-title">Estoy bien y seguro</div>
               </button>
               <button type="button" class="touch-option-btn warning" data-group="situacionYApoyo" data-value="Requiero apoyo psicológico">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Requiero apoyo psicológico</div>
-                </div>
+                <div class="touch-icon">🧠</div>
+                <div class="touch-title">Requiero apoyo psicológico</div>
               </button>
               <button type="button" class="touch-option-btn warning" data-group="situacionYApoyo" data-value="Requiero apoyo de trabajo social">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Requiero apoyo de trabajo social</div>
-                </div>
+                <div class="touch-icon">🤝</div>
+                <div class="touch-title">Requiero apoyo de trabajo social</div>
               </button>
               <button type="button" class="touch-option-btn warning" data-group="situacionYApoyo" data-value="Requiero apoyo jurídico">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Requiero apoyo jurídico</div>
-                </div>
+                <div class="touch-icon">⚖️</div>
+                <div class="touch-title">Requiero apoyo jurídico</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="situacionYApoyo" data-value="Requiero apoyo con medicamentos">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Requiero apoyo con medicamentos</div>
-                </div>
+                <div class="touch-icon">💊</div>
+                <div class="touch-title">Requiero apoyo con medicamentos</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="situacionYApoyo" data-value="Requiero apoyo con alimentos">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Requiero apoyo con alimentos</div>
-                </div>
+                <div class="touch-icon">📦</div>
+                <div class="touch-title">Requiero apoyo con alimentos</div>
               </button>
             </div>
           </div>
 
           <!-- SECCIÓN: COMPOSICIÓN Y CONDICIONES DEL HOGAR -->
           <div class="form-section-card">
-            <div class="form-section-title">Composición y condiciones del hogar</div>
+            <div class="form-section-title">🏠 Composición y condiciones del hogar</div>
           </div>
 
           <div class="question-block">
-            <label>¿Cuántas personas viven actualmente en su hogar? <span class="req-star">*</span></label>
+            <label>👨‍👩‍👧‍👦 ¿Cuántas personas viven actualmente en su hogar? <span class="req-star">*</span></label>
             <div class="touch-options-grid">
               <button type="button" class="touch-option-btn selected" data-group="personasHogar" data-value="1">
                 <div class="radio-dot"></div>
-                <div class="touch-title">1</div>
+                <div class="touch-title">1 persona</div>
               </button>
               <button type="button" class="touch-option-btn" data-group="personasHogar" data-value="2">
                 <div class="radio-dot"></div>
-                <div class="touch-title">2</div>
+                <div class="touch-title">2 personas</div>
               </button>
               <button type="button" class="touch-option-btn" data-group="personasHogar" data-value="3">
                 <div class="radio-dot"></div>
-                <div class="touch-title">3</div>
+                <div class="touch-title">3 personas</div>
               </button>
               <button type="button" class="touch-option-btn" data-group="personasHogar" data-value="4">
                 <div class="radio-dot"></div>
-                <div class="touch-title">4</div>
+                <div class="touch-title">4 personas</div>
               </button>
               <button type="button" class="touch-option-btn" data-group="personasHogar" data-value="Más de 4">
                 <div class="radio-dot"></div>
-                <div class="touch-title">Más de 4</div>
+                <div class="touch-title">Más de 4 personas</div>
               </button>
             </div>
           </div>
 
           <div class="question-block">
-            <label>La vivienda donde reside es: <span class="req-star">*</span></label>
+            <label>🔑 La vivienda donde reside es: <span class="req-star">*</span></label>
             <div class="touch-options-grid">
               <button type="button" class="touch-option-btn selected" data-group="tipoVivienda" data-value="Propia">
                 <div class="radio-dot"></div>
@@ -216,98 +207,78 @@
           </div>
 
           <div class="question-block">
-            <label>¿Su vivienda presenta afectaciones como consecuencia del evento? <span class="req-star">*</span></label>
+            <label>🏚️ ¿Su vivienda presenta afectaciones como consecuencia del evento? <span class="req-star">*</span></label>
             <div class="touch-options-grid">
               <button type="button" class="touch-option-btn selected" data-group="afectacionVivienda" data-value="No presenta afectaciones">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">No presenta afectaciones</div>
-                </div>
+                <div class="touch-icon">💚</div>
+                <div class="touch-title">No presenta afectaciones</div>
               </button>
               <button type="button" class="touch-option-btn warning" data-group="afectacionVivienda" data-value="Presenta afectaciones menores que me permiten habitarla">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Presenta afectaciones menores que me permiten habitarla</div>
-                </div>
+                <div class="touch-icon">💛</div>
+                <div class="touch-title">Presenta afectaciones menores que me permiten habitarla</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="afectacionVivienda" data-value="Presenta afectaciones menores que NO me permiten habitarla">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Presenta afectaciones menores que NO me permiten habitarla</div>
-                </div>
+                <div class="touch-icon">🟠</div>
+                <div class="touch-title">Presenta afectaciones menores que NO me permiten habitarla</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="afectacionVivienda" data-value="Presenta afectaciones graves que me impiden habitarla">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Presenta afectaciones graves que me impiden habitarla</div>
-                </div>
+                <div class="touch-icon">🔴</div>
+                <div class="touch-title">Presenta afectaciones graves que me impiden habitarla</div>
               </button>
             </div>
           </div>
 
           <div class="question-block">
-            <label>¿Actualmente cuenta con un lugar seguro donde permanecer? <span class="req-star">*</span></label>
+            <label>🛡️ ¿Actualmente cuenta con un lugar seguro donde permanecer? <span class="req-star">*</span></label>
             <div class="touch-options-grid" style="flex-direction:row; gap:10px;">
               <button type="button" class="touch-option-btn selected" data-group="lugarSeguro" data-value="Si" style="flex:1;">
-                <div class="radio-dot"></div>
+                <div class="touch-icon">👍</div>
                 <div class="touch-title">Sí</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="lugarSeguro" data-value="No" style="flex:1;">
-                <div class="radio-dot"></div>
+                <div class="touch-icon">👎</div>
                 <div class="touch-title">No</div>
               </button>
             </div>
           </div>
 
           <div class="question-block">
-            <label>¿Cómo se encuentra actualmente su grupo familiar? <span class="req-star">*</span></label>
+            <label>👨‍👩‍👧‍👦 ¿Cómo se encuentra actualmente su grupo familiar? <span class="req-star">*</span></label>
             <div class="touch-options-grid">
               <button type="button" class="touch-option-btn selected" data-group="estadoFamilia" data-value="Todos se encuentran bien">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Todos se encuentran bien</div>
-                </div>
+                <div class="touch-icon">💚</div>
+                <div class="touch-title">Todos se encuentran bien</div>
               </button>
               <button type="button" class="touch-option-btn warning" data-group="estadoFamilia" data-value="Tengo familiares con afectaciones leves">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Tengo familiares con afectaciones leves</div>
-                </div>
+                <div class="touch-icon">💛</div>
+                <div class="touch-title">Tengo familiares con afectaciones leves</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="estadoFamilia" data-value="Tengo familiares lesionados que requieren atención">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Tengo familiares lesionados que requieren atención</div>
-                </div>
+                <div class="touch-icon">🚑</div>
+                <div class="touch-title">Tengo familiares lesionados que requieren atención</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="estadoFamilia" data-value="Tengo familiares recibiendo atención médica">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Tengo familiares recibiendo atención médica</div>
-                </div>
+                <div class="touch-icon">🏥</div>
+                <div class="touch-title">Tengo familiares recibiendo atención médica</div>
               </button>
               <button type="button" class="touch-option-btn warning" data-group="estadoFamilia" data-value="Tengo familiares que requieren apoyo psicosocial">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Tengo familiares que requieren apoyo psicosocial</div>
-                </div>
+                <div class="touch-icon">🧠</div>
+                <div class="touch-title">Tengo familiares que requieren apoyo psicosocial</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="estadoFamilia" data-value="Tengo pérdida de uno o más familiares">
-                <div class="radio-dot"></div>
-                <div>
-                  <div class="touch-title">Tengo pérdida de uno o más familiares</div>
-                </div>
+                <div class="touch-icon">🖤</div>
+                <div class="touch-title">Tengo pérdida de uno o más familiares</div>
               </button>
             </div>
           </div>
 
           <!-- SECCIÓN: ACCESO A HERRAMIENTAS TECNOLÓGICAS Y LABORALES -->
           <div class="form-section-card">
-            <div class="form-section-title">Acceso a herramientas tecnológicas y laborales</div>
+            <div class="form-section-title">💻 Acceso a herramientas tecnológicas y laborales</div>
           </div>
 
           <div class="question-block">
-            <label>¿Mi cargo requiere obligatoriamente presencialidad en el lugar el trabajo? <span class="req-star">*</span></label>
+            <label>🏢 ¿Mi cargo requiere obligatoriamente presencialidad en el lugar el trabajo? <span class="req-star">*</span></label>
             <div class="touch-options-grid" style="flex-direction:row; gap:10px;">
               <button type="button" class="touch-option-btn selected" data-group="presencialidadObligatoria" data-value="Sí" style="flex:1;">
                 <div class="radio-dot"></div>
@@ -321,10 +292,10 @@
           </div>
 
           <!-- SUB-SECCIÓN: CONDICIONES ÓPTIMAS -->
-          <div class="form-subsection-title">Condiciones óptimas</div>
+          <div class="form-subsection-title">⚡ Condiciones óptimas</div>
 
           <div class="question-block">
-            <label>¿Tiene las condiciones óptimas (internet y energía) para desempeñar sus funciones? <span class="req-star">*</span></label>
+            <label>🌐 ¿Tiene las condiciones óptimas (internet y energía) para desempeñar sus funciones? <span class="req-star">*</span></label>
             <div class="touch-options-grid" style="flex-direction:row; gap:10px;">
               <button type="button" class="touch-option-btn selected" data-group="condicionesOptimas" data-value="Sí" style="flex:1;">
                 <div class="radio-dot"></div>
@@ -338,7 +309,7 @@
           </div>
 
           <div class="question-block">
-            <label>Tiene las herramientas de trabajo completas (portátil, cargador) para responder por los objetivos del cargo <span class="req-star">*</span></label>
+            <label>💻 Tiene las herramientas de trabajo completas (portátil, cargador) para responder por los objetivos del cargo <span class="req-star">*</span></label>
             <div class="touch-options-grid" style="flex-direction:row; gap:10px;">
               <button type="button" class="touch-option-btn selected" data-group="herramientasTrabajo" data-value="Sí" style="flex:1;">
                 <div class="radio-dot"></div>
