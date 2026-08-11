@@ -1,16 +1,22 @@
 /**
  * COMFAMILIAR RISARALDA - PANEL DE ADMINISTRACIÓN SST
- * Lógica integrada con campos de HOJA: BASE_PX
+ * Configurada URL por defecto de Google Apps Script
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
+
   const AppState = {
     isAuthenticated: sessionStorage.getItem('comfamiliar_admin_auth') === 'true',
     adminPin: localStorage.getItem('comfamiliar_admin_pin') || '2026',
-    googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || '',
+    googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     reports: JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [...window.INITIAL_REPORTS_MOCK],
     theme: localStorage.getItem('comfamiliar_theme') || 'light'
   };
+
+  if (!localStorage.getItem('comfamiliar_sheets_url')) {
+    localStorage.setItem('comfamiliar_sheets_url', DEFAULT_SHEETS_URL);
+  }
 
   const loginScreen = document.getElementById('admin-login-screen');
   const loginForm = document.getElementById('admin-login-form');
@@ -115,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (testSheetsBtn) {
     testSheetsBtn.addEventListener('click', async () => {
-      const url = sheetsUrlInput.value.trim();
+      const url = sheetsUrlInput.value.trim() || AppState.googleSheetsUrl;
       if (!url) {
         alert('⚠️ Ingrese primero la URL de Google Apps Script.');
         return;
@@ -182,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const waPhone = cleanPhone.startsWith('57') ? cleanPhone : '57' + cleanPhone;
       const waLink = `https://wa.me/${waPhone}?text=Hola%20${encodeURIComponent(r.nombre)},%20te%20contactamos%20del%20Comité%20de%20Emergencia%20de%20Comfamiliar%20Risaralda.`;
       const procesoText = r.proceso ? ` • ${r.proceso}` : (r.area ? ` • ${r.area}` : '');
-      const contratoText = r.contrato ? ` <span style="font-size:0.75rem; color:var(--text-muted);">(${r.contrato})</span>` : '';
 
       return `
         <tr>
@@ -192,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td>
             <strong>${r.sede}</strong><br>
-            <span style="font-size:0.75rem; color:var(--text-muted)">Modelo: ${r.modeloTrabajo || 'Presencial'}</span>${contratoText}
+            <span style="font-size:0.75rem; color:var(--text-muted)">Modelo: ${r.modeloTrabajo || 'Presencial'}</span>
           </td>
           <td><strong>${r.municipio}</strong><br><span style="font-size:0.75rem;">${r.direccion}</span></td>
           <td><span class="badge-status badge-${r.criticidad}">${r.criticidad.toUpperCase()}</span></td>

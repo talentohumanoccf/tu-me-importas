@@ -1,8 +1,10 @@
 /**
- * PORTAL DEL EMPLEADO - LÓGICA DE BÚSQUEDA INTEGRADA CON BASE_PX
+ * PORTAL DEL EMPLEADO - LÓGICA CON URL DEFAULT CONFIGURADA
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
+
   const state = {
     documento: '',
     employee: null,
@@ -12,8 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     municipio: 'Pereira',
     direccion: '',
     gps: null,
-    googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || ''
+    googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL
   };
+
+  // Asegurar que quede guardada como default
+  if (!localStorage.getItem('comfamiliar_sheets_url')) {
+    localStorage.setItem('comfamiliar_sheets_url', DEFAULT_SHEETS_URL);
+  }
 
   const ccInput = document.getElementById('user-cc-input');
   const btnVerifyCC = document.getElementById('btn-verify-cc');
@@ -32,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupTouchOptions();
 
-  // Búsqueda por Documento / Cédula
   btnVerifyCC.addEventListener('click', handleCCLookup);
   ccInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') handleCCLookup();
@@ -52,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Buscar en Mock Local
     let found = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
 
-    // 2. Si no se encuentra local y hay URL de Google Sheets, intentar búsqueda en vivo en BASE_PX
+    // 2. Intentar Búsqueda en Vivo en Google Sheets BASE_PX
     if (!found && state.googleSheetsUrl && navigator.onLine) {
       try {
         const fetchUrl = `${state.googleSheetsUrl}?documento=${encodeURIComponent(doc)}`;
@@ -62,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
           found = result.data;
         }
       } catch (err) {
-        console.warn('⚠️ No se pudo consultar BASE_PX en vivo:', err);
+        console.warn('⚠️ Consulta en vivo BASE_PX:', err);
       }
     }
 
@@ -80,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
       
       empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}${modeloText}`;
 
-      // Autocompletar teléfono y dirección si están registrados en BASE_PX
       const phoneInput = document.getElementById('user-phone-input');
       if (phoneInput && found.telefono) phoneInput.value = found.telefono;
 
@@ -132,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // GPS Satelital
   gpsBtn.addEventListener('click', () => {
     if (!navigator.geolocation) {
       gpsStatus.textContent = '❌ GPS no disponible en este dispositivo.';
@@ -151,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   });
 
-  // Envío del Formulario
   reportForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -199,12 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
       origen: 'Portal Usuario BASE_PX'
     };
 
-    // Almacenamiento Local
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     localReports.unshift(report);
     localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
 
-    // Envío en segundo plano a Google Sheets
     if (state.googleSheetsUrl && navigator.onLine) {
       try {
         fetch(state.googleSheetsUrl, {
