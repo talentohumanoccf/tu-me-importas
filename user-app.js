@@ -1,5 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON CONTROL DE DUPLICADOS Y EMOTICONES
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON FALLBACK DE SINCRO ULTRA-RESISTENTE
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -66,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.documento = doc;
 
-    // Verificar si esta cédula ya realizó un reporte previo localmente
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     const prevReport = localReports.find(r => r.documento === doc || r.cedula === doc);
     
@@ -127,7 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
       dirInput.value = found.direccion;
     }
 
-    // CAMPOS LIMPIOS O RELLENADOS CON REPORTE PREVIO PARA ACTUALIZAR
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     const prevReport = localReports.find(r => r.documento === found.documento);
 
@@ -273,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         origen: 'Formulario Oficial Web'
       };
 
-      // CONTROL DE DUPLICADOS EN LOCALSTORAGE: Reemplazar el reporte anterior si existe
+      // Guardar localmente siempre
       let localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
       const existingIdx = localReports.findIndex(r => r.documento === state.documento);
       if (existingIdx >= 0) {
@@ -283,17 +281,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
 
+      // Sincronización Doble a Google Sheets (POST + Fallback)
       if (state.googleSheetsUrl && navigator.onLine) {
-        try {
-          fetch(state.googleSheetsUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(report)
-          }).catch(err => console.log('Envío en proceso background'));
-        } catch(err) {
-          console.log('Guardado localmente');
-        }
+        sendReportToGoogleSheets(report);
       }
 
       if (formSection) formSection.style.display = 'none';
@@ -302,6 +292,24 @@ document.addEventListener('DOMContentLoaded', () => {
         successSection.scrollIntoView({ behavior: 'smooth' });
       }
     });
+  }
+
+  function sendReportToGoogleSheets(report) {
+    try {
+      fetch(state.googleSheetsUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(report)
+      }).catch(() => {
+        // Fallback vía JSONP/GET si el navegador móvil restringe POST
+        const script = document.createElement('script');
+        script.src = `${state.googleSheetsUrl}?action=submitReport&payload=${encodeURIComponent(JSON.stringify(report))}`;
+        document.body.appendChild(script);
+      });
+    } catch(err) {
+      console.log('Sincronizando en segundo plano');
+    }
   }
 
   if (btnReset) {

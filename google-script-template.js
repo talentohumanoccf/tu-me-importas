@@ -1,128 +1,70 @@
 /**
- * CÓDIGO DE GOOGLE APPS SCRIPT PARA GOOGLE SHEETS
- * Sistema de Reporte de Emergencia - Comfamiliar Risaralda
- * 
- * ESTRUCTURA INTEGRADA CON HOJA: BASE_PX
- * CAMPOS BASE_PX: DOCUMENTO, NOMBRE, CARGO, EMAIL, CONTRATO, PROCESO, AREA, Sexo, SEDE, TELEFONO, DIRECCIÓN, MUNICIPIO, MODELO TRABAJO
+ * CÓDIGO GOOGLE APPS SCRIPT - COMFAMILIAR RISARALDA
+ * Soporte Dual (POST + GET/JSONP) para Garantizar la Sincronización desde Cualquier Celular
  */
 
 function doPost(e) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // Obtener o Crear Hoja de Reportes de Emergencia
-    var reportSheet = ss.getSheetByName("REPORTES_EMERGENCIA");
-    if (!reportSheet) {
-      reportSheet = ss.insertSheet("REPORTES_EMERGENCIA");
-    }
-    
-    // Si la hoja de reportes está vacía, crear encabezados consolidados
-    if (reportSheet.getLastRow() === 0) {
-      reportSheet.appendRow([
-        "Fecha y Hora",
-        "Documento",
-        "Nombre Completo",
-        "Cargo",
-        "Email",
-        "Contrato",
-        "Proceso",
-        "Área",
-        "Sexo",
-        "Sede Registrada",
-        "Teléfono Registrado",
-        "Dirección Registrada",
-        "Municipio Registrado",
-        "Modelo Trabajo",
-        "Estado Salud",
-        "Estado Familia",
-        "Estado Vivienda",
-        "Municipio Actual Emergencia",
-        "Dirección Actual / Referencia",
-        "Teléfono Contacto Actual",
-        "Latitud GPS",
-        "Longitud GPS",
-        "Necesidades Prioritarias",
-        "Observaciones / Comentarios",
-        "Nivel Criticidad",
-        "Origen Sincronización"
-      ]);
-      
-      // Dar formato institucional Comfamiliar
-      var headerRange = reportSheet.getRange(1, 1, 1, 26);
-      headerRange.setBackground("#003366");
-      headerRange.setFontColor("#FFFFFF");
-      headerRange.setFontWeight("bold");
-      reportSheet.setFrozenRows(1);
-    }
-    
-    var data = JSON.parse(e.postData.contents);
-    
-    // Si no viene toda la info institucional, intentar buscarla en la pestaña BASE_PX por DOCUMENTO
-    var empInfo = buscarEnBasePX(ss, data.cedula || data.documento);
-    
-    reportSheet.appendRow([
-      data.timestamp || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
-      data.cedula || data.documento || "",
-      data.nombre || empInfo.nombre || "No registrado",
-      data.cargo || empInfo.cargo || "",
-      data.email || empInfo.email || "",
-      data.contrato || empInfo.contrato || "",
-      data.proceso || empInfo.proceso || "",
-      data.area || empInfo.area || "",
-      data.sexo || empInfo.sexo || "",
-      data.sede || empInfo.sede || "",
-      data.telefonoBase || empInfo.telefono || "",
-      data.direccionBase || empInfo.direccion || "",
-      data.municipioBase || empInfo.municipio || "",
-      data.modeloTrabajo || empInfo.modeloTrabajo || "",
-      data.estadoSalud || "",
-      data.estadoFamilia || "",
-      data.estadoVivienda || "",
-      data.municipio || "",
-      data.direccion || "",
-      data.telefono || "",
-      data.latitud || "",
-      data.longitud || "",
-      Array.isArray(data.necesidades) ? data.necesidades.join(", ") : (data.necesidades || ""),
-      data.observaciones || "",
-      data.criticidad || "verde",
-      data.origen || "Web App"
-    ]);
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "Reporte guardado correctamente en REPORTES_EMERGENCIA"
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+  return procesarYGuardarReporte(e ? e.postData.contents : null);
 }
 
-/**
- * Búsqueda directa por DOCUMENTO en la hoja BASE_PX para GET HTTP
- */
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var docParam = e.parameter ? (e.parameter.documento || e.parameter.cedula) : null;
-    
-    if (docParam) {
-      var found = buscarEnBasePX(ss, docParam);
-      return ContentService.createTextOutput(JSON.stringify({
-        status: found.encontrado ? "found" : "not_found",
-        data: found
-      })).setMimeType(ContentService.MimeType.JSON);
+    var sheet = obtenerOCrearHoja(ss);
+
+    var docParam = e && e.parameter ? (e.parameter.documento || e.parameter.cedula) : null;
+    var callback = e && e.parameter ? e.parameter.callback : null;
+    var action = e && e.parameter ? e.parameter.action : null;
+    var payloadParam = e && e.parameter ? e.parameter.payload : null;
+
+    // 1. Si llega un envío de reporte vía GET / JSONP (Fallback Celulares)
+    if (action === "submitReport" && payloadParam) {
+      return procesarYGuardarReporte(payloadParam, callback);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({
+    // 2. Si se solicita consultar una cédula específica en BASE_PX
+    if (docParam && docParam !== "ping" && !action) {
+      var found = buscarEnBasePX(ss, docParam);
+      var jsonResult = JSON.stringify({
+        status: found.encontrado ? "found" : "not_found",
+        data: found
+      });
+
+      if (callback) {
+        return ContentService.createTextOutput(callback + "(" + jsonResult + ")")
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      return ContentService.createTextOutput(jsonResult).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. Si se solicita obtener TODOS los reportes para el Tablero Administrador SST
+    if (action === "getAllReports" || action === "getReports" || (!docParam && !callback) || (callback && !docParam)) {
+      var allReports = obtenerTodosLosReportes(sheet);
+      var jsonAll = JSON.stringify({
+        status: "success",
+        total: allReports.length,
+        reports: allReports
+      });
+
+      if (callback) {
+        return ContentService.createTextOutput(callback + "(" + jsonAll + ")")
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      return ContentService.createTextOutput(jsonAll).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var onlineMsg = JSON.stringify({
       status: "online",
-      service: "Comfamiliar Risaralda Emergency Sync Engine API",
+      message: "API Emergencia Comfamiliar Activa",
       baseSheet: "BASE_PX"
-    })).setMimeType(ContentService.MimeType.JSON);
+    });
+
+    if (callback) {
+      return ContentService.createTextOutput(callback + "(" + onlineMsg + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    return ContentService.createTextOutput(onlineMsg).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
@@ -131,9 +73,205 @@ function doGet(e) {
   }
 }
 
-/**
- * Función Auxiliar: Busca una cédula/documento en la pestaña BASE_PX
- */
+function procesarYGuardarReporte(rawContents, callback) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var reportSheet = obtenerOCrearHoja(ss);
+    
+    var data = {};
+    if (rawContents) {
+      try {
+        data = typeof rawContents === "string" ? JSON.parse(rawContents) : rawContents;
+      } catch(errJson) {
+        data = {};
+      }
+    }
+    
+    // Buscar datos base en la pestaña BASE_PX
+    var empInfo = buscarEnBasePX(ss, data.cedula || data.documento);
+    
+    var docFinal = String(data.cedula || data.documento || empInfo.documento || "").trim();
+    var nombreFinal = (empInfo.nombre && empInfo.nombre.trim().length > 0) 
+      ? empInfo.nombre 
+      : (data.nombre && !data.nombre.includes("Colaborador") ? data.nombre : (empInfo.nombre || data.nombre || "No registrado"));
+
+    var cargoFinal = (empInfo.cargo && empInfo.cargo.trim().length > 0)
+      ? empInfo.cargo
+      : (data.cargo && data.cargo !== "Comfamiliar Risaralda" ? data.cargo : (empInfo.cargo || "Comfamiliar Risaralda"));
+
+    var emailFinal = empInfo.email || data.emailPersonal || data.email || "";
+    var contratoFinal = empInfo.contrato || data.contrato || "";
+    var procesoFinal = empInfo.proceso || data.proceso || "";
+    var areaFinal = empInfo.area || data.area || "";
+    var sexoFinal = empInfo.sexo || data.sexo || "";
+    var sedeFinal = empInfo.sede || data.sede || "";
+    var telefonoBaseFinal = data.telefono || empInfo.telefono || "";
+    var direccionHabitualFinal = data.direccionResidencia || data.direccionBase || empInfo.direccion || "";
+    var direccionActualFinal = data.direccionActual || data.direccion || direccionHabitualFinal;
+    var municipioBaseFinal = data.municipio || empInfo.municipio || "";
+
+    var rowValues = [
+      data.timestamp || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
+      docFinal,
+      nombreFinal,
+      cargoFinal,
+      emailFinal,
+      contratoFinal,
+      procesoFinal,
+      areaFinal,
+      sexoFinal,
+      sedeFinal,
+      telefonoBaseFinal,
+      data.contactoEmergencia || "",
+      direccionHabitualFinal,
+      direccionActualFinal,
+      municipioBaseFinal,
+      data.tipoSangre || "",
+      data.situacionYApoyo || "",
+      data.personasHogar || "",
+      data.tipoVivienda || "",
+      data.afectacionVivienda || "",
+      data.lugarSeguro || "",
+      data.estadoFamilia || "",
+      data.presencialidadObligatoria || "",
+      data.condicionesOptimas || "",
+      data.herramientasTrabajo || "",
+      data.latitud || "",
+      data.longitud || "",
+      data.criticidad || "verde",
+      data.esActualizacion ? "Actualización de Registro" : "Web App Formulario Oficial"
+    ];
+
+    // Buscar si la cédula ya tiene un registro previo en REPORTES_EMERGENCIA
+    var existingRowIndex = buscarFilaPorDocumento(reportSheet, docFinal);
+
+    if (existingRowIndex > 0) {
+      reportSheet.getRange(existingRowIndex, 1, 1, rowValues.length).setValues([rowValues]);
+    } else {
+      reportSheet.appendRow(rowValues);
+    }
+    
+    var responseObj = {
+      status: "success",
+      action: existingRowIndex > 0 ? "updated" : "inserted",
+      message: "Registro procesado exitosamente para " + docFinal
+    };
+
+    if (callback) {
+      return ContentService.createTextOutput(callback + "(" + JSON.stringify(responseObj) + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(responseObj))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    var errObj = { status: "error", error: error.toString() };
+    if (callback) {
+      return ContentService.createTextOutput(callback + "(" + JSON.stringify(errObj) + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(JSON.stringify(errObj)).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function obtenerTodosLosReportes(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var data = sheet.getRange(2, 1, lastRow - 1, 29).getValues();
+  var reports = [];
+
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    if (r[1] && String(r[1]).trim().length > 0) {
+      reports.push({
+        id: 'rep-' + i,
+        timestamp: r[0] ? String(r[0]) : '',
+        documento: String(r[1]),
+        cedula: String(r[1]),
+        nombre: String(r[2] || 'Colaborador'),
+        cargo: String(r[3] || ''),
+        emailPersonal: String(r[4] || ''),
+        contrato: String(r[5] || ''),
+        proceso: String(r[6] || ''),
+        area: String(r[7] || ''),
+        sexo: String(r[8] || ''),
+        sede: String(r[9] || ''),
+        telefono: String(r[10] || ''),
+        contactoEmergencia: String(r[11] || ''),
+        direccionResidencia: String(r[12] || ''),
+        direccionActual: String(r[13] || ''),
+        direccion: String(r[13] || r[12] || ''),
+        municipio: String(r[14] || ''),
+        tipoSangre: String(r[15] || 'O+'),
+        situacionYApoyo: String(r[16] || 'Estoy bien y seguro'),
+        personasHogar: String(r[17] || '1'),
+        tipoVivienda: String(r[18] || 'Propia'),
+        afectacionVivienda: String(r[19] || 'No presenta afectaciones'),
+        lugarSeguro: String(r[20] || 'Si'),
+        estadoFamilia: String(r[21] || 'Todos se encuentran bien'),
+        presencialidadObligatoria: String(r[22] || 'Sí'),
+        condicionesOptimas: String(r[23] || 'Sí'),
+        herramientasTrabajo: String(r[24] || 'Sí'),
+        latitud: String(r[25] || ''),
+        longitud: String(r[26] || ''),
+        criticidad: String(r[27] || 'verde'),
+        origen: String(r[28] || 'Google Sheet')
+      });
+    }
+  }
+
+  return reports;
+}
+
+function buscarFilaPorDocumento(sheet, documentoTarget) {
+  if (!documentoTarget) return -1;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+
+  var docColumnValues = sheet.getRange(1, 2, lastRow, 1).getValues();
+  var target = String(documentoTarget).trim();
+
+  for (var i = 1; i < docColumnValues.length; i++) {
+    var cellValue = String(docColumnValues[i][0]).trim();
+    if (cellValue === target) {
+      return i + 1;
+    }
+  }
+  return -1;
+}
+
+function crearHojaReportesManual() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = obtenerOCrearHoja(ss);
+  Logger.log("✅ Hoja REPORTES_EMERGENCIA verificada/creada correctamente.");
+}
+
+function obtenerOCrearHoja(ss) {
+  var sheet = ss.getSheetByName("REPORTES_EMERGENCIA");
+  if (!sheet) {
+    sheet = ss.insertSheet("REPORTES_EMERGENCIA");
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "Fecha y Hora", "Documento", "Nombre Completo", "Cargo", "Email Personal", "Contrato",
+      "Proceso", "Área", "Sexo", "Sede Registrada", "Teléfono Contacto", "Contacto Emergencia",
+      "Dirección Residencia Habitual", "Dirección Actual en Emergencia", "Municipio / Barrio", "Tipo de Sangre",
+      "Situación y Apoyo Requerido", "Personas en Hogar", "Tipo de Vivienda", "Afectación de Vivienda",
+      "Cuenta con Lugar Seguro", "Estado Grupo Familiar", "Presencialidad Obligatoria",
+      "Condiciones Óptimas (Net/Energía)", "Herramientas Trabajo Completas", "Latitud GPS", "Longitud GPS",
+      "Nivel Criticidad", "Origen Sincronización"
+    ]);
+    var headerRange = sheet.getRange(1, 1, 1, 29);
+    headerRange.setBackground("#003366");
+    headerRange.setFontColor("#FFFFFF");
+    headerRange.setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
 function buscarEnBasePX(ss, documento) {
   var emptyObj = { encontrado: false };
   if (!documento) return emptyObj;
@@ -160,26 +298,26 @@ function buscarEnBasePX(ss, documento) {
   var colMunicipio = headers.indexOf("MUNICIPIO");
   var colModelo = headers.indexOf("MOLDELO TRABABJO") > -1 ? headers.indexOf("MOLDELO TRABABJO") : headers.indexOf("MODELO TRABAJO");
 
-  docTarget = String(documento).trim();
+  var docTarget = String(documento).trim();
 
   for (var i = 1; i < data.length; i++) {
-    var cellDoc = String(data[i][colDoc]).trim();
-    if (cellDoc === docTarget) {
+    var docCell = String(data[i][colDoc]).trim();
+    if (docCell === docTarget) {
       return {
         encontrado: true,
-        documento: cellDoc,
-        nombre: colNombre > -1 ? data[i][colNombre] : "",
-        cargo: colCargo > -1 ? data[i][colCargo] : "",
-        email: colEmail > -1 ? data[i][colEmail] : "",
-        contrato: colContrato > -1 ? data[i][colContrato] : "",
-        proceso: colProceso > -1 ? data[i][colProceso] : "",
-        area: colArea > -1 ? data[i][colArea] : "",
-        sexo: colSexo > -1 ? data[i][colSexo] : "",
-        sede: colSede > -1 ? data[i][colSede] : "",
-        telefono: colTelefono > -1 ? data[i][colTelefono] : "",
-        direccion: colDireccion > -1 ? data[i][colDireccion] : "",
-        municipio: colMunicipio > -1 ? data[i][colMunicipio] : "",
-        modeloTrabajo: colModelo > -1 ? data[i][colModelo] : ""
+        documento: docTarget,
+        nombre: colNombre > -1 ? String(data[i][colNombre]) : "",
+        cargo: colCargo > -1 ? String(data[i][colCargo]) : "",
+        email: colEmail > -1 ? String(data[i][colEmail]) : "",
+        contrato: colContrato > -1 ? String(data[i][colContrato]) : "",
+        proceso: colProceso > -1 ? String(data[i][colProceso]) : "",
+        area: colArea > -1 ? String(data[i][colArea]) : "",
+        sexo: colSexo > -1 ? String(data[i][colSexo]) : "",
+        sede: colSede > -1 ? String(data[i][colSede]) : "",
+        telefono: colTelefono > -1 ? String(data[i][colTelefono]) : "",
+        direccion: colDireccion > -1 ? String(data[i][colDireccion]) : "",
+        municipio: colMunicipio > -1 ? String(data[i][colMunicipio]) : "",
+        modeloTrabajo: colModelo > -1 ? String(data[i][colModelo]) : ""
       };
     }
   }
