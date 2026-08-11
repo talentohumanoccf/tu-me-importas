@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA (CON LOGO OFICIAL)
+   PORTAL DEL EMPLEADO - COMFAMILIAR RISARALDA (LOGO TRANSPARENTE EN HEADER AZUL)
    ========================================================================== */
 
 :root {
@@ -46,18 +46,20 @@ html, body {
   min-height: 100vh;
 }
 
-/* Header Móvil con Logo Oficial */
+/* Header Institucional con Fondo Azul Profundo */
 .user-header {
   background: var(--primary-gradient);
   color: #FFFFFF;
-  padding: 12px 16px;
-  box-shadow: 0 4px 20px rgba(0, 31, 63, 0.2);
+  padding: 10px 20px;
+  box-shadow: 0 4px 16px rgba(0, 31, 63, 0.15);
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .header-top-row {
@@ -65,39 +67,44 @@ html, body {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  max-width: 600px;
 }
 
 .brand-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* LOGO TRANSPARENTE SOBRE EL FONDO AZUL DEL HEADER (SIN CAJA BLANCA) */
 .brand-logo-img {
-  height: 42px;
-  width: auto;
+  height: 40px !important;
+  max-height: 40px !important;
+  width: auto !important;
+  max-width: 210px !important;
   object-fit: contain;
-  background: #FFFFFF;
-  padding: 4px 8px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: block;
 }
 
 .brand-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 8px;
-  letter-spacing: -0.3px;
+  gap: 6px;
+  letter-spacing: -0.2px;
 }
 
 .brand-badge {
   background: var(--secondary);
   color: #FFFFFF;
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 12px;
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 10px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -106,13 +113,19 @@ html, body {
   color: #FFFFFF;
   font-size: 0.78rem;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(4px);
   padding: 6px 12px;
   border-radius: 20px;
   font-weight: 700;
   white-space: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: background 0.2s;
+}
+
+.admin-shortcut-link:hover {
+  background: var(--secondary);
+  border-color: var(--secondary);
 }
 
 /* Ticker Alerta Móvil */
@@ -127,21 +140,21 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 }
 
-/* Contenedor Principal Móvil */
+/* Contenedor Principal */
 .user-container {
   width: 100%;
   max-width: 520px;
   margin: 0 auto;
-  padding: 12px 12px 40px 12px;
+  padding: 16px 12px 40px 12px;
 }
 
 .user-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  padding: 20px 16px;
+  padding: 22px 18px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
 }
@@ -342,7 +355,7 @@ html, body {
   box-shadow: 0 0 0 3px rgba(0, 168, 143, 0.15);
 }
 
-/* GPS Simplificado en Móvil */
+/* GPS Simplificado */
 .gps-easy-box {
   background: linear-gradient(135deg, rgba(0, 51, 102, 0.03) 0%, rgba(0, 168, 143, 0.06) 100%);
   border: 2px dashed rgba(0, 168, 143, 0.4);
@@ -395,7 +408,7 @@ html, body {
   transform: scale(0.98);
 }
 
-/* Pantalla de Éxito Móvil */
+/* Pantalla de Éxito */
 .success-screen {
   text-align: center;
   padding: 16px 8px;
@@ -415,9 +428,10 @@ html, body {
   box-shadow: 0 4px 15px rgba(37, 211, 102, 0.25);
 }
 
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   .brand-logo-img {
-    height: 36px;
+    height: 34px !important;
+    max-height: 34px !important;
   }
   .cedula-big-input-wrapper {
     flex-direction: column;

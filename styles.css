@@ -1,6 +1,6 @@
 /* ==========================================================================
    COMFAMILIAR RISARALDA - PANEL DE ADMINISTRACIÓN Y SST
-   Estilos con Logo Oficial
+   Estilos con Logo Oficial Transparente sobre Fondo Azul
    ========================================================================== */
 
 :root {
@@ -98,7 +98,7 @@ body {
 .app-header {
   background-color: var(--primary);
   color: #FFFFFF;
-  padding: 14px 24px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -111,18 +111,22 @@ body {
   gap: 14px;
 }
 
+/* LOGO TRANSPARENTE SOBRE AZUL */
 .brand-logo-img {
-  height: 44px;
-  width: auto;
+  height: 42px !important;
+  max-height: 42px !important;
+  width: auto !important;
+  max-width: 210px !important;
   object-fit: contain;
-  background: #FFFFFF;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: block;
 }
 
 .brand-text h1 {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   line-height: 1.2;
 }

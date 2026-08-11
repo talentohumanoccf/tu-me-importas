@@ -1,5 +1,5 @@
 /**
- * PORTAL DEL EMPLEADO - LÓGICA DE BÚSQUEDA JSONP (CERO BLOQUEOS CORS)
+ * PORTAL DEL EMPLEADO - LÓGICA CON MUESTRA DEL NOMBRE COMPLETO
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -52,13 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.documento = doc;
 
-    // 1. Buscar primero en la lista local de demostración
     const foundLocal = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
 
     if (foundLocal) {
       applyEmployeeData(foundLocal);
     } else {
-      // 2. Si no está en la lista local, mostrar nombre provisional y consultar Google Sheets por JSONP
       applyEmployeeData({
         documento: doc,
         cedula: doc,
@@ -69,13 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
         telefono: ""
       });
 
-      // Búsqueda remota vía JSONP (Compatible con file:// y cualquier origen)
       if (state.googleSheetsUrl && navigator.onLine) {
         fetchJSONPBasePX(doc);
       }
     }
 
-    // Desbloquear formulario de inmediato
     greetingBox.style.display = 'block';
     formSection.style.display = 'block';
     formSection.scrollIntoView({ behavior: 'smooth' });
@@ -83,10 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyEmployeeData(found) {
     state.employee = found;
-    const rawName = found.nombre || 'Colaborador';
-    const firstName = rawName.includes('(') ? 'Colaborador' : rawName.split(' ')[0];
+    const fullName = found.nombre || 'Colaborador';
     
-    empName.textContent = `¡Hola, ${firstName}! 👋`;
+    // MOSTRAR NOMBRE COMPLETO SIN RECORTAR
+    empName.textContent = `¡Hola, ${fullName}! 👋`;
     
     const cargoText = found.cargo ? `${found.cargo} ${found.proceso ? '• ' + found.proceso : ''}` : 'Colaborador Comfamiliar';
     const sedeText = found.sede ? `🏢 Sede: ${found.sede}` : '🏢 Comfamiliar Risaralda';
@@ -117,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // BÚSQUEDA JSONP (Exenta de restricciones CORS de navegador)
   window.onBasePXLookupResult = function(result) {
     if (result && result.status === 'found' && result.data) {
       applyEmployeeData(result.data);
@@ -128,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const callbackName = 'onBasePXLookupResult';
     const scriptId = 'jsonp-base-px-lookup';
     
-    // Limpiar script anterior si existía
     const oldScript = document.getElementById(scriptId);
     if (oldScript) oldScript.remove();
 
