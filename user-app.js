@@ -1,5 +1,6 @@
 /**
- * PORTAL DEL EMPLEADO - LÓGICA CON MANEJO ROBULSTO DE CORS Y ORIGEN LOCAL (file://)
+ * PORTAL DEL EMPLEADO - BÚSQUEDA ULTRARRÁPIDA (INSTANTÁNEA < 50ms)
+ * Optimizado para emergencias: desbloquea el formulario de inmediato sin esperas de red.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,80 +39,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupTouchOptions();
 
-  btnVerifyCC.addEventListener('click', handleCCLookup);
+  // Búsqueda instantánea al presionar el botón o presionar Enter
+  btnVerifyCC.addEventListener('click', handleCCLookupInstant);
   ccInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') handleCCLookup();
+    if (e.key === 'Enter') handleCCLookupInstant();
   });
 
-  async function handleCCLookup() {
+  function handleCCLookupInstant() {
     const doc = ccInput.value.trim();
     if (!doc || doc.length < 5) {
-      alert('⚠️ Por favor digita un número de documento o cédula válido.');
+      alert('⚠️ Por favor digita tu número de documento o cédula.');
       return;
     }
 
     state.documento = doc;
-    btnVerifyCC.textContent = '⏳ Buscando...';
-    btnVerifyCC.disabled = true;
 
-    // 1. Buscar primero en la Base de Datos Local
-    let found = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
+    // 1. BÚSQUEDA LOCAL INSTANTÁNEA (< 10ms)
+    const foundLocal = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
 
-    // 2. Si no está en la base local y hay conexión a internet, intentar consultar Google Sheets
-    if (!found && state.googleSheetsUrl && navigator.onLine) {
-      try {
-        const fetchUrl = `${state.googleSheetsUrl}?documento=${encodeURIComponent(doc)}`;
-        const response = await fetch(fetchUrl, {
-          method: 'GET',
-          redirect: 'follow'
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.status === 'found' && result.data) {
-            found = result.data;
-          }
-        }
-      } catch (err) {
-        // En entorno file:// los navegadores bloquean lecturas GET por CORS.
-        // Se maneja silenciosamente continuando con el registro.
-        console.log('📌 Usando registro de documento para el reporte.');
-      }
-    }
-
-    btnVerifyCC.textContent = 'Ingresar';
-    btnVerifyCC.disabled = false;
-
-    if (found) {
-      state.employee = found;
-      const firstName = (found.nombre || 'Colaborador').split(' ')[0];
-      empName.textContent = `¡Hola, ${firstName}! 👋`;
-      
-      const cargoText = found.cargo ? `${found.cargo} • ${found.proceso || found.area || ''}` : 'Colaborador Comfamiliar';
-      const sedeText = found.sede ? `🏢 Sede: ${found.sede}` : '🏢 Comfamiliar Risaralda';
-      const modeloText = found.modeloTrabajo ? ` • ${found.modeloTrabajo}` : '';
-      
-      empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}${modeloText}`;
-
-      const phoneInput = document.getElementById('user-phone-input');
-      if (phoneInput && found.telefono) phoneInput.value = found.telefono;
-
-      const dirInput = document.getElementById('user-direccion-input');
-      if (dirInput && found.direccion) dirInput.value = found.direccion;
-
-      if (found.municipio) {
-        const muniSelect = document.getElementById('user-municipio-select');
-        if (muniSelect) {
-          for (let opt of muniSelect.options) {
-            if (opt.value.toLowerCase() === found.municipio.toLowerCase()) {
-              muniSelect.value = opt.value;
-              break;
-            }
-          }
-        }
-      }
-
+    if (foundLocal) {
+      applyEmployeeData(foundLocal);
     } else {
-      state.employee = {
+      // Si no está en la lista local, crear registro temporal inmediato sin bloquear
+      applyEmployeeData({
         documento: doc,
         cedula: doc,
         nombre: `Colaborador (${doc})`,
@@ -119,14 +69,77 @@ document.addEventListener('DOMContentLoaded', () => {
         sede: "Eje Cafetero",
         proceso: "General",
         telefono: ""
-      };
-      empName.textContent = `¡Hola! Bienvenido(a) Colaborador.`;
-      empMeta.textContent = `Documento ${doc} registrado para el reporte de emergencia.`;
+      });
+
+      // 2. CONSULTA EN SEGUNDO PLANO A GOOGLE SHEETS (Con tiempo límite ultracorto de 1.5s)
+      if (state.googleSheetsUrl && navigator.onLine) {
+        fetchBackgroundBasePX(doc);
+      }
     }
 
+    // MOSTRAR FORMULARIO DE INMEDIATO SIN ESPERAR
     greetingBox.style.display = 'block';
     formSection.style.display = 'block';
     formSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function applyEmployeeData(found) {
+    state.employee = found;
+    const firstName = (found.nombre || 'Colaborador').split(' ')[0];
+    empName.textContent = `¡Hola, ${firstName}! 👋`;
+    
+    const cargoText = found.cargo ? `${found.cargo} • ${found.proceso || found.area || ''}` : 'Colaborador Comfamiliar';
+    const sedeText = found.sede ? `🏢 Sede: ${found.sede}` : '🏢 Comfamiliar Risaralda';
+    const modeloText = found.modeloTrabajo ? ` • ${found.modeloTrabajo}` : '';
+    
+    empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}${modeloText}`;
+
+    const phoneInput = document.getElementById('user-phone-input');
+    if (phoneInput && found.telefono && !phoneInput.value) {
+      phoneInput.value = found.telefono;
+    }
+
+    const dirInput = document.getElementById('user-direccion-input');
+    if (dirInput && found.direccion && !dirInput.value) {
+      dirInput.value = found.direccion;
+    }
+
+    if (found.municipio) {
+      const muniSelect = document.getElementById('user-municipio-select');
+      if (muniSelect) {
+        for (let opt of muniSelect.options) {
+          if (opt.value.toLowerCase() === found.municipio.toLowerCase()) {
+            muniSelect.value = opt.value;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Búsqueda remota no bloqueante con timeout máximo de 1.5 segundos
+  async function fetchBackgroundBasePX(doc) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s max
+
+    try {
+      const fetchUrl = `${state.googleSheetsUrl}?documento=${encodeURIComponent(doc)}`;
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        redirect: 'follow'
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.status === 'found' && result.data) {
+          applyEmployeeData(result.data);
+        }
+      }
+    } catch (err) {
+      // Ignorar timeout o cors silenciosamente para mantener la fluidez
+    }
   }
 
   function setupTouchOptions() {
@@ -208,17 +221,17 @@ document.addEventListener('DOMContentLoaded', () => {
       origen: 'Portal Usuario BASE_PX'
     };
 
-    // 1. Guardar siempre en LocalStorage (Instantáneo y sin errores)
+    // Guardar siempre en LocalStorage (Instantáneo)
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     localReports.unshift(report);
     localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
 
-    // 2. Enviar a Google Sheets con compatibilidad total para file:// y Web (sin errores CORS)
+    // Enviar a Google Sheets en segundo plano sin congelar la UI
     if (state.googleSheetsUrl && navigator.onLine) {
       try {
         fetch(state.googleSheetsUrl, {
           method: 'POST',
-          mode: 'no-cors', // Evita bloqueo CORS al enviar datos desde archivos locales
+          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(report)
         }).catch(err => console.log('Envío en proceso background'));
