@@ -1,7 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Carga Instantánea Basada en Caché Local (Cache-First 0ms Load Time)
- * Sincronización Silenciosa y Eficiente en Segundo Plano
+ * Actualización Visual Inmediata tras Guardar o Tomar Casos (forceRender = true)
+ * Elimina la Necesidad de Refrescar la Página
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.triggerGlobalFilter = applyFilters;
-  window.triggerMgmtRender = renderManagementDashboard;
+  window.triggerMgmtRender = function() { renderManagementDashboard(true); };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS FICHAS KPI
   window.filterMgmtByCard = function(cardType) {
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    renderManagementDashboard();
+    renderManagementDashboard(true);
   };
 
   window.claimCase = function(doc) {
@@ -174,15 +174,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const newStatus = 'proceso';
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+
     updateLocalManagementState(doc, newStatus, currentNotesValue, currentOperator, nowStr);
 
     if (state.googleSheetsUrl && navigator.onLine) {
       sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso se ha movido automáticamente a tu bandeja de 'Mis Casos Asignados'.`);
+    renderDashboard(true);
 
-    renderDashboard();
+    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso se ha movido automáticamente a tu bandeja de 'Mis Casos Asignados'.`);
   };
 
   window.triggerExcelExport = function(isFilteredOnly) {
@@ -212,12 +216,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmOverwrite) return;
     }
 
+    // Quitar foco del campo de texto antes de renderizar para forzar la actualización de pantalla
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+
     updateLocalManagementState(doc, newStatus, newNotes, currentOperator, nowStr);
 
     if (state.googleSheetsUrl && navigator.onLine) {
       sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
     }
     
+    // RE-RENDERIZADO FORZADO INMEDIATO (0ms)
+    renderDashboard(true);
+
     if (newStatus === 'resuelto') {
       alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado en el histórico.`);
     } else if (newStatus === 'proceso') {
@@ -225,8 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       alert(`✅ Caso actualizado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     }
-
-    renderDashboard();
   };
 
   function updateLocalManagementState(doc, statusVal, notesVal, operatorVal, nowStr) {
@@ -335,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elStatus.value = 'pendiente';
       }
 
-      renderManagementDashboard();
+      renderManagementDashboard(true);
     }
   }
 
@@ -357,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadMockAndLocalReports();
     initLeafletMap();
-    renderDashboard();
+    renderDashboard(true);
 
     // Sincronización silenciosa cada 25 segundos (si la pestaña está visible)
     fetchLiveReportsFromSheets(true);
@@ -548,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sheetsStatus.innerHTML = '⌛ Consultando en vivo a Google Sheets...';
     }
 
-    // 1. INTENTO PRIMARIO VÍA FETCH API NATIVO (Resuelve desvíos de dominio e interoperabilidad)
+    // 1. INTENTO PRIMARIO VÍA FETCH API NATIVO
     try {
       const response = await fetch(`${state.googleSheetsUrl}?action=getAllReports&_t=${Date.now()}`, {
         method: 'GET',
@@ -579,19 +589,18 @@ document.addEventListener('DOMContentLoaded', () => {
     script.onerror = function() {
       script.remove();
       if (sheetsStatus) {
-        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">⚡ Modo Alta Velocidad: Operando con datos en memoria local. (Si deseas sync remota continua en esta máquina, verifica que la publicación en Google Apps Script esté configurada con Acceso: Cualquier Persona).</span>';
+        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">⚡ Modo Alta Velocidad: Operando con datos en memoria local.</span>';
       }
     };
 
     document.body.appendChild(script);
   }
 
-
-  function renderDashboard() {
+  function renderDashboard(forceRender = false) {
     updateKPIs();
     renderTable();
     
-    renderManagementDashboard();
+    renderManagementDashboard(forceRender);
 
     if (state.activeTab === 'main') {
       updateMapMarkers();
@@ -625,7 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return r.telefono || r.telefonoBase || r.celular || r.contactoEmergencia || r.contacto || '';
   }
 
-  function renderManagementDashboard() {
+  function renderManagementDashboard(forceRender = false) {
     const tbody = document.getElementById('mgmt-reports-tbody');
     
     let countPsico = 0, countPsicoPend = 0, countPsicoProc = 0, countPsicoRes = 0;
@@ -755,9 +764,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!tbody) return;
 
-    // PROTECCIÓN DE ESCRITURA EN VIVO
-    if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('mgmt-notes-textarea')) {
-      console.log('✏️ Usuario escribiendo en observaciones. Se pospone el renderizado de la tabla para proteger el texto.');
+    // PROTECCIÓN DE ESCRITURA EN VIVO (Solo se activa durante refrescos automáticos en segundo plano, NUNCA cuando el usuario presiona Guardar)
+    if (!forceRender && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('mgmt-notes-textarea')) {
+      console.log('✏️ Usuario escribiendo en observaciones. Se pospone el renderizado automático.');
       return;
     }
 
@@ -1215,7 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return matchSearch && matchApoyo && matchStatus && matchMun;
     });
 
-    renderDashboard();
+    renderDashboard(true);
   }
 
   function exportFilteredToExcel() {
