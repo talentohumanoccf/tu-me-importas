@@ -1,6 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Sincronización Inmediata y Total de Casos Gestionados (Memoria, LocalStorage y Google Sheets)
+ * Protección de Escritura en Vivo (Previene borrado al escribir)
+ * Desaparición Automática de Casos Tomados para Evitar Duplicidad
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,6 +62,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // DELEGACIÓN DE EVENTOS: GUARDADO INSTANTÁNEO AL ESCRIBIR EN TEXTAREA
+  const mgmtTbody = document.getElementById('mgmt-reports-tbody');
+  if (mgmtTbody) {
+    mgmtTbody.addEventListener('input', (e) => {
+      if (e.target && e.target.classList.contains('mgmt-notes-textarea')) {
+        const textareaId = e.target.id;
+        const doc = textareaId.replace('mgmt-notes-', '').trim();
+        const val = e.target.value;
+
+        if (doc) {
+          const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
+          const existing = state.supportManagement[doc] || {};
+
+          state.supportManagement[doc] = {
+            status: existing.status || 'pendiente',
+            notes: val,
+            operator: existing.operator || currentOperator,
+            updatedAt: existing.updatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
+          };
+
+          // Guardar en localStorage de inmediato para proteger cada pulsación de tecla
+          localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+        }
+      }
+    });
+  }
+
   window.triggerGlobalFilter = applyFilters;
   window.triggerMgmtRender = renderManagementDashboard;
   
@@ -72,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elStatus) elStatus.value = 'resuelto';
       if (elCat) elCat.value = 'all';
     } else {
-      if (elStatus) elStatus.value = 'activos';
+      if (elStatus) elStatus.value = 'pendiente';
       if (elCat) elCat.value = cardType;
     }
 
@@ -84,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const existing = state.supportManagement[doc] || {};
 
     if (existing.status === 'proceso' && existing.operator && existing.operator !== currentOperator) {
-      const confirmTransfer = confirm(`⚠️ Este caso ya está asignado a [${existing.operator}]. ¿Deseas reasignarlo a tu nombre (${currentOperator})?`);
+      const confirmTransfer = confirm(`⚠️ Este caso ya está en atención por [${existing.operator}]. ¿Deseas reasignarlo a tu nombre (${currentOperator})?`);
       if (!confirmTransfer) return;
     }
 
@@ -94,14 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const newStatus = 'proceso';
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
-    // Actualizar estado local y en reporte
     updateLocalManagementState(doc, newStatus, currentNotesValue, currentOperator, nowStr);
 
     if (state.googleSheetsUrl && navigator.onLine) {
       sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}]. Puedes escribir tus observaciones extensas abajo.`);
+    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n📌 Para evitar que otra persona lo tome, se ha movido automáticamente fuera de la lista de 'Pendientes por Tomar'. Puedes consultarlo seleccionando 'Mis Casos Asignados'.`);
+
     renderDashboard();
   };
 
@@ -132,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmOverwrite) return;
     }
 
-    // Actualizar estado local y en reporte
     updateLocalManagementState(doc, newStatus, newNotes, currentOperator, nowStr);
 
     if (state.googleSheetsUrl && navigator.onLine) {
@@ -141,8 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (newStatus === 'resuelto') {
       alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Se ha archivado fuera del tablero activo.`);
+    } else if (newStatus === 'proceso') {
+      alert(`🔵 Caso en GESTIÓN asignado a [${currentOperator}] para Cédula ${doc}. Se mantendrá en tu bandeja de casos en proceso.`);
     } else {
-      alert(`✅ Caso guardado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
+      alert(`✅ Caso actualizado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     }
 
     renderDashboard();
@@ -160,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
-    // Sincronizar directamente con el array de reportes en memoria
     state.reports.forEach(r => {
       const rDoc = String(r.documento || r.cedula).trim();
       if (rDoc === docStr) {
@@ -351,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const doc = String(r.documento || r.cedula).trim();
 
-      // Si Google Sheets trae información de gestión de este documento, actualizar siempre
       if (r.gestionStatus) {
         state.supportManagement[doc] = {
           status: r.gestionStatus || 'pendiente',
@@ -565,41 +592,107 @@ document.addEventListener('DOMContentLoaded', () => {
       <span class="badge-kpi-res" title="Entregados / Resueltos">🟢 ${res} Res.</span>
     `;
 
-    const elPsicoBd = document.getElementById('mgmt-kpi-psico-breakdown');
-    const elSocialBd = document.getElementById('mgmt-kpi-social-breakdown');
-    const elMedsBd = document.getElementById('mgmt-kpi-meds-breakdown');
-    const elAlimentosBd = document.getElementById('mgmt-kpi-alimentos-breakdown');
-    const elResueltosBd = document.getElementById('mgmt-kpi-resueltos-breakdown');
+    // 1. Renderizar insignias en tarjetas superiores
+    const psicoSubtext = document.querySelector('.clickable-kpi-card[onclick*="psicologico"] .kpi-subtext') || document.getElementById('mgmt-kpi-psico-breakdown');
+    const socialSubtext = document.querySelector('.clickable-kpi-card[onclick*="social"] .kpi-subtext') || document.getElementById('mgmt-kpi-social-breakdown');
+    const medsSubtext = document.querySelector('.clickable-kpi-card[onclick*="medicamentos"] .kpi-subtext') || document.getElementById('mgmt-kpi-meds-breakdown');
+    const alimentosSubtext = document.querySelector('.clickable-kpi-card[onclick*="alimentos"] .kpi-subtext') || document.getElementById('mgmt-kpi-alimentos-breakdown');
+    const resueltosSubtext = document.querySelector('.clickable-kpi-card[onclick*="resueltos"] .kpi-subtext') || document.getElementById('mgmt-kpi-resueltos-breakdown');
 
-    if (elPsicoBd) elPsicoBd.innerHTML = makeBreakdownHTML(countPsicoPend, countPsicoProc, countPsicoRes);
-    if (elSocialBd) elSocialBd.innerHTML = makeBreakdownHTML(countSocialPend, countSocialProc, countSocialRes);
-    if (elMedsBd) elMedsBd.innerHTML = makeBreakdownHTML(countMedsPend, countMedsProc, countMedsRes);
-    if (elAlimentosBd) elAlimentosBd.innerHTML = makeBreakdownHTML(countAlimentosPend, countAlimentosProc, countAlimentosRes);
-    if (elResueltosBd) elResueltosBd.innerHTML = `<span class="badge-kpi-res" style="width:100%; justify-content:center;">🎉 ${countResueltos} Casos Resueltos</span>`;
+    if (psicoSubtext) {
+      psicoSubtext.className = 'kpi-breakdown-container';
+      psicoSubtext.innerHTML = makeBreakdownHTML(countPsicoPend, countPsicoProc, countPsicoRes);
+    }
+    if (socialSubtext) {
+      socialSubtext.className = 'kpi-breakdown-container';
+      socialSubtext.innerHTML = makeBreakdownHTML(countSocialPend, countSocialProc, countSocialRes);
+    }
+    if (medsSubtext) {
+      medsSubtext.className = 'kpi-breakdown-container';
+      medsSubtext.innerHTML = makeBreakdownHTML(countMedsPend, countMedsProc, countMedsRes);
+    }
+    if (alimentosSubtext) {
+      alimentosSubtext.className = 'kpi-breakdown-container';
+      alimentosSubtext.innerHTML = makeBreakdownHTML(countAlimentosPend, countAlimentosProc, countAlimentosRes);
+    }
+    if (resueltosSubtext) {
+      resueltosSubtext.className = 'kpi-breakdown-container';
+      resueltosSubtext.innerHTML = `<span class="badge-kpi-res" style="width:100%; justify-content:center;">🎉 ${countResueltos} Casos Resueltos</span>`;
+    }
+
+    // 2. Renderizar Consola Gráfica de Barras Porcentuales Acumuladas
+    const visualChartsContainer = document.getElementById('mgmt-visual-charts-container');
+    if (visualChartsContainer) {
+      const renderActivityChart = (title, icon, total, pend, proc, res) => {
+        const pPend = total > 0 ? Math.round((pend / total) * 100) : 0;
+        const pProc = total > 0 ? Math.round((proc / total) * 100) : 0;
+        const pRes = total > 0 ? Math.round((res / total) * 100) : 0;
+
+        return `
+          <div class="analytics-card" style="padding:14px; background:#FFF; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--primary); font-size:0.92rem;">${icon} ${title}</strong>
+              <span style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px;">Total: ${total} Casos</span>
+            </div>
+            
+            <div class="mgmt-progress-bar-bg" title="Pendientes: ${pPend}%, En Gestión: ${pProc}%, Resueltos: ${pRes}%">
+              <div class="mgmt-progress-seg-pend" style="width:${pPend}%;"></div>
+              <div class="mgmt-progress-seg-proc" style="width:${pProc}%;"></div>
+              <div class="mgmt-progress-seg-res" style="width:${pRes}%;"></div>
+            </div>
+
+            <div class="mgmt-chart-legend">
+              <span style="color:#92400E;">🟡 ${pend} Pend. (${pPend}%)</span>
+              <span style="color:#0369A1;">🔵 ${proc} Proc. (${pProc}%)</span>
+              <span style="color:#065F46;">🟢 ${res} Res. (${pRes}%)</span>
+            </div>
+          </div>
+        `;
+      };
+
+      visualChartsContainer.innerHTML = `
+        ${renderActivityChart('Apoyo Psicológico', '🧠', countPsico, countPsicoPend, countPsicoProc, countPsicoRes)}
+        ${renderActivityChart('Trabajo Social', '🤝', countSocial, countSocialPend, countSocialProc, countSocialRes)}
+        ${renderActivityChart('Medicamentos / Salud', '💊', countMeds, countMedsPend, countMedsProc, countMedsRes)}
+        ${renderActivityChart('Kits de Alimentos', '📦', countAlimentos, countAlimentosPend, countAlimentosProc, countAlimentosRes)}
+      `;
+    }
 
     if (!tbody) return;
+
+    // PROTECCIÓN DE ESCRITURA EN VIVO: Si el usuario tiene el foco activo en un textarea de la tabla, NO reemplazamos la tabla en este refresco
+    if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('mgmt-notes-textarea')) {
+      console.log('✏️ Usuario escribiendo en observaciones. Se pospone el renderizado de la tabla para proteger el texto.');
+      return;
+    }
 
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
-    const statusFilter = elStatus ? elStatus.value : 'activos';
+    const statusFilter = elStatus ? elStatus.value : 'pendiente';
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
 
     const supportReports = state.reports.filter(r => {
       const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
       const doc = String(r.documento || r.cedula).trim();
-      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: '' };
+      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: '', operator: '' };
 
       const isApoyo = !ap.includes('estoy bien y seguro');
 
       let matchStatus = false;
-      if (statusFilter === 'activos') {
+      if (statusFilter === 'pendiente') {
+        matchStatus = mgmt.status === 'pendiente';
+      } else if (statusFilter === 'proceso') {
+        matchStatus = mgmt.status === 'proceso';
+      } else if (statusFilter === 'mis_casos') {
+        matchStatus = mgmt.status === 'proceso' && mgmt.operator === currentOperator;
+      } else if (statusFilter === 'activos') {
         matchStatus = mgmt.status !== 'resuelto';
+      } else if (statusFilter === 'resuelto') {
+        matchStatus = mgmt.status === 'resuelto';
       } else if (statusFilter === 'all') {
         matchStatus = true;
-      } else {
-        matchStatus = mgmt.status === statusFilter;
       }
 
       const matchCat = catFilter === 'all' || ap.includes(catFilter);
@@ -608,9 +701,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (supportReports.length === 0) {
-      const emptyMsg = statusFilter === 'activos'
-        ? `🎉 ¡Excelente! No hay casos de apoyos pendientes por atender. Todos han sido resueltos.`
-        : `💚 No se encontraron solicitudes con los filtros seleccionados.`;
+      let emptyMsg = '';
+      if (statusFilter === 'pendiente') {
+        emptyMsg = `🎉 ¡Excelente! No hay casos pendientes por tomar. Todos los apoyos están en gestión o resueltos.`;
+      } else if (statusFilter === 'mis_casos') {
+        emptyMsg = `✋ No tienes casos actualmente asignados a tu nombre (${currentOperator}). Toma uno de los pendientes.`;
+      } else {
+        emptyMsg = `💚 No se encontraron solicitudes con los filtros seleccionados.`;
+      }
       
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:28px; color:var(--success); font-weight:700; font-size:1rem;">${emptyMsg}</td></tr>`;
       return;
@@ -1134,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody></table></body></html>`;
+    tableHtml += `</tbody>mtable></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);

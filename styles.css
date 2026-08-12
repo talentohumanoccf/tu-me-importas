@@ -627,3 +627,42 @@ body {
   gap: 3px;
 }
 
+/* BARRAS DE PROGRESO GRÁFICO ACUMULATIVO SST */
+.mgmt-progress-bar-bg {
+  width: 100%;
+  height: 18px;
+  background: #E2E8F0;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  margin: 10px 0;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.mgmt-progress-seg-pend {
+  background: #F59E0B;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.mgmt-progress-seg-proc {
+  background: #0284C7;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.mgmt-progress-seg-res {
+  background: #10B981;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.mgmt-chart-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
