@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Visualización de Municipio y Direcciones (Omitida la Sede en Tablero 3)
+ * Indicadores KPI de Gestión con Desglose por Estado (Pendientes, En Proceso, Resueltos)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -522,18 +522,42 @@ document.addEventListener('DOMContentLoaded', () => {
       return isApoyo && matchStatus && matchCat;
     });
 
-    let countPsico = 0, countSocial = 0, countMeds = 0, countAlimentos = 0, countResueltos = 0;
-    
+    let countPsico = 0, countPsicoPend = 0, countPsicoProc = 0, countPsicoRes = 0;
+    let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
+    let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
+    let countAlimentos = 0, countAlimentosPend = 0, countAlimentosProc = 0, countAlimentosRes = 0;
+    let countResueltos = 0;
+
     state.reports.forEach(r => {
       const ap = r._nApoyo;
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente' };
 
       if (!ap.includes('estoy bien y seguro')) {
-        if (ap.includes('psicologico')) countPsico++;
-        if (ap.includes('social')) countSocial++;
-        if (ap.includes('medicamentos')) countMeds++;
-        if (ap.includes('alimentos')) countAlimentos++;
+        if (ap.includes('psicologico')) {
+          countPsico++;
+          if (mgmt.status === 'resuelto') countPsicoRes++;
+          else if (mgmt.status === 'proceso') countPsicoProc++;
+          else countPsicoPend++;
+        }
+        if (ap.includes('social')) {
+          countSocial++;
+          if (mgmt.status === 'resuelto') countSocialRes++;
+          else if (mgmt.status === 'proceso') countSocialProc++;
+          else countSocialPend++;
+        }
+        if (ap.includes('medicamentos')) {
+          countMeds++;
+          if (mgmt.status === 'resuelto') countMedsRes++;
+          else if (mgmt.status === 'proceso') countMedsProc++;
+          else countMedsPend++;
+        }
+        if (ap.includes('alimentos')) {
+          countAlimentos++;
+          if (mgmt.status === 'resuelto') countAlimentosRes++;
+          else if (mgmt.status === 'proceso') countAlimentosProc++;
+          else countAlimentosPend++;
+        }
         if (mgmt.status === 'resuelto') countResueltos++;
       }
     });
@@ -549,6 +573,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elMeds) elMeds.textContent = countMeds;
     if (elAlimentos) elAlimentos.textContent = countAlimentos;
     if (elResueltos) elResueltos.textContent = countResueltos;
+
+    const makeBreakdownHTML = (pend, proc, res) => `
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; font-size:0.72rem;">
+        <span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-weight:800;" title="Pendientes por contactar">🟡 ${pend}</span>
+        <span style="background:#E0F2FE; color:#075985; padding:2px 6px; border-radius:4px; font-weight:800;" title="En proceso / gestión">🔵 ${proc}</span>
+        <span style="background:#D1FAE5; color:#065F46; padding:2px 6px; border-radius:4px; font-weight:800;" title="Entregados / Resueltos">🟢 ${res}</span>
+      </div>
+    `;
+
+    const elPsicoBd = document.getElementById('mgmt-kpi-psico-breakdown');
+    const elSocialBd = document.getElementById('mgmt-kpi-social-breakdown');
+    const elMedsBd = document.getElementById('mgmt-kpi-meds-breakdown');
+    const elAlimentosBd = document.getElementById('mgmt-kpi-alimentos-breakdown');
+    const elResueltosBd = document.getElementById('mgmt-kpi-resueltos-breakdown');
+
+    if (elPsicoBd) elPsicoBd.innerHTML = makeBreakdownHTML(countPsicoPend, countPsicoProc, countPsicoRes);
+    if (elSocialBd) elSocialBd.innerHTML = makeBreakdownHTML(countSocialPend, countSocialProc, countSocialRes);
+    if (elMedsBd) elMedsBd.innerHTML = makeBreakdownHTML(countMedsPend, countMedsProc, countMedsRes);
+    if (elAlimentosBd) elAlimentosBd.innerHTML = makeBreakdownHTML(countAlimentosPend, countAlimentosProc, countAlimentosRes);
+    if (elResueltosBd) elResueltosBd.innerHTML = `<span style="color:var(--success); font-weight:700; font-size:0.75rem;">🎉 Apoyos Entregados</span>`;
 
     if (supportReports.length === 0) {
       const emptyMsg = statusFilter === 'activos'
