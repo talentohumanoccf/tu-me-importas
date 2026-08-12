@@ -354,7 +354,7 @@
               <span>🤝</span> Centro de Gestión y Seguimiento de Casos SST
             </h2>
             <p class="card-subtitle" style="margin-top:4px;">
-              Canalización, contacto directo por teléfono/WhatsApp y cambio de estados para auxilios de emergencia.
+              Los casos resueltos se ocultan automáticamente del tablero activo para agilizar la atención.
             </p>
           </div>
           <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
@@ -391,14 +391,15 @@
           </div>
         </div>
 
-        <!-- FILTROS DE SEGUIMIENTO -->
+        <!-- FILTROS DE SEGUIMIENTO CON MODO ACTIVO POR DEFECTO -->
         <div class="filter-bar no-print" style="margin-bottom:16px;">
           <div>
-            <select id="mgmt-filter-status" onchange="window.triggerMgmtRender && window.triggerMgmtRender()" class="form-control" style="font-weight:700;">
-              <option value="all">📋 Todos los Estados de Gestión</option>
+            <select id="mgmt-filter-status" onchange="window.triggerMgmtRender && window.triggerMgmtRender()" class="form-control" style="font-weight:700; background:rgba(0,51,102,0.06); border-color:var(--primary);">
+              <option value="activos" selected>⚡ Casos Activos (Pendientes + En Gestión)</option>
+              <option value="all">📋 Todos los Casos (Incluir Resueltos)</option>
               <option value="pendiente">🟡 Pendientes por Contactar</option>
               <option value="proceso">🔵 En Gestión / En Proceso</option>
-              <option value="resuelto">🟢 Apoyo Entregado / Resuelto</option>
+              <option value="resuelto">🟢 Apoyo Entregado / Resuelto (Histórico)</option>
             </select>
           </div>
           <div>
@@ -413,7 +414,7 @@
           </div>
         </div>
 
-        <!-- TABLA INTERACTIVA CON COLUMNA DE TELÉFONO DE CONTACTO -->
+        <!-- TABLA INTERACTIVA DE GESTIÓN SST -->
         <div class="reports-table-container no-print">
           <table class="reports-table">
             <thead>
@@ -460,6 +461,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260812_05"></script>
+  <script src="app.js?v=20260812_06"></script>
 </body>
 </html>

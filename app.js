@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Visualización Destacada y Multiorigen del Número Telefónico
+ * Limpieza Automática del Tablero al Marcar Casos Resueltos
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
+  // GUARDAR Y LIMPIAR AUTOMÁTICAMENTE DEL TABLERO DE CASOS ACTIVOS SI SE MARCA RESUELTO
   window.saveSupportCase = function(doc) {
     const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
@@ -100,7 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
       sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
     }
     
-    alert(`✅ Caso guardado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
+    if (newStatus === 'resuelto') {
+      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Se ha archivado fuera del tablero activo.`);
+    } else {
+      alert(`✅ Caso guardado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
+    }
+
     renderManagementDashboard();
   };
 
@@ -433,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
-    const statusFilter = elStatus ? elStatus.value : 'all';
+    const statusFilter = elStatus ? elStatus.value : 'activos';
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
 
     const supportReports = state.reports.filter(r => {
@@ -442,7 +448,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
 
       const isApoyo = !ap.includes('estoy bien y seguro');
-      const matchStatus = statusFilter === 'all' || mgmt.status === statusFilter;
+
+      let matchStatus = false;
+      if (statusFilter === 'activos') {
+        matchStatus = mgmt.status !== 'resuelto';
+      } else if (statusFilter === 'all') {
+        matchStatus = true;
+      } else {
+        matchStatus = mgmt.status === statusFilter;
+      }
+
       const matchCat = catFilter === 'all' || ap.includes(catFilter);
 
       return isApoyo && matchStatus && matchCat;
@@ -477,7 +492,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elResueltos) elResueltos.textContent = countResueltos;
 
     if (supportReports.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">💚 No se encontraron solicitudes de apoyo pendientes con los filtros seleccionados.</td></tr>`;
+      const emptyMsg = statusFilter === 'activos'
+        ? `🎉 ¡Excelente! No hay casos de apoyos pendientes por atender. Todos han sido resueltos.`
+        : `💚 No se encontraron solicitudes con los filtros seleccionados.`;
+      
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:28px; color:var(--success); font-weight:700; font-size:1rem;">${emptyMsg}</td></tr>`;
       return;
     }
 
@@ -960,7 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody></table></body></html>`;
+    tableHtml += `</tbody>amish</body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
