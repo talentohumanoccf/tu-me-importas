@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Visualización de Direcciones Dobles (Habitual y Contingencia) y Columna AF
+ * Visualización de Municipio y Direcciones (Omitida la Sede en Tablero 3)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -579,13 +579,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const dirActual = r.direccionActual || r.direccion || 'Sin registrar';
       const dirHabitual = r.direccionHabitual || r.direccionResidencia || r.direccionBase || 'Sin registrar';
       const muniStr = r.municipio || 'Pereira';
-      const sedeStr = r.sede || 'Sede N/A';
 
       const addressesHTML = `
         <div style="font-size:0.8rem; line-height:1.35;">
+          <div style="color:var(--primary); font-weight:800; font-size:0.88rem; margin-bottom:4px; display:inline-flex; align-items:center; gap:4px; background:rgba(0,51,102,0.06); padding:2px 8px; border-radius:6px;">🌆 <b>Municipio:</b> ${muniStr}</div>
           <div style="color:#0284C7; font-weight:700;">📍 <b>Actual (Contingencia):</b> ${dirActual}</div>
           <div style="color:var(--text-muted); font-size:0.76rem; margin-top:2px;">🏡 <b>Habitual:</b> ${dirHabitual}</div>
-          <div style="color:var(--primary); font-size:0.75rem; margin-top:2px;">🏢 ${sedeStr} • 🌆 ${muniStr}</div>
         </div>
       `;
 
@@ -653,8 +652,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const headers = [
-      "Documento", "Nombre Completo", "Cargo", "Sede Registrada", "Teléfono Contacto Directo",
-      "Dirección Habitual (Residencia)", "Dirección Actual (Contingencia)", "Municipio",
+      "Documento", "Nombre Completo", "Cargo", "Teléfono Contacto Directo",
+      "Municipio", "Dirección Actual (Contingencia)", "Dirección Habitual (Residencia)",
       "Situación y Apoyo Requerido", "Estado (Columna AF)", "Estado de Gestión SST",
       "Notas y Observaciones de Atención", "Fecha Última Gestión", "Responsable de Atención SST"
     ];
@@ -691,11 +690,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="mso-number-format:'\\@';">${doc}</td>
           <td>${r.nombre || ''}</td>
           <td>${r.cargo || ''}</td>
-          <td>${r.sede || ''}</td>
           <td style="mso-number-format:'\\@'; font-weight:bold;">${realPhone || ''}</td>
-          <td>${r.direccionHabitual || r.direccionResidencia || r.direccionBase || ''}</td>
-          <td>${r.direccionActual || r.direccion || ''}</td>
           <td>${r.municipio || ''}</td>
+          <td>${r.direccionActual || r.direccion || ''}</td>
+          <td>${r.direccionHabitual || r.direccionResidencia || r.direccionBase || ''}</td>
           <td>${r.situacionYApoyo || ''}</td>
           <td>${r.columnaAF || r.estadoAF || ''}</td>
           <td class="${mgmt.status}">${statusLabel}</td>

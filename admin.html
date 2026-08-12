@@ -354,11 +354,11 @@
               <span>🤝</span> Centro de Gestión y Seguimiento de Casos SST
             </h2>
             <p class="card-subtitle" style="margin-top:4px;">
-              Visualización de direcciones dobles (Habitual y Contingencia) y Columna AF (Estado de Reporte).
+              Visualización geográfica centrada en el Municipio y Direcciones (Habitual y Contingencia).
             </p>
           </div>
           <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
-            📦 Exportar Matriz de Gestión con Teléfonos y Direcciones (.xls)
+            📦 Exportar Matriz de Gestión (.xls)
           </button>
         </div>
 
@@ -414,14 +414,14 @@
           </div>
         </div>
 
-        <!-- TABLA INTERACTIVA DE GESTIÓN SST CON DIRECCIONES DOBLES Y COLUMNA AF -->
+        <!-- TABLA INTERACTIVA DE GESTIÓN SST -->
         <div class="reports-table-container no-print">
           <table class="reports-table">
             <thead>
               <tr>
                 <th>Trabajador / Documento</th>
                 <th>📞 Teléfono Contacto</th>
-                <th>📍 Direcciones (Habitual vs Actual)</th>
+                <th>🌆 Municipio & Direcciones</th>
                 <th>Necesidad de Apoyo & Estado (Col. AF)</th>
                 <th>Estado de Gestión SST</th>
                 <th>Observaciones & Notas de Atención</th>
@@ -461,6 +461,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260812_08"></script>
+  <script src="app.js?v=20260812_09"></script>
 </body>
 </html>
