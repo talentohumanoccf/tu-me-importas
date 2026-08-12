@@ -536,13 +536,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  function fetchLiveReportsFromSheets(isBackground = false) {
+  async function fetchLiveReportsFromSheets(isBackground = false) {
     if (!state.googleSheetsUrl) return;
 
     if (!navigator.onLine) {
-      if (!isBackground && sheetsStatus) {
-        sheetsStatus.innerHTML = '<span style="color:var(--danger)">📶 Sin conexión a Internet temporalmente. Mostrando reportes en memoria local.</span>';
-      }
+      if (sheetsStatus) sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">⚡ Operando en memoria local (Sin conexión).</span>';
       return;
     }
 
@@ -550,6 +548,24 @@ document.addEventListener('DOMContentLoaded', () => {
       sheetsStatus.innerHTML = '⌛ Consultando en vivo a Google Sheets...';
     }
 
+    // 1. INTENTO PRIMARIO VÍA FETCH API NATIVO (Resuelve desvíos de dominio e interoperabilidad)
+    try {
+      const response = await fetch(`${state.googleSheetsUrl}?action=getAllReports&_t=${Date.now()}`, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result && (Array.isArray(result.reports) || Array.isArray(result.data))) {
+          window.onLiveReportsReceived(result);
+          return;
+        }
+      }
+    } catch(err) {
+      console.log('ℹ️ Fetch directo con restricciones de política de red, intentando fallback vía script tag JSONP...');
+    }
+
+    // 2. FALLBACK SECUNDARIO VÍA SCRIPT TAG JSONP
     const callbackName = 'onLiveReportsReceived';
     const scriptId = 'jsonp-live-dashboard-sync';
     
@@ -563,12 +579,13 @@ document.addEventListener('DOMContentLoaded', () => {
     script.onerror = function() {
       script.remove();
       if (sheetsStatus) {
-        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">⚡ Operando en alta velocidad con datos en caché local. (Revisa permisos de publicación en Google Apps Script si deseas sync remota).</span>';
+        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">⚡ Modo Alta Velocidad: Operando con datos en memoria local. (Si deseas sync remota continua en esta máquina, verifica que la publicación en Google Apps Script esté configurada con Acceso: Cualquier Persona).</span>';
       }
     };
 
     document.body.appendChild(script);
   }
+
 
   function renderDashboard() {
     updateKPIs();
