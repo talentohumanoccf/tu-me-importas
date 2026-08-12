@@ -103,8 +103,8 @@
           <button id="btn-sync-live" class="nav-tab-btn" style="background: var(--secondary); border-color:var(--secondary); color:#FFF;">
             🔄 Sincronizar en Vivo ahora
           </button>
-          <button id="btn-export-csv" class="btn-search" style="background: var(--primary); font-size:0.9rem;">
-            📥 Exportar Todos a CSV / Excel
+          <button id="btn-export-csv" onclick="window.triggerGlobalExport && window.triggerGlobalExport(false)" class="btn-search" style="background: var(--primary); font-size:0.9rem;">
+            📊 Exportar Todos a Excel (.xls)
           </button>
         </div>
       </div>
@@ -168,13 +168,13 @@
         </h3>
         <div id="emergency-map" class="no-print"></div>
 
-        <!-- BARRA DE FILTROS AVANZADOS (CON FILTRO DE APOYO Y EXPORTADOR ESPECÍFICO) -->
+        <!-- BARRA DE FILTROS AVANZADOS -->
         <div class="filter-bar no-print" style="margin-top: 24px;">
           <div class="filter-input">
-            <input type="text" id="filter-search" class="form-control" placeholder="🔍 Buscar por Nombre, Cédula, Sede o Proceso...">
+            <input type="text" id="filter-search" oninput="window.triggerGlobalFilter && window.triggerGlobalFilter()" class="form-control" placeholder="🔍 Buscar por Nombre, Cédula, Sede o Proceso...">
           </div>
           <div>
-            <select id="filter-apoyo" class="form-control" style="font-weight:700;">
+            <select id="filter-apoyo" onchange="window.triggerGlobalFilter && window.triggerGlobalFilter()" class="form-control" style="font-weight:700;">
               <option value="all">🤝 Todos los Apoyos Requeridos</option>
               <option value="bien">💚 Estoy bien y seguro</option>
               <option value="psicológico">🧠 Apoyo Psicológico</option>
@@ -185,7 +185,7 @@
             </select>
           </div>
           <div>
-            <select id="filter-status" class="form-control">
+            <select id="filter-status" onchange="window.triggerGlobalFilter && window.triggerGlobalFilter()" class="form-control">
               <option value="all">Todos los Niveles</option>
               <option value="rojo">🔴 Prioridad URGENTE</option>
               <option value="amarillo">💛 Apoyo Leve</option>
@@ -193,7 +193,7 @@
             </select>
           </div>
           <div>
-            <select id="filter-municipio" class="form-control">
+            <select id="filter-municipio" onchange="window.triggerGlobalFilter && window.triggerGlobalFilter()" class="form-control">
               <option value="all">Todos los Municipios</option>
               <option value="Pereira">Pereira</option>
               <option value="Dosquebradas">Dosquebradas</option>
@@ -202,8 +202,8 @@
             </select>
           </div>
           <div>
-            <button id="btn-export-filtered-csv" class="btn-search" style="background:var(--secondary); font-weight:800; font-size:0.85rem; white-space:nowrap;">
-              📊 Exportar Lista Filtrada (Excel/CSV)
+            <button id="btn-export-filtered-csv" onclick="window.triggerGlobalExport && window.triggerGlobalExport(true)" class="btn-search" style="background:var(--secondary); font-weight:800; font-size:0.85rem; white-space:nowrap;">
+              📊 Exportar Filtrados a Excel (.xls)
             </button>
           </div>
         </div>

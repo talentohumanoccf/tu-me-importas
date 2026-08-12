@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Filtros con Normalización de Tildes y Exportación Directa a Excel (.xls) y CSV
+ * Exportación Nativa de Libros de Microsoft Excel (.xls / .xlsx) con Formato Institucional
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,6 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterMunicipio = document.getElementById('filter-municipio');
   const btnExportCsv = document.getElementById('btn-export-csv');
   const btnExportFilteredCsv = document.getElementById('btn-export-filtered-csv');
+
+  window.triggerGlobalFilter = applyFilters;
+  window.triggerGlobalExport = function(isFilteredOnly) {
+    if (isFilteredOnly) {
+      exportFilteredToCSV();
+    } else {
+      exportToCSV();
+    }
+  };
 
   setupTabsNavigation();
   checkAuthentication();
@@ -99,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabBtnAnalytics.classList.remove('active');
       tabContentMain.style.display = 'block';
       tabContentAnalytics.style.display = 'none';
-      if (state.map) setTimeout(() => state.map.invalidateSize(), 200);
+      if (state.map) setTimeout(() => state.map.invalidateSize(), 150);
     } else {
       tabBtnAnalytics.classList.add('active');
       tabBtnMain.classList.remove('active');
@@ -134,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.refreshInterval) clearInterval(state.refreshInterval);
     state.refreshInterval = setInterval(() => {
       fetchLiveReportsFromSheets(true);
-    }, 10000);
+    }, 12000);
 
     if (filterSearch) filterSearch.addEventListener('input', applyFilters);
     if (filterApoyo) filterApoyo.addEventListener('change', applyFilters);
@@ -191,6 +200,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
+  function normalizeStr(str) {
+    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  }
+
+  function preprocessReports(list) {
+    return list.map(r => {
+      r._nNombre = normalizeStr(r.nombre);
+      r._nDoc = normalizeStr(r.documento || r.cedula);
+      r._nSede = normalizeStr(r.sede);
+      r._nProceso = normalizeStr(r.proceso);
+      r._nApoyo = normalizeStr(r.situacionYApoyo);
+      r._nStatus = normalizeStr(r.criticidad);
+      r._nMuni = normalizeStr(r.municipio);
+      return r;
+    });
+  }
+
   function loadMockAndLocalReports() {
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
     const mockReports = window.INITIAL_MOCK_REPORTS || [];
@@ -205,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    state.reports = Array.from(mapReports.values());
+    state.reports = preprocessReports(Array.from(mapReports.values()));
     applyFilters();
   }
 
@@ -239,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    state.reports = Array.from(mapReports.values());
+    state.reports = preprocessReports(Array.from(mapReports.values()));
     applyFilters();
 
     if (sheetsStatus) {
@@ -288,22 +314,32 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderDashboard() {
     updateKPIs();
     renderTable();
-    updateMapMarkers();
-    renderAnalyticsDashboard();
+    if (state.activeTab === 'main') {
+      updateMapMarkers();
+    } else {
+      renderAnalyticsDashboard();
+    }
   }
 
   function updateKPIs() {
-    const total = state.reports.length;
-    const salvo = state.reports.filter(r => r.criticidad === 'verde').length;
-    const leve = state.reports.filter(r => r.criticidad === 'amarillo').length;
-    const urgente = state.reports.filter(r => r.criticidad === 'rojo').length;
-    const sinLugar = state.reports.filter(r => r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.includes('impiden'))).length;
+    const dataset = state.filteredReports;
+    const total = dataset.length;
+    const salvo = dataset.filter(r => r.criticidad === 'verde').length;
+    const leve = dataset.filter(r => r.criticidad === 'amarillo').length;
+    const urgente = dataset.filter(r => r.criticidad === 'rojo').length;
+    const sinLugar = dataset.filter(r => r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.includes('impiden'))).length;
 
-    document.getElementById('kpi-total').textContent = total;
-    document.getElementById('kpi-salvo').textContent = salvo;
-    document.getElementById('kpi-leve').textContent = leve;
-    document.getElementById('kpi-urgente').textContent = urgente;
-    document.getElementById('kpi-vivienda').textContent = sinLugar;
+    const elTotal = document.getElementById('kpi-total');
+    const elSalvo = document.getElementById('kpi-salvo');
+    const elLeve = document.getElementById('kpi-leve');
+    const elUrgente = document.getElementById('kpi-urgente');
+    const elVivienda = document.getElementById('kpi-vivienda');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elSalvo) elSalvo.textContent = salvo;
+    if (elLeve) elLeve.textContent = leve;
+    if (elUrgente) elUrgente.textContent = urgente;
+    if (elVivienda) elVivienda.textContent = sinLugar;
   }
 
   function renderAnalyticsDashboard() {
@@ -385,9 +421,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
 
     container.innerHTML = optionsConfig.map(opt => {
+      const targetKey = normalizeStr(opt.key);
       const count = state.filteredReports.filter(r => {
         const val = normalizeStr(r[fieldName] || '');
-        return val.includes(normalizeStr(opt.key));
+        return val.includes(targetKey);
       }).length;
 
       const pct = Math.round((count / total) * 100);
@@ -515,26 +552,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function normalizeStr(str) {
-    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  }
-
   function applyFilters() {
-    const q = normalizeStr(filterSearch ? filterSearch.value : '');
-    const ap = normalizeStr(filterApoyo ? filterApoyo.value : 'all');
-    const st = normalizeStr(filterStatus ? filterStatus.value : 'all');
-    const mun = normalizeStr(filterMunicipio ? filterMunicipio.value : 'all');
+    const elSearch = document.getElementById('filter-search');
+    const elApoyo = document.getElementById('filter-apoyo');
+    const elStatus = document.getElementById('filter-status');
+    const elMuni = document.getElementById('filter-municipio');
+
+    const q = normalizeStr(elSearch ? elSearch.value : '');
+    const ap = normalizeStr(elApoyo ? elApoyo.value : 'all');
+    const st = normalizeStr(elStatus ? elStatus.value : 'all');
+    const mun = normalizeStr(elMuni ? elMuni.value : 'all');
 
     state.filteredReports = state.reports.filter(r => {
       const matchSearch = !q || 
-        normalizeStr(r.nombre).includes(q) ||
-        normalizeStr(r.documento).includes(q) ||
-        normalizeStr(r.sede).includes(q) ||
-        normalizeStr(r.proceso).includes(q);
+        r._nNombre.includes(q) ||
+        r._nDoc.includes(q) ||
+        r._nSede.includes(q) ||
+        r._nProceso.includes(q);
 
-      const matchApoyo = ap === 'all' || normalizeStr(r.situacionYApoyo).includes(ap);
-      const matchStatus = st === 'all' || normalizeStr(r.criticidad) === st;
-      const matchMun = mun === 'all' || normalizeStr(r.municipio).includes(mun);
+      const matchApoyo = ap === 'all' || r._nApoyo.includes(ap);
+      const matchStatus = st === 'all' || r._nStatus === st;
+      const matchMun = mun === 'all' || r._nMuni.includes(mun);
 
       return matchSearch && matchApoyo && matchStatus && matchMun;
     });
@@ -543,15 +581,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exportFilteredToCSV() {
-    if (state.filteredReports.length === 0) {
-      alert('⚠️ No hay reportes que coincidan con los filtros seleccionados para exportar.');
+    const dataset = state.filteredReports.length > 0 ? state.filteredReports : state.reports;
+    if (dataset.length === 0) {
+      alert('⚠️ No hay reportes para exportar.');
       return;
     }
 
-    const filtroApoyoText = filterApoyo && filterApoyo.value !== 'all' ? filterApoyo.options[filterApoyo.selectedIndex].text : 'Todos';
-    const cleanFileName = `Reporte_Filtrado_${normalizeStr(filtroApoyoText).replace(/[^a-z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+    const elApoyo = document.getElementById('filter-apoyo');
+    const filtroApoyoText = elApoyo && elApoyo.value !== 'all' ? elApoyo.options[elApoyo.selectedIndex].text : 'Reporte_Filtrado';
+    const cleanFileName = `Reporte_SST_${normalizeStr(filtroApoyoText).replace(/[^a-z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.xls`;
 
-    exportDataToCSVFile(state.filteredReports, cleanFileName);
+    exportDataToExcelFile(dataset, cleanFileName);
   }
 
   function exportToCSV() {
@@ -559,56 +599,95 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('⚠️ No hay reportes para exportar.');
       return;
     }
-    const cleanFileName = `Reporte_General_Emergencia_Comfamiliar_${new Date().toISOString().slice(0,10)}.csv`;
-    exportDataToCSVFile(state.reports, cleanFileName);
+    const cleanFileName = `Reporte_General_Emergencia_Comfamiliar_${new Date().toISOString().slice(0,10)}.xls`;
+    exportDataToExcelFile(state.reports, cleanFileName);
   }
 
-  function exportDataToCSVFile(dataset, fileName) {
+  // GENERADOR NATIVO DE ARCHIVO MICROSOFT EXCEL (.xls) CON FORMATO DE CELDAS Y COLORES
+  function exportDataToExcelFile(dataset, fileName) {
     const headers = [
       "Fecha y Hora", "Documento", "Nombre Completo", "Cargo", "Email Personal", "Contrato",
       "Proceso", "Área", "Sexo", "Sede", "Teléfono Contacto", "Contacto Emergencia",
       "Dirección Residencia Habitual", "Dirección Actual en Emergencia", "Municipio / Barrio", "Tipo de Sangre",
       "Situación y Apoyo Requerido", "Personas en Hogar", "Tipo Vivienda", "Afectación Vivienda",
       "Cuenta con Lugar Seguro", "Estado Grupo Familiar", "Presencialidad Obligatoria",
-      "Condiciones Óptimas (Net/Energía)", "Herramientas Trabajo Completas", "Latitud GPS", "Longitud GPS", "Criticidad"
+      "Condiciones Óptimas (Net/Energía)", "Herramientas Trabajo Completas", "Latitud GPS", "Longitud GPS", "Nivel Criticidad"
     ];
 
-    // GENERAR CONTENIDO FORMATO EXCEL / CSV CON BOM UTF-8 Y SEPARADOR DE PUNTOS Y COMAS
-    const rows = dataset.map(r => [
-      `"${(r.timestamp || '').replace(/"/g, '""')}"`,
-      `"${(r.documento || '').replace(/"/g, '""')}"`,
-      `"${(r.nombre || '').replace(/"/g, '""')}"`,
-      `"${(r.cargo || '').replace(/"/g, '""')}"`,
-      `"${(r.emailPersonal || r.email || '').replace(/"/g, '""')}"`,
-      `"${(r.contrato || '').replace(/"/g, '""')}"`,
-      `"${(r.proceso || '').replace(/"/g, '""')}"`,
-      `"${(r.area || '').replace(/"/g, '""')}"`,
-      `"${(r.sexo || '').replace(/"/g, '""')}"`,
-      `"${(r.sede || '').replace(/"/g, '""')}"`,
-      `"${(r.telefono || '').replace(/"/g, '""')}"`,
-      `"${(r.contactoEmergencia || '').replace(/"/g, '""')}"`,
-      `"${(r.direccionResidencia || '').replace(/"/g, '""')}"`,
-      `"${(r.direccionActual || r.direccion || '').replace(/"/g, '""')}"`,
-      `"${(r.municipio || '').replace(/"/g, '""')}"`,
-      `"${(r.tipoSangre || '').replace(/"/g, '""')}"`,
-      `"${(r.situacionYApoyo || '').replace(/"/g, '""')}"`,
-      `"${(r.personasHogar || '').replace(/"/g, '""')}"`,
-      `"${(r.tipoVivienda || '').replace(/"/g, '""')}"`,
-      `"${(r.afectacionVivienda || '').replace(/"/g, '""')}"`,
-      `"${(r.lugarSeguro || '').replace(/"/g, '""')}"`,
-      `"${(r.estadoFamilia || '').replace(/"/g, '""')}"`,
-      `"${(r.presencialidadObligatoria || '').replace(/"/g, '""')}"`,
-      `"${(r.condicionesOptimas || '').replace(/"/g, '""')}"`,
-      `"${(r.herramientasTrabajo || '').replace(/"/g, '""')}"`,
-      `"${(r.latitud || '').replace(/"/g, '""')}"`,
-      `"${(r.longitud || '').replace(/"/g, '""')}"`,
-      `"${(r.criticidad || '').replace(/"/g, '""')}"`
-    ]);
+    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <!--[if gte mso 9]>
+      <xml>
+        <x:ExcelWorkbook>
+          <x:ExcelWorksheets>
+            <x:ExcelWorksheet>
+              <x:Name>Reporte Emergencia SST</x:Name>
+              <x:WorksheetOptions>
+                <x:DisplayGridlines/>
+              </x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+      <![endif]-->
+      <meta charset="UTF-8">
+      <style>
+        th { background-color: #003366; color: #FFFFFF; font-weight: bold; border: 1px solid #CBD5E1; padding: 8px; font-family: Arial, sans-serif; }
+        td { border: 1px solid #CBD5E1; padding: 6px; font-family: Arial, sans-serif; font-size: 11px; }
+        .rojo { background-color: #FEE2E2; color: #991B1B; font-weight: bold; }
+        .amarillo { background-color: #FEF3C7; color: #92400E; font-weight: bold; }
+        .verde { background-color: #D1FAE5; color: #065F46; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h2>Comfamiliar Risaralda - Reporte Oficial de Emergencia SST</h2>
+      <p>Generado el: ${new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })}</p>
+      <table>
+        <thead>
+          <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+    `;
 
-    const csvLines = [headers.map(h => `"${h}"`).join(";"), ...rows.map(e => e.join(";"))];
-    const csvString = "\uFEFF" + csvLines.join("\r\n");
+    dataset.forEach(r => {
+      const criticidadClass = r.criticidad === 'rojo' ? 'rojo' : r.criticidad === 'amarillo' ? 'amarillo' : 'verde';
+      tableHtml += `
+        <tr>
+          <td>${r.timestamp || ''}</td>
+          <td style="mso-number-format:'\\@';">${r.documento || ''}</td>
+          <td>${r.nombre || ''}</td>
+          <td>${r.cargo || ''}</td>
+          <td>${r.emailPersonal || r.email || ''}</td>
+          <td>${r.contrato || ''}</td>
+          <td>${r.proceso || ''}</td>
+          <td>${r.area || ''}</td>
+          <td>${r.sexo || ''}</td>
+          <td>${r.sede || ''}</td>
+          <td style="mso-number-format:'\\@';">${r.telefono || ''}</td>
+          <td>${r.contactoEmergencia || ''}</td>
+          <td>${r.direccionResidencia || ''}</td>
+          <td>${r.direccionActual || r.direccion || ''}</td>
+          <td>${r.municipio || ''}</td>
+          <td>${r.tipoSangre || ''}</td>
+          <td>${r.situacionYApoyo || ''}</td>
+          <td>${r.personasHogar || ''}</td>
+          <td>${r.tipoVivienda || ''}</td>
+          <td>${r.afectacionVivienda || ''}</td>
+          <td>${r.lugarSeguro || ''}</td>
+          <td>${r.estadoFamilia || ''}</td>
+          <td>${r.presencialidadObligatoria || ''}</td>
+          <td>${r.condicionesOptimas || ''}</td>
+          <td>${r.herramientasTrabajo || ''}</td>
+          <td>${r.latitud || ''}</td>
+          <td>${r.longitud || ''}</td>
+          <td class="${criticidadClass}">${(r.criticidad || 'verde').toUpperCase()}</td>
+        </tr>
+      `;
+    });
 
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    tableHtml += `</tbody></table></body></html>`;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -618,6 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    }, 150);
+    }, 200);
   }
 });
