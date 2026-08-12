@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Filtro de Situación y Apoyo Requerido con Exportador Filtrado a Excel/CSV
+ * Filtros con Normalización de Tildes y Exportación Directa a Excel (.xls) y CSV
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -386,8 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     container.innerHTML = optionsConfig.map(opt => {
       const count = state.filteredReports.filter(r => {
-        const val = r[fieldName] || '';
-        return val.toLowerCase().includes(opt.key.toLowerCase());
+        const val = normalizeStr(r[fieldName] || '');
+        return val.includes(normalizeStr(opt.key));
       }).length;
 
       const pct = Math.round((count / total) * 100);
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${criticidadBadge}</td>
           <td>
             <strong>${r.situacionYApoyo || r.estadoSalud || 'Sin novedad'}</strong><br>
-            <small style="color:var(--text-muted)">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'}<br>👨‍👩‍👧‍👦 Familia: ${estadoFamiliaText}</small>
+            <small style="color:var(--text-muted)">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'}<br>👨‍角‍👧‍👦 Familia: ${estadoFamiliaText}</small>
           </td>
           <td><small>${r.timestamp || 'Reciente'}</small></td>
           <td>
@@ -515,22 +515,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function normalizeStr(str) {
+    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  }
+
   function applyFilters() {
-    const q = filterSearch ? filterSearch.value.toLowerCase().trim() : '';
-    const ap = filterApoyo ? filterApoyo.value : 'all';
-    const st = filterStatus ? filterStatus.value : 'all';
-    const mun = filterMunicipio ? filterMunicipio.value : 'all';
+    const q = normalizeStr(filterSearch ? filterSearch.value : '');
+    const ap = normalizeStr(filterApoyo ? filterApoyo.value : 'all');
+    const st = normalizeStr(filterStatus ? filterStatus.value : 'all');
+    const mun = normalizeStr(filterMunicipio ? filterMunicipio.value : 'all');
 
     state.filteredReports = state.reports.filter(r => {
       const matchSearch = !q || 
-        (r.nombre && r.nombre.toLowerCase().includes(q)) ||
-        (r.documento && r.documento.includes(q)) ||
-        (r.sede && r.sede.toLowerCase().includes(q)) ||
-        (r.proceso && r.proceso.toLowerCase().includes(q));
+        normalizeStr(r.nombre).includes(q) ||
+        normalizeStr(r.documento).includes(q) ||
+        normalizeStr(r.sede).includes(q) ||
+        normalizeStr(r.proceso).includes(q);
 
-      const matchApoyo = ap === 'all' || (r.situacionYApoyo && r.situacionYApoyo.toLowerCase().includes(ap.toLowerCase()));
-      const matchStatus = st === 'all' || r.criticidad === st;
-      const matchMun = mun === 'all' || (r.municipio && r.municipio.toLowerCase().includes(mun.toLowerCase()));
+      const matchApoyo = ap === 'all' || normalizeStr(r.situacionYApoyo).includes(ap);
+      const matchStatus = st === 'all' || normalizeStr(r.criticidad) === st;
+      const matchMun = mun === 'all' || normalizeStr(r.municipio).includes(mun);
 
       return matchSearch && matchApoyo && matchStatus && matchMun;
     });
@@ -544,8 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const filtroApoyoText = filterApoyo && filterApoyo.value !== 'all' ? filterApoyo.options[filterApoyo.selectedIndex].text : 'TodosLosApoyos';
-    const cleanFileName = `Reporte_SST_Filtrado_${filtroApoyoText.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+    const filtroApoyoText = filterApoyo && filterApoyo.value !== 'all' ? filterApoyo.options[filterApoyo.selectedIndex].text : 'Todos';
+    const cleanFileName = `Reporte_Filtrado_${normalizeStr(filtroApoyoText).replace(/[^a-z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
 
     exportDataToCSVFile(state.filteredReports, cleanFileName);
   }
@@ -569,45 +573,51 @@ document.addEventListener('DOMContentLoaded', () => {
       "Condiciones Óptimas (Net/Energía)", "Herramientas Trabajo Completas", "Latitud GPS", "Longitud GPS", "Criticidad"
     ];
 
+    // GENERAR CONTENIDO FORMATO EXCEL / CSV CON BOM UTF-8 Y SEPARADOR DE PUNTOS Y COMAS
     const rows = dataset.map(r => [
-      `"${r.timestamp || ''}"`,
-      `"${r.documento || ''}"`,
-      `"${r.nombre || ''}"`,
-      `"${r.cargo || ''}"`,
-      `"${r.emailPersonal || r.email || ''}"`,
-      `"${r.contrato || ''}"`,
-      `"${r.proceso || ''}"`,
-      `"${r.area || ''}"`,
-      `"${r.sexo || ''}"`,
-      `"${r.sede || ''}"`,
-      `"${r.telefono || ''}"`,
-      `"${r.contactoEmergencia || ''}"`,
-      `"${r.direccionResidencia || ''}"`,
-      `"${r.direccionActual || r.direccion || ''}"`,
-      `"${r.municipio || ''}"`,
-      `"${r.tipoSangre || ''}"`,
-      `"${r.situacionYApoyo || ''}"`,
-      `"${r.personasHogar || ''}"`,
-      `"${r.tipoVivienda || ''}"`,
-      `"${r.afectacionVivienda || ''}"`,
-      `"${r.lugarSeguro || ''}"`,
-      `"${r.estadoFamilia || ''}"`,
-      `"${r.presencialidadObligatoria || ''}"`,
-      `"${r.condicionesOptimas || ''}"`,
-      `"${r.herramientasTrabajo || ''}"`,
-      `"${r.latitud || ''}"`,
-      `"${r.longitud || ''}"`,
-      `"${r.criticidad || ''}"`
+      `"${(r.timestamp || '').replace(/"/g, '""')}"`,
+      `"${(r.documento || '').replace(/"/g, '""')}"`,
+      `"${(r.nombre || '').replace(/"/g, '""')}"`,
+      `"${(r.cargo || '').replace(/"/g, '""')}"`,
+      `"${(r.emailPersonal || r.email || '').replace(/"/g, '""')}"`,
+      `"${(r.contrato || '').replace(/"/g, '""')}"`,
+      `"${(r.proceso || '').replace(/"/g, '""')}"`,
+      `"${(r.area || '').replace(/"/g, '""')}"`,
+      `"${(r.sexo || '').replace(/"/g, '""')}"`,
+      `"${(r.sede || '').replace(/"/g, '""')}"`,
+      `"${(r.telefono || '').replace(/"/g, '""')}"`,
+      `"${(r.contactoEmergencia || '').replace(/"/g, '""')}"`,
+      `"${(r.direccionResidencia || '').replace(/"/g, '""')}"`,
+      `"${(r.direccionActual || r.direccion || '').replace(/"/g, '""')}"`,
+      `"${(r.municipio || '').replace(/"/g, '""')}"`,
+      `"${(r.tipoSangre || '').replace(/"/g, '""')}"`,
+      `"${(r.situacionYApoyo || '').replace(/"/g, '""')}"`,
+      `"${(r.personasHogar || '').replace(/"/g, '""')}"`,
+      `"${(r.tipoVivienda || '').replace(/"/g, '""')}"`,
+      `"${(r.afectacionVivienda || '').replace(/"/g, '""')}"`,
+      `"${(r.lugarSeguro || '').replace(/"/g, '""')}"`,
+      `"${(r.estadoFamilia || '').replace(/"/g, '""')}"`,
+      `"${(r.presencialidadObligatoria || '').replace(/"/g, '""')}"`,
+      `"${(r.condicionesOptimas || '').replace(/"/g, '""')}"`,
+      `"${(r.herramientasTrabajo || '').replace(/"/g, '""')}"`,
+      `"${(r.latitud || '').replace(/"/g, '""')}"`,
+      `"${(r.longitud || '').replace(/"/g, '""')}"`,
+      `"${(r.criticidad || '').replace(/"/g, '""')}"`
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvLines = [headers.map(h => `"${h}"`).join(";"), ...rows.map(e => e.join(";"))];
+    const csvString = "\uFEFF" + csvLines.join("\r\n");
+
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 150);
   }
 });
