@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Limpieza Automática del Tablero al Marcar Casos Resueltos
+ * Protección de Concurrencia y Bloqueo de Casos en Tiempo Real
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -64,6 +64,60 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerGlobalFilter = applyFilters;
   window.triggerMgmtRender = renderManagementDashboard;
   
+  window.filterMgmtByCard = function(cardType) {
+    const elStatus = document.getElementById('mgmt-filter-status');
+    const elCat = document.getElementById('mgmt-filter-category');
+
+    if (cardType === 'resueltos') {
+      if (elStatus) elStatus.value = 'resuelto';
+      if (elCat) elCat.value = 'all';
+    } else {
+      if (elStatus) elStatus.value = 'activos';
+      if (elCat) elCat.value = cardType;
+    }
+
+    renderManagementDashboard();
+  };
+
+  // TOMAR O ASIGNAR UN CASO EXCLUSIVAMENTE
+  window.claimCase = function(doc) {
+    const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
+    const existing = state.supportManagement[doc];
+
+    if (existing && existing.status === 'proceso' && existing.operator && existing.operator !== currentOperator) {
+      const confirmTransfer = confirm(`⚠️ Este caso ya está asignado a [${existing.operator}]. ¿Deseas reasignarlo a tu nombre (${currentOperator})?`);
+      if (!confirmTransfer) return;
+    }
+
+    const statusEl = document.getElementById(`mgmt-select-${doc}`);
+    const notesEl = document.getElementById(`mgmt-notes-${doc}`);
+
+    const newStatus = 'proceso';
+    const newNotes = (notesEl && notesEl.value.trim().length > 0) ? notesEl.value.trim() : `Caso tomado por ${currentOperator}`;
+    const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
+
+    state.supportManagement[doc] = {
+      status: newStatus,
+      notes: newNotes,
+      operator: currentOperator,
+      updatedAt: nowStr
+    };
+
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+
+    if (statusEl) {
+      statusEl.value = 'proceso';
+      statusEl.className = 'mgmt-status-select proceso';
+    }
+
+    if (state.googleSheetsUrl && navigator.onLine) {
+      sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
+    }
+
+    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].`);
+    renderManagementDashboard();
+  };
+
   window.triggerExcelExport = function(isFilteredOnly) {
     if (isFilteredOnly) {
       exportFilteredToExcel();
@@ -74,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
-  // GUARDAR Y LIMPIAR AUTOMÁTICAMENTE DEL TABLERO DE CASOS ACTIVOS SI SE MARCA RESUELTO
   window.saveSupportCase = function(doc) {
     const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
@@ -85,6 +138,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const newNotes = notesEl.value.trim();
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
+
+    const existing = state.supportManagement[doc];
+    if (existing && existing.operator && existing.operator !== currentOperator && existing.status === 'proceso') {
+      const confirmOverwrite = confirm(`⚠️ Este caso estaba registrado por [${existing.operator}]. ¿Confirmas guardar la actualización a nombre de [${currentOperator}]?`);
+      if (!confirmOverwrite) return;
+    }
 
     state.supportManagement[doc] = {
       status: newStatus,
@@ -439,6 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
+    const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const statusFilter = elStatus ? elStatus.value : 'activos';
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
 
@@ -504,6 +564,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST' };
 
+      const isTakenByOther = mgmt.status === 'proceso' && mgmt.operator && mgmt.operator !== currentOperator;
+      const isTakenByMe = mgmt.status === 'proceso' && mgmt.operator === currentOperator;
+
       const realPhone = getBestPhoneNumber(r);
       const phoneClean = realPhone ? String(realPhone).replace(/\D/g, '') : '';
       
@@ -514,8 +577,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `<span style="background:linear-gradient(135deg, #003366 0%, #001F3F 100%); color:#FFFFFF; padding:6px 12px; border-radius:16px; font-weight:800; font-size:0.92rem; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(0,51,102,0.2);">📱 ${realPhone}</span>`
         : `<span style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">⚠️ Sin número</span>`;
 
+      let concurrencyLockHTML = '';
+      if (isTakenByOther) {
+        concurrencyLockHTML = `<div class="case-locked-badge">🔒 En atención por: <b>${mgmt.operator}</b></div>`;
+      } else if (isTakenByMe) {
+        concurrencyLockHTML = `<div class="case-locked-badge" style="background:#D1FAE5; color:#065F46; border-color:#86EFAC;">✋ En atención por TI</div>`;
+      } else {
+        concurrencyLockHTML = `<button onclick="window.claimCase('${doc}')" class="btn-claim-case">✋ Tomar Caso</button>`;
+      }
+
+      const rowStyle = isTakenByOther ? 'background-color: rgba(224, 242, 254, 0.4);' : '';
+
       return `
-        <tr>
+        <tr style="${rowStyle}">
           <td>
             <strong>${r.nombre || 'Colaborador'}</strong><br>
             <small style="color:var(--text-muted)">CC: ${doc}</small>
@@ -539,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td>
             <input type="text" id="mgmt-notes-${doc}" class="mgmt-notes-input" placeholder="Ej: Se entregó kit / Derivado a Psicología" value="${mgmt.notes || ''}">
-            ${mgmt.updatedAt ? `<br><small style="font-size:0.7rem; color:var(--text-muted);">👤 Atendido por: <b>${mgmt.operator || 'Operador SST'}</b> (${mgmt.updatedAt})</small>` : ''}
+            <div style="margin-top:4px;">${concurrencyLockHTML}</div>
           </td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -979,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody>amish</body></html>`;
+    tableHtml += `</tbody></table></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);

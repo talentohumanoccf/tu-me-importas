@@ -354,7 +354,7 @@
               <span>🤝</span> Centro de Gestión y Seguimiento de Casos SST
             </h2>
             <p class="card-subtitle" style="margin-top:4px;">
-              Los casos resueltos se ocultan automáticamente del tablero activo para agilizar la atención.
+              💡 <em>Consejo:</em> Haz clic en cualquier tarjeta de indicador para filtrar instantáneamente esa categoría.
             </p>
           </div>
           <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
@@ -362,32 +362,32 @@
           </button>
         </div>
 
-        <!-- TARJETAS DE CONSOLA DE GESTIÓN (CATEGORÍAS DE APOYO) -->
+        <!-- TARJETAS INTERACTIVAS DE CONSOLA DE GESTIÓN (FILTRO AL CLIC) -->
         <div class="kpi-grid" style="margin-bottom:24px;">
-          <div class="kpi-card" style="border-left: 5px solid #8B5CF6;">
-            <div class="kpi-header">🧠 Apoyo Psicológico</div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('psicologico')" title="Haz clic para filtrar casos de Apoyo Psicológico" style="border-left: 5px solid #8B5CF6;">
+            <div class="kpi-header">🧠 Apoyo Psicológico 🔍</div>
             <div class="kpi-value" id="mgmt-kpi-psico" style="color:#8B5CF6;">0</div>
-            <div class="kpi-subtext">Casos solicitados</div>
+            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
           </div>
-          <div class="kpi-card" style="border-left: 5px solid #0284C7;">
-            <div class="kpi-header">🤝 Trabajo Social</div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('social')" title="Haz clic para filtrar casos de Trabajo Social" style="border-left: 5px solid #0284C7;">
+            <div class="kpi-header">🤝 Trabajo Social 🔍</div>
             <div class="kpi-value" id="mgmt-kpi-social" style="color:#0284C7;">0</div>
-            <div class="kpi-subtext">Visitas domiciliarias</div>
+            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
           </div>
-          <div class="kpi-card" style="border-left: 5px solid #DC3545;">
-            <div class="kpi-header">💊 Medicamentos / Salud</div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('medicamentos')" title="Haz clic para filtrar casos de Medicamentos" style="border-left: 5px solid #DC3545;">
+            <div class="kpi-header">💊 Medicamentos / Salud 🔍</div>
             <div class="kpi-value" id="mgmt-kpi-meds" style="color:#DC3545;">0</div>
-            <div class="kpi-subtext">Requerimientos urgentes</div>
+            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
           </div>
-          <div class="kpi-card" style="border-left: 5px solid #D97706;">
-            <div class="kpi-header">📦 Kits de Alimentos</div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('alimentos')" title="Haz clic para filtrar Kits de Alimentos" style="border-left: 5px solid #D97706;">
+            <div class="kpi-header">📦 Kits de Alimentos 🔍</div>
             <div class="kpi-value" id="mgmt-kpi-alimentos" style="color:#D97706;">0</div>
-            <div class="kpi-subtext">Auxilios a entregar</div>
+            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
           </div>
-          <div class="kpi-card" style="border-left: 5px solid #25D366;">
-            <div class="kpi-header">🟢 Casos Resueltos</div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('resueltos')" title="Haz clic para consultar Casos Resueltos" style="border-left: 5px solid #25D366;">
+            <div class="kpi-header">🟢 Casos Resueltos 🔍</div>
             <div class="kpi-value" id="mgmt-kpi-resueltos" style="color:#25D366;">0</div>
-            <div class="kpi-subtext">Apoyos entregados</div>
+            <div class="kpi-subtext">Haz clic para ver histórico ➔</div>
           </div>
         </div>
 
@@ -461,6 +461,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260812_06"></script>
+  <script src="app.js?v=20260812_07"></script>
 </body>
 </html>

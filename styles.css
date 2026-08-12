@@ -506,3 +506,50 @@ body {
     page-break-inside: avoid;
   }
 }
+
+/* ESTILOS DE INTERACTIVIDAD PARA TARJETAS KPI DE GESTIÓN SST */
+.clickable-kpi-card {
+  cursor: pointer !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+}
+
+.clickable-kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 51, 102, 0.15) !important;
+}
+
+.clickable-kpi-card:active {
+  transform: translateY(-1px);
+}
+
+/* ESTILOS DE BLOQUEO DE CONCURRENCIA Y ASIGNACIÓN DE CASOS */
+.case-locked-badge {
+  background: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #7DD3FC;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-claim-case {
+  background: #0284C7;
+  color: #FFFFFF;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-claim-case:hover {
+  background: #0369A1;
+}
+
