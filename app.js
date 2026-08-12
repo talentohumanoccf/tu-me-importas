@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Visualización de Integrantes Familiares Afectados (Abuelos, Padres, Hijos, Nietos)
+ * Filtro de Situación y Apoyo Requerido con Exportador Filtrado a Excel/CSV
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,9 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sheetsStatus = document.getElementById('admin-sheets-status');
 
   const filterSearch = document.getElementById('filter-search');
+  const filterApoyo = document.getElementById('filter-apoyo');
   const filterStatus = document.getElementById('filter-status');
   const filterMunicipio = document.getElementById('filter-municipio');
   const btnExportCsv = document.getElementById('btn-export-csv');
+  const btnExportFilteredCsv = document.getElementById('btn-export-filtered-csv');
 
   setupTabsNavigation();
   checkAuthentication();
@@ -135,9 +137,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 10000);
 
     if (filterSearch) filterSearch.addEventListener('input', applyFilters);
+    if (filterApoyo) filterApoyo.addEventListener('change', applyFilters);
     if (filterStatus) filterStatus.addEventListener('change', applyFilters);
     if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
     if (btnExportCsv) btnExportCsv.addEventListener('click', exportToCSV);
+    if (btnExportFilteredCsv) btnExportFilteredCsv.addEventListener('click', exportFilteredToCSV);
 
     if (btnExportPdf) {
       btnExportPdf.addEventListener('click', triggerPDFExport);
@@ -305,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAnalyticsDashboard() {
     const total = state.filteredReports.length || 1;
 
-    // 1. Apoyo Requerido
     renderBarGroup('analytics-apoyo-list', [
       { key: 'Estoy bien y seguro', label: '💚 Estoy bien y seguro', colorClass: 'success' },
       { key: 'Requiero apoyo psicológico', label: '🧠 Apoyo Psicológico', colorClass: 'warning' },
@@ -315,7 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Requiero apoyo con alimentos', label: '📦 Alimentos', colorClass: 'danger' }
     ], 'situacionYApoyo', total);
 
-    // 2. Tipos de Sangre
     renderBarGroup('analytics-sangre-list', [
       { key: 'O+', label: '🩸 O Positivo (O+)', colorClass: 'primary' },
       { key: 'O-', label: '🩸 O Negativo (O-)', colorClass: 'danger' },
@@ -325,17 +327,15 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'No lo sé', label: '❓ Sin Registrar / No sabe', colorClass: '' }
     ], 'tipoSangre', total);
 
-    // 3. NUEVA CARD: INTEGRANTES DEL GRUPO FAMILIAR AFECTADOS
     renderBarGroup('analytics-familiares-afectados-list', [
       { key: 'Abuelos', label: '👴 Abuelos Afectados', colorClass: 'danger' },
-      { key: 'Padres', label: '👨‍👩‍👦 Padres Afectados', colorClass: 'warning' },
+      { key: 'Padres', label: '👨‍角‍👦 Padres Afectados', colorClass: 'warning' },
       { key: 'Hijos', label: '👶 Hijos Afectados (Menores)', colorClass: 'danger' },
       { key: 'Nietos', label: '🍼 Nietos Afectados', colorClass: 'danger' },
       { key: 'Hermanos', label: '👫 Hermanos Afectados', colorClass: 'warning' },
       { key: 'Otros', label: '👥 Otros Familiares', colorClass: 'primary' }
     ], 'estadoFamilia', total);
 
-    // 4. Afectación de Vivienda
     renderBarGroup('analytics-vivienda-list', [
       { key: 'No presenta afectaciones', label: '💚 Sin Afectaciones', colorClass: 'success' },
       { key: 'Presenta afectaciones menores que me permiten habitarla', label: '💛 Daños Menores (Habitable)', colorClass: 'warning' },
@@ -343,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Presenta afectaciones graves que me impiden habitarla', label: '🔴 Daños Graves (Inhabitable)', colorClass: 'danger' }
     ], 'afectacionVivienda', total);
 
-    // 5. Grupo Familiar
     renderBarGroup('analytics-familia-list', [
       { key: 'Todos se encuentran bien', label: '💚 Todos se encuentran bien', colorClass: 'success' },
       { key: 'Tengo familiares con afectaciones leves', label: '💛 Afectaciones leves en familia', colorClass: 'warning' },
@@ -353,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Tengo pérdida de uno o más familiares', label: '🖤 Pérdida de familiares', colorClass: 'danger' }
     ], 'estadoFamilia', total);
 
-    // 6. Tenencia Vivienda
     renderBarGroup('analytics-tenencia-list', [
       { key: 'Propia', label: '🏠 Vivienda Propia', colorClass: 'primary' },
       { key: 'Familiar', label: '🏡 Vivienda Familiar', colorClass: 'primary' },
@@ -361,25 +359,21 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Otra', label: '📦 Otra modalidad', colorClass: '' }
     ], 'tipoVivienda', total);
 
-    // 7. Lugar Seguro
     renderBarGroup('analytics-seguridad-list', [
       { key: 'Si', label: '👍 Con Lugar Seguro', colorClass: 'success' },
       { key: 'No', label: '👎 Sin Lugar Seguro (Riesgo)', colorClass: 'danger' }
     ], 'lugarSeguro', total);
 
-    // 8. Presencialidad
     renderBarGroup('analytics-presencial-list', [
       { key: 'Sí', label: '🏢 Requiere Presencialidad', colorClass: 'primary' },
       { key: 'No', label: '💻 Puede hacer Teletrabajo', colorClass: 'success' }
     ], 'presencialidadObligatoria', total);
 
-    // 9. Condiciones Óptimas (Net / Energía)
     renderBarGroup('analytics-condiciones-list', [
       { key: 'Sí', label: '⚡ Con Internet y Energía Óptimos', colorClass: 'success' },
       { key: 'No', label: '❌ Incomunicado / Sin Luz', colorClass: 'danger' }
     ], 'condicionesOptimas', total);
 
-    // 10. Herramientas completas
     renderBarGroup('analytics-herramientas-list', [
       { key: 'Sí', label: '💻 Equipos Completos (Portátil/Cargador)', colorClass: 'success' },
       { key: 'No', label: '⚠️ Sin Equipos de Trabajo', colorClass: 'danger' }
@@ -432,10 +426,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
       const callBtn = phoneClean ? `<a href="tel:${phoneClean}" class="action-btn-sm btn-call">📞 Llamar</a>` : '';
 
-      // Formatear texto de familia para resaltar familiares afectados entre corchetes
       let estadoFamiliaText = r.estadoFamilia || 'Bien';
       if (estadoFamiliaText.includes('[Afectados:')) {
-        estadoFamiliaText = estadoFamiliaText.replace('[Afectados:', '<br><span style="background:rgba(220,53,69,0.1); color:#DC3545; font-weight:800; padding:2px 6px; border-radius:6px; font-size:0.75rem;">👴👶 Afectados:').replace(']', '</span>');
+        estadoFamiliaText = estadoFamiliaText.replace('[Afectados:', '<br><span style="background:rgba(220,53,69,0.1); color:#DC3545; font-weight:800; padding:2px 6px; border-radius:6px; font-size:0.75rem;">👵👶 Afectados:').replace(']', '</span>');
       }
 
       return `
@@ -524,6 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyFilters() {
     const q = filterSearch ? filterSearch.value.toLowerCase().trim() : '';
+    const ap = filterApoyo ? filterApoyo.value : 'all';
     const st = filterStatus ? filterStatus.value : 'all';
     const mun = filterMunicipio ? filterMunicipio.value : 'all';
 
@@ -534,21 +528,38 @@ document.addEventListener('DOMContentLoaded', () => {
         (r.sede && r.sede.toLowerCase().includes(q)) ||
         (r.proceso && r.proceso.toLowerCase().includes(q));
 
+      const matchApoyo = ap === 'all' || (r.situacionYApoyo && r.situacionYApoyo.toLowerCase().includes(ap.toLowerCase()));
       const matchStatus = st === 'all' || r.criticidad === st;
       const matchMun = mun === 'all' || (r.municipio && r.municipio.toLowerCase().includes(mun.toLowerCase()));
 
-      return matchSearch && matchStatus && matchMun;
+      return matchSearch && matchApoyo && matchStatus && matchMun;
     });
 
     renderDashboard();
   }
 
-  function exportToCSV() {
+  function exportFilteredToCSV() {
     if (state.filteredReports.length === 0) {
-      alert('⚠️ No hay reportes para exportar.');
+      alert('⚠️ No hay reportes que coincidan con los filtros seleccionados para exportar.');
       return;
     }
 
+    const filtroApoyoText = filterApoyo && filterApoyo.value !== 'all' ? filterApoyo.options[filterApoyo.selectedIndex].text : 'TodosLosApoyos';
+    const cleanFileName = `Reporte_SST_Filtrado_${filtroApoyoText.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
+
+    exportDataToCSVFile(state.filteredReports, cleanFileName);
+  }
+
+  function exportToCSV() {
+    if (state.reports.length === 0) {
+      alert('⚠️ No hay reportes para exportar.');
+      return;
+    }
+    const cleanFileName = `Reporte_General_Emergencia_Comfamiliar_${new Date().toISOString().slice(0,10)}.csv`;
+    exportDataToCSVFile(state.reports, cleanFileName);
+  }
+
+  function exportDataToCSVFile(dataset, fileName) {
     const headers = [
       "Fecha y Hora", "Documento", "Nombre Completo", "Cargo", "Email Personal", "Contrato",
       "Proceso", "Área", "Sexo", "Sede", "Teléfono Contacto", "Contacto Emergencia",
@@ -558,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
       "Condiciones Óptimas (Net/Energía)", "Herramientas Trabajo Completas", "Latitud GPS", "Longitud GPS", "Criticidad"
     ];
 
-    const rows = state.filteredReports.map(r => [
+    const rows = dataset.map(r => [
       `"${r.timestamp || ''}"`,
       `"${r.documento || ''}"`,
       `"${r.nombre || ''}"`,
@@ -594,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Emergencia_Comfamiliar_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", fileName);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
