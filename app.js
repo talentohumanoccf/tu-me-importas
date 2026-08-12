@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Exportación Nativa de Libros de Microsoft Excel (.xls / .xlsx) con Formato Institucional
+ * Pestaña 3: Centro de Gestión y Seguimiento de Apoyos SST
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,7 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
     markers: [],
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     refreshInterval: null,
-    activeTab: 'main'
+    activeTab: 'main',
+    // PERSISTENCIA DE GESTIÓN SST POR DOCUMENTO
+    supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {}
   };
 
   const loginScreen = document.getElementById('admin-login-screen');
@@ -25,12 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const mainContent = document.getElementById('admin-main-content');
   const btnLockAdmin = document.getElementById('btn-lock-admin');
-  const btnChangePin = document.getElementById('btn-change-pin');
 
   const tabBtnMain = document.getElementById('tab-btn-main');
   const tabBtnAnalytics = document.getElementById('tab-btn-analytics');
+  const tabBtnManagement = document.getElementById('tab-btn-management');
+
   const tabContentMain = document.getElementById('tab-content-main');
   const tabContentAnalytics = document.getElementById('tab-content-analytics');
+  const tabContentManagement = document.getElementById('tab-content-management');
   
   const sheetsUrlInput = document.getElementById('admin-sheets-url');
   const btnSaveSheets = document.getElementById('btn-save-sheets');
@@ -43,16 +47,44 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterApoyo = document.getElementById('filter-apoyo');
   const filterStatus = document.getElementById('filter-status');
   const filterMunicipio = document.getElementById('filter-municipio');
-  const btnExportCsv = document.getElementById('btn-export-csv');
-  const btnExportFilteredCsv = document.getElementById('btn-export-filtered-csv');
+  const btnExportExcelMain = document.getElementById('btn-export-excel-main');
+  const btnExportFilteredExcel = document.getElementById('btn-export-filtered-excel');
 
+  // FUNCIONES GLOBALES EN WINDOW PARA EVENTOS ONCLICK/ONCHANGE
   window.triggerGlobalFilter = applyFilters;
-  window.triggerGlobalExport = function(isFilteredOnly) {
+  window.triggerMgmtRender = renderManagementDashboard;
+  
+  window.triggerExcelExport = function(isFilteredOnly) {
     if (isFilteredOnly) {
-      exportFilteredToCSV();
+      exportFilteredToExcel();
     } else {
-      exportToCSV();
+      exportAllToExcel();
     }
+  };
+
+  window.triggerManagementExcelExport = exportManagementMatrixToExcel;
+
+  window.saveSupportCase = function(doc) {
+    const statusEl = document.getElementById(`mgmt-select-${doc}`);
+    const notesEl = document.getElementById(`mgmt-notes-${doc}`);
+    
+    if (!statusEl || !notesEl) return;
+
+    const newStatus = statusEl.value;
+    const newNotes = notesEl.value.trim();
+
+    state.supportManagement[doc] = {
+      status: newStatus,
+      notes: newNotes,
+      updatedAt: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
+    };
+
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+    
+    statusEl.className = `mgmt-status-select ${newStatus}`;
+    
+    alert(`✅ Caso guardado para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
+    renderManagementDashboard();
   };
 
   setupTabsNavigation();
@@ -84,37 +116,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (btnChangePin) {
-    btnChangePin.addEventListener('click', () => {
-      const newPin = prompt('🔑 Ingresa el nuevo PIN de seguridad para el Panel SST (mínimo 4 dígitos):');
-      if (newPin && newPin.trim().length >= 4) {
-        localStorage.setItem('comfamiliar_admin_pin', newPin.trim());
-        alert('✅ Nuevo PIN configurado exitosamente.');
-      }
-    });
-  }
-
   function setupTabsNavigation() {
-    if (tabBtnMain && tabBtnAnalytics) {
-      tabBtnMain.addEventListener('click', () => switchTab('main'));
-      tabBtnAnalytics.addEventListener('click', () => switchTab('analytics'));
-    }
+    if (tabBtnMain) tabBtnMain.addEventListener('click', () => switchTab('main'));
+    if (tabBtnAnalytics) tabBtnAnalytics.addEventListener('click', () => switchTab('analytics'));
+    if (tabBtnManagement) tabBtnManagement.addEventListener('click', () => switchTab('management'));
   }
 
   function switchTab(tabName) {
     state.activeTab = tabName;
+    
+    [tabBtnMain, tabBtnAnalytics, tabBtnManagement].forEach(btn => { if(btn) btn.classList.remove('active'); });
+    [tabContentMain, tabContentAnalytics, tabContentManagement].forEach(content => { if(content) content.style.display = 'none'; });
+
     if (tabName === 'main') {
-      tabBtnMain.classList.add('active');
-      tabBtnAnalytics.classList.remove('active');
-      tabContentMain.style.display = 'block';
-      tabContentAnalytics.style.display = 'none';
+      if(tabBtnMain) tabBtnMain.classList.add('active');
+      if(tabContentMain) tabContentMain.style.display = 'block';
       if (state.map) setTimeout(() => state.map.invalidateSize(), 150);
-    } else {
-      tabBtnAnalytics.classList.add('active');
-      tabBtnMain.classList.remove('active');
-      tabContentAnalytics.style.display = 'block';
-      tabContentMain.style.display = 'none';
+    } else if (tabName === 'analytics') {
+      if(tabBtnAnalytics) tabBtnAnalytics.classList.add('active');
+      if(tabContentAnalytics) tabContentAnalytics.style.display = 'block';
       renderAnalyticsDashboard();
+    } else if (tabName === 'management') {
+      if(tabBtnManagement) tabBtnManagement.classList.add('active');
+      if(tabContentManagement) tabContentManagement.style.display = 'block';
+      renderManagementDashboard();
     }
   }
 
@@ -149,8 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterApoyo) filterApoyo.addEventListener('change', applyFilters);
     if (filterStatus) filterStatus.addEventListener('change', applyFilters);
     if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
-    if (btnExportCsv) btnExportCsv.addEventListener('click', exportToCSV);
-    if (btnExportFilteredCsv) btnExportFilteredCsv.addEventListener('click', exportFilteredToCSV);
+    if (btnExportExcelMain) btnExportExcelMain.addEventListener('click', () => exportAllToExcel());
+    if (btnExportFilteredExcel) btnExportFilteredExcel.addEventListener('click', () => exportFilteredToExcel());
 
     if (btnExportPdf) {
       btnExportPdf.addEventListener('click', triggerPDFExport);
@@ -316,8 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable();
     if (state.activeTab === 'main') {
       updateMapMarkers();
-    } else {
+    } else if (state.activeTab === 'analytics') {
       renderAnalyticsDashboard();
+    } else if (state.activeTab === 'management') {
+      renderManagementDashboard();
     }
   }
 
@@ -340,6 +367,183 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elLeve) elLeve.textContent = leve;
     if (elUrgente) elUrgente.textContent = urgente;
     if (elVivienda) elVivienda.textContent = sinLugar;
+  }
+
+  // =========================================================================
+  // LÓGICA DE TABLERO 3: CENTRO DE GESTIÓN Y SEGUIMIENTO DE APOYOS SST
+  // =========================================================================
+  function renderManagementDashboard() {
+    const tbody = document.getElementById('mgmt-reports-tbody');
+    if (!tbody) return;
+
+    const elStatus = document.getElementById('mgmt-filter-status');
+    const elCat = document.getElementById('mgmt-filter-category');
+
+    const statusFilter = elStatus ? elStatus.value : 'all';
+    const catFilter = normalizeStr(elCat ? elCat.value : 'all');
+
+    // FILTRAR SOLO CASOS QUE REQUIEREN ALGÚN TIPO DE APOYO
+    const supportReports = state.reports.filter(r => {
+      const ap = r._nApoyo;
+      const doc = r.documento || r.cedula;
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
+
+      const isApoyo = !ap.includes('estoy bien y seguro');
+      const matchStatus = statusFilter === 'all' || mgmt.status === statusFilter;
+      const matchCat = catFilter === 'all' || ap.includes(catFilter);
+
+      return isApoyo && matchStatus && matchCat;
+    });
+
+    // ACTUALIZAR KPIS DE LA GESTIÓN DE APOYOS
+    let countPsico = 0, countSocial = 0, countMeds = 0, countAlimentos = 0, countResueltos = 0;
+    
+    state.reports.forEach(r => {
+      const ap = r._nApoyo;
+      const doc = r.documento || r.cedula;
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente' };
+
+      if (!ap.includes('estoy bien y seguro')) {
+        if (ap.includes('psicologico')) countPsico++;
+        if (ap.includes('social')) countSocial++;
+        if (ap.includes('medicamentos')) countMeds++;
+        if (ap.includes('alimentos')) countAlimentos++;
+        if (mgmt.status === 'resuelto') countResueltos++;
+      }
+    });
+
+    const elPsico = document.getElementById('mgmt-kpi-psico');
+    const elSocial = document.getElementById('mgmt-kpi-social');
+    const elMeds = document.getElementById('mgmt-kpi-meds');
+    const elAlimentos = document.getElementById('mgmt-kpi-alimentos');
+    const elResueltos = document.getElementById('mgmt-kpi-resueltos');
+
+    if (elPsico) elPsico.textContent = countPsico;
+    if (elSocial) elSocial.textContent = countSocial;
+    if (elMeds) elMeds.textContent = countMeds;
+    if (elAlimentos) elAlimentos.textContent = countAlimentos;
+    if (elResueltos) elResueltos.textContent = countResueltos;
+
+    if (supportReports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">💚 No se encontraron solicitudes de apoyo pendientes con los filtros seleccionados.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = supportReports.map(r => {
+      const doc = r.documento || r.cedula;
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
+
+      const phoneClean = r.telefono ? r.telefono.replace(/\D/g, '') : '';
+      const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
+      const callBtn = phoneClean ? `<a href="tel:${phoneClean}" class="action-btn-sm btn-call">📞 Llamar</a>` : '';
+
+      return `
+        <tr>
+          <td>
+            <strong>${r.nombre || 'Colaborador'}</strong><br>
+            <small style="color:var(--text-muted)">CC: ${doc}</small>
+          </td>
+          <td>
+            ${r.sede || 'Sede N/A'}<br>
+            <small style="color:var(--text-muted)">${r.municipio || 'Pereira'}</small>
+          </td>
+          <td>
+            <strong style="color:var(--primary);">${r.situacionYApoyo || 'Sin novedad'}</strong>
+          </td>
+          <td>
+            <select id="mgmt-select-${doc}" class="mgmt-status-select ${mgmt.status}">
+              <option value="pendiente" ${mgmt.status === 'pendiente' ? 'selected' : ''}>🟡 Pendiente por Contactar</option>
+              <option value="proceso" ${mgmt.status === 'proceso' ? 'selected' : ''}>🔵 En Gestión / En Proceso</option>
+              <option value="resuelto" ${mgmt.status === 'resuelto' ? 'selected' : ''}>🟢 Apoyo Entregado / Resuelto</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" id="mgmt-notes-${doc}" class="mgmt-notes-input" placeholder="Ej: Se entregó kit / Derivado a Psicología" value="${mgmt.notes || ''}">
+            ${mgmt.updatedAt ? `<br><small style="font-size:0.7rem; color:var(--text-muted);">Último cambio: ${mgmt.updatedAt}</small>` : ''}
+          </td>
+          <td>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+              <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn">💾 Guardar</button>
+              ${whatsappBtn}
+              ${callBtn}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function exportManagementMatrixToExcel() {
+    const supportReports = state.reports.filter(r => !r._nApoyo.includes('estoy bien y seguro'));
+
+    if (supportReports.length === 0) {
+      alert('⚠️ No hay casos de apoyos requeridos para exportar.');
+      return;
+    }
+
+    const headers = [
+      "Documento", "Nombre Completo", "Cargo", "Sede Registrada", "Teléfono Contacto",
+      "Municipio / Dirección Actual", "Situación y Apoyo Requerido", "Estado de Gestión SST",
+      "Notas y Observaciones de Atención", "Última Actualización"
+    ];
+
+    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        th { background-color: #003366; color: #FFFFFF; font-weight: bold; border: 1px solid #CBD5E1; padding: 8px; font-family: Arial, sans-serif; font-size: 12px; }
+        td { border: 1px solid #CBD5E1; padding: 6px; font-family: Arial, sans-serif; font-size: 11px; }
+        .pendiente { background-color: #FEF3C7; color: #92400E; font-weight: bold; }
+        .proceso { background-color: #E0F2FE; color: #075985; font-weight: bold; }
+        .resuelto { background-color: #D1FAE5; color: #065F46; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h2 style="color:#003366; font-family:Arial, sans-serif;">Comfamiliar Risaralda - Matriz de Gestión de Apoyos SST</h2>
+      <p style="font-family:Arial, sans-serif; font-size:12px;">Fecha de Generación: ${new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })}</p>
+      <table>
+        <thead>
+          <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+    `;
+
+    supportReports.forEach(r => {
+      const doc = r.documento || r.cedula;
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', updatedAt: '' };
+      const statusLabel = mgmt.status === 'resuelto' ? '🟢 APRESIADO / ENTREGADO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE';
+
+      tableHtml += `
+        <tr>
+          <td style="mso-number-format:'\\@';">${doc}</td>
+          <td>${r.nombre || ''}</td>
+          <td>${r.cargo || ''}</td>
+          <td>${r.sede || ''}</td>
+          <td style="mso-number-format:'\\@';">${r.telefono || ''}</td>
+          <td>${r.municipio || ''} - ${r.direccionActual || r.direccion || ''}</td>
+          <td>${r.situacionYApoyo || ''}</td>
+          <td class="${mgmt.status}">${statusLabel}</td>
+          <td>${mgmt.notes || ''}</td>
+          <td>${mgmt.updatedAt || ''}</td>
+        </tr>
+      `;
+    });
+
+    tableHtml += `</tbody></table></body></html>`;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = `Matriz_Gestion_Apoyos_SST_Comfamiliar_${new Date().toISOString().slice(0,10)}.xls`;
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    
+    setTimeout(() => {
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    }, 200);
   }
 
   function renderAnalyticsDashboard() {
@@ -580,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
   }
 
-  function exportFilteredToCSV() {
+  function exportFilteredToExcel() {
     const dataset = state.filteredReports.length > 0 ? state.filteredReports : state.reports;
     if (dataset.length === 0) {
       alert('⚠️ No hay reportes para exportar.');
@@ -588,22 +792,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const elApoyo = document.getElementById('filter-apoyo');
-    const filtroApoyoText = elApoyo && elApoyo.value !== 'all' ? elApoyo.options[elApoyo.selectedIndex].text : 'Reporte_Filtrado';
-    const cleanFileName = `Reporte_SST_${normalizeStr(filtroApoyoText).replace(/[^a-z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.xls`;
+    const filtroApoyoText = elApoyo && elApoyo.value !== 'all' ? elApoyo.options[elApoyo.selectedIndex].text : 'Filtrado';
+    const dateStr = new Date().toISOString().slice(0,10);
+    const cleanFileName = `Reporte_Emergencia_SST_${normalizeStr(filtroApoyoText).replace(/[^a-z0-9]/g, '_')}_${dateStr}.xls`;
 
     exportDataToExcelFile(dataset, cleanFileName);
   }
 
-  function exportToCSV() {
+  function exportAllToExcel() {
     if (state.reports.length === 0) {
       alert('⚠️ No hay reportes para exportar.');
       return;
     }
-    const cleanFileName = `Reporte_General_Emergencia_Comfamiliar_${new Date().toISOString().slice(0,10)}.xls`;
+    const dateStr = new Date().toISOString().slice(0,10);
+    const cleanFileName = `Reporte_General_Emergencia_Comfamiliar_${dateStr}.xls`;
     exportDataToExcelFile(state.reports, cleanFileName);
   }
 
-  // GENERADOR NATIVO DE ARCHIVO MICROSOFT EXCEL (.xls) CON FORMATO DE CELDAS Y COLORES
   function exportDataToExcelFile(dataset, fileName) {
     const headers = [
       "Fecha y Hora", "Documento", "Nombre Completo", "Cargo", "Email Personal", "Contrato",
@@ -632,7 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <![endif]-->
       <meta charset="UTF-8">
       <style>
-        th { background-color: #003366; color: #FFFFFF; font-weight: bold; border: 1px solid #CBD5E1; padding: 8px; font-family: Arial, sans-serif; }
+        th { background-color: #003366; color: #FFFFFF; font-weight: bold; border: 1px solid #CBD5E1; padding: 8px; font-family: Arial, sans-serif; font-size: 12px; }
         td { border: 1px solid #CBD5E1; padding: 6px; font-family: Arial, sans-serif; font-size: 11px; }
         .rojo { background-color: #FEE2E2; color: #991B1B; font-weight: bold; }
         .amarillo { background-color: #FEF3C7; color: #92400E; font-weight: bold; }
@@ -640,8 +845,8 @@ document.addEventListener('DOMContentLoaded', () => {
       </style>
     </head>
     <body>
-      <h2>Comfamiliar Risaralda - Reporte Oficial de Emergencia SST</h2>
-      <p>Generado el: ${new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })}</p>
+      <h2 style="color:#003366; font-family:Arial, sans-serif;">Comfamiliar Risaralda - Reporte Oficial de Emergencia SST</h2>
+      <p style="font-family:Arial, sans-serif; font-size:12px;">Generado el: ${new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })}</p>
       <table>
         <thead>
           <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
@@ -685,17 +890,19 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody></table></body></html>`;
+    tableHtml += `</tbody>mtable></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = fileName;
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    
     setTimeout(() => {
-      document.body.removeChild(a);
+      document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
     }, 200);
   }

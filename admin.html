@@ -86,7 +86,10 @@
         📊 1. Tablero Principal & Ubicación
       </button>
       <button id="tab-btn-analytics" class="dash-tab-btn">
-        📈 2. Tablero de Analítica de Preguntas y Necesidades
+        📈 2. Tablero de Analítica de Preguntas
+      </button>
+      <button id="tab-btn-management" class="dash-tab-btn">
+        🤝 3. Centro de Gestión y Seguimiento de Apoyos SST
       </button>
     </div>
 
@@ -103,7 +106,7 @@
           <button id="btn-sync-live" class="nav-tab-btn" style="background: var(--secondary); border-color:var(--secondary); color:#FFF;">
             🔄 Sincronizar en Vivo ahora
           </button>
-          <button id="btn-export-csv" onclick="window.triggerGlobalExport && window.triggerGlobalExport(false)" class="btn-search" style="background: var(--primary); font-size:0.9rem;">
+          <button id="btn-export-excel-main" onclick="window.triggerExcelExport && window.triggerExcelExport(false)" class="btn-search" style="background: #107C41; color:#FFF; font-size:0.9rem; font-weight:800;">
             📊 Exportar Todos a Excel (.xls)
           </button>
         </div>
@@ -202,7 +205,7 @@
             </select>
           </div>
           <div>
-            <button id="btn-export-filtered-csv" onclick="window.triggerGlobalExport && window.triggerGlobalExport(true)" class="btn-search" style="background:var(--secondary); font-weight:800; font-size:0.85rem; white-space:nowrap;">
+            <button id="btn-export-filtered-excel" onclick="window.triggerExcelExport && window.triggerExcelExport(true)" class="btn-search" style="background: #107C41; color:#FFF; font-weight:800; font-size:0.85rem; white-space:nowrap; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
               📊 Exportar Filtrados a Excel (.xls)
             </button>
           </div>
@@ -234,7 +237,7 @@
     <!-- ========================================================================= -->
     <!-- TABLERO 2: ANALÍTICA DETALLADA DE PREGUNTAS Y VULNERABILIDAD FAMILIAR -->
     <!-- ========================================================================= -->
-    <div id="tab-content-analytics" class="tab-page-content">
+    <div id="tab-content-analytics" class="tab-page-content" style="display:none;">
       
       <!-- SECCIÓN 1: APOYOS Y SALUD -->
       <div class="card">
@@ -330,6 +333,98 @@
 
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- TABLERO 3: CENTRO DE GESTIÓN Y SEGUIMIENTO DE APOYOS REQUERIDOS SST -->
+    <!-- ========================================================================= -->
+    <div id="tab-content-management" class="tab-page-content" style="display:none;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div>
+            <h2 class="card-title" style="margin:0;">
+              <span>🤝</span> Centro de Gestión y Seguimiento de Casos SST
+            </h2>
+            <p class="card-subtitle" style="margin-top:4px;">
+              Canalización, asignación de responsables y cambio de estados para la entrega de auxilios de emergencia.
+            </p>
+          </div>
+          <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
+            📦 Exportar Matriz de Gestión de Apoyos (.xls)
+          </button>
+        </div>
+
+        <!-- TARJETAS DE CONSOLA DE GESTIÓN (CATEGORÍAS DE APOYO) -->
+        <div class="kpi-grid" style="margin-bottom:24px;">
+          <div class="kpi-card" style="border-left: 5px solid #8B5CF6;">
+            <div class="kpi-header">🧠 Apoyo Psicológico</div>
+            <div class="kpi-value" id="mgmt-kpi-psico" style="color:#8B5CF6;">0</div>
+            <div class="kpi-subtext">Casos solicitados</div>
+          </div>
+          <div class="kpi-card" style="border-left: 5px solid #0284C7;">
+            <div class="kpi-header">🤝 Trabajo Social</div>
+            <div class="kpi-value" id="mgmt-kpi-social" style="color:#0284C7;">0</div>
+            <div class="kpi-subtext">Visitas domiciliarias</div>
+          </div>
+          <div class="kpi-card" style="border-left: 5px solid #DC3545;">
+            <div class="kpi-header">💊 Medicamentos / Salud</div>
+            <div class="kpi-value" id="mgmt-kpi-meds" style="color:#DC3545;">0</div>
+            <div class="kpi-subtext">Requerimientos urgentes</div>
+          </div>
+          <div class="kpi-card" style="border-left: 5px solid #D97706;">
+            <div class="kpi-header">📦 Kits de Alimentos</div>
+            <div class="kpi-value" id="mgmt-kpi-alimentos" style="color:#D97706;">0</div>
+            <div class="kpi-subtext">Auxilios a entregar</div>
+          </div>
+          <div class="kpi-card" style="border-left: 5px solid #25D366;">
+            <div class="kpi-header">🟢 Casos Resueltos</div>
+            <div class="kpi-value" id="mgmt-kpi-resueltos" style="color:#25D366;">0</div>
+            <div class="kpi-subtext">Apoyos entregados</div>
+          </div>
+        </div>
+
+        <!-- FILTROS DE SEGUIMIENTO -->
+        <div class="filter-bar no-print" style="margin-bottom:16px;">
+          <div>
+            <select id="mgmt-filter-status" onchange="window.triggerMgmtRender && window.triggerMgmtRender()" class="form-control" style="font-weight:700;">
+              <option value="all">📋 Todos los Estados de Gestión</option>
+              <option value="pendiente">🟡 Pendientes por Contactar</option>
+              <option value="proceso">🔵 En Gestión / En Proceso</option>
+              <option value="resuelto">🟢 Apoyo Entregado / Resuelto</option>
+            </select>
+          </div>
+          <div>
+            <select id="mgmt-filter-category" onchange="window.triggerMgmtRender && window.triggerMgmtRender()" class="form-control" style="font-weight:700;">
+              <option value="all">🤝 Todas las Necesidades Requeridas</option>
+              <option value="psicologico">🧠 Apoyo Psicológico</option>
+              <option value="social">🤝 Trabajo Social</option>
+              <option value="medicamentos">💊 Medicamentos</option>
+              <option value="alimentos">📦 Alimentos</option>
+              <option value="juridico">⚖️ Jurídico</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TABLA INTERACTIVA DE GESTIÓN Y CAMBIO DE ESTADOS SST -->
+        <div class="reports-table-container no-print">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Trabajador / Documento</th>
+                <th>Sede / Ubicación</th>
+                <th>Necesidad de Apoyo Requerida</th>
+                <th>Estado de Gestión SST</th>
+                <th>Observaciones & Notas de Atención</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="mgmt-reports-tbody">
+              <!-- Dinámico por JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
     <!-- SECCIÓN CONFIGURACIÓN GOOGLE SHEETS -->
     <div class="card no-print">
       <h2 class="card-title">
@@ -354,6 +449,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260812_03"></script>
 </body>
 </html>
