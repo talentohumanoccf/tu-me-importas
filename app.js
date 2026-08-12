@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Incorporación de la Columna de Teléfono de Contacto Directo en Tablero 3
+ * Visualización Destacada y Multiorigen del Número Telefónico
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -422,6 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elVivienda) elVivienda.textContent = sinLugar;
   }
 
+  function getBestPhoneNumber(r) {
+    return r.telefono || r.telefonoBase || r.celular || r.contactoEmergencia || r.contacto || '';
+  }
+
   function renderManagementDashboard() {
     const tbody = document.getElementById('mgmt-reports-tbody');
     if (!tbody) return;
@@ -481,11 +485,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST' };
 
-      const phoneDisplay = r.telefono || 'Sin registrar';
-      const phoneClean = r.telefono ? r.telefono.replace(/\D/g, '') : '';
+      const realPhone = getBestPhoneNumber(r);
+      const phoneClean = realPhone ? String(realPhone).replace(/\D/g, '') : '';
       
       const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
       const callBtn = phoneClean ? `<a href="tel:${phoneClean}" class="action-btn-sm btn-call">📞 Llamar</a>` : '';
+
+      const phoneHTML = realPhone 
+        ? `<span style="background:linear-gradient(135deg, #003366 0%, #001F3F 100%); color:#FFFFFF; padding:6px 12px; border-radius:16px; font-weight:800; font-size:0.92rem; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(0,51,102,0.2);">📱 ${realPhone}</span>`
+        : `<span style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">⚠️ Sin número</span>`;
 
       return `
         <tr>
@@ -494,9 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <small style="color:var(--text-muted)">CC: ${doc}</small>
           </td>
           <td>
-            <span style="font-weight:800; color:var(--primary); font-size:0.92rem; display:inline-flex; align-items:center; gap:4px;">
-              📱 ${phoneDisplay}
-            </span>
+            ${phoneHTML}
           </td>
           <td>
             ${r.sede || 'Sede N/A'}<br>
@@ -537,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const headers = [
-      "Documento", "Nombre Completo", "Cargo", "Sede Registrada", "Teléfono Contacto",
+      "Documento", "Nombre Completo", "Cargo", "Sede Registrada", "Teléfono Contacto Directo",
       "Municipio / Dirección Actual", "Situación y Apoyo Requerido", "Estado de Gestión SST",
       "Notas y Observaciones de Atención", "Fecha Última Gestión", "Responsable de Atención SST"
     ];
@@ -567,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', updatedAt: '', operator: 'Operador SST' };
       const statusLabel = mgmt.status === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
+      const realPhone = getBestPhoneNumber(r);
 
       tableHtml += `
         <tr>
@@ -574,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.nombre || ''}</td>
           <td>${r.cargo || ''}</td>
           <td>${r.sede || ''}</td>
-          <td style="mso-number-format:'\\@';">${r.telefono || ''}</td>
+          <td style="mso-number-format:'\\@'; font-weight:bold;">${realPhone || ''}</td>
           <td>${r.municipio || ''} - ${r.direccionActual || r.direccion || ''}</td>
           <td>${r.situacionYApoyo || ''}</td>
           <td class="${mgmt.status}">${statusLabel}</td>
@@ -719,7 +726,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ? '<span class="badge-status badge-amarillo">💛 LEVE</span>'
         : '<span class="badge-status badge-verde">💚 A SALVO</span>';
 
-      const phoneClean = r.telefono ? r.telefono.replace(/\D/g, '') : '';
+      const realPhone = getBestPhoneNumber(r);
+      const phoneClean = realPhone ? String(realPhone).replace(/\D/g, '') : '';
+      
       const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
       const callBtn = phoneClean ? `<a href="tel:${phoneClean}" class="action-btn-sm btn-call">📞 Llamar</a>` : '';
 
@@ -799,12 +808,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       const marker = L.marker([lat, lng], { icon: customIcon }).addTo(state.map);
+      
+      const realPhone = getBestPhoneNumber(r);
+
       marker.bindPopup(`
         <div style="font-family:sans-serif; padding:4px;">
           <strong style="color:#003366">${r.nombre}</strong><br>
           <small>CC: ${r.documento} • Sangre: ${r.tipoSangre || 'N/A'}</small><br>
           <small><b>Situación:</b> ${r.situacionYApoyo || 'Bien'}</small><br>
-          <small><b>Teléfono:</b> ${r.telefono || 'Sin tel'}</small>
+          <small><b>Teléfono:</b> ${realPhone || 'Sin tel'}</small>
         </div>
       `);
 
@@ -868,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function exportDataToExcelFile(dataset, fileName) {
     const headers = [
       "Fecha y Hora", "Documento", "Nombre Completo", "Cargo", "Email Personal", "Contrato",
-      "Proceso", "Área", "Sexo", "Sede", "Teléfono Contacto", "Contacto Emergencia",
+      "Proceso", "Área", "Sexo", "Sede", "Teléfono Contacto Directo", "Contacto Emergencia",
       "Dirección Residencia Habitual", "Dirección Actual en Emergencia", "Municipio / Barrio", "Tipo de Sangre",
       "Situación y Apoyo Requerido", "Personas en Hogar", "Tipo Vivienda", "Afectación Vivienda",
       "Cuenta con Lugar Seguro", "Estado Grupo Familiar", "Presencialidad Obligatoria",
@@ -912,6 +924,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dataset.forEach(r => {
       const criticidadClass = r.criticidad === 'rojo' ? 'rojo' : r.criticidad === 'amarillo' ? 'amarillo' : 'verde';
+      const realPhone = getBestPhoneNumber(r);
+
       tableHtml += `
         <tr>
           <td>${r.timestamp || ''}</td>
@@ -924,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.area || ''}</td>
           <td>${r.sexo || ''}</td>
           <td>${r.sede || ''}</td>
-          <td style="mso-number-format:'\\@';">${r.telefono || ''}</td>
+          <td style="mso-number-format:'\\@'; font-weight:bold;">${realPhone || ''}</td>
           <td>${r.contactoEmergencia || ''}</td>
           <td>${r.direccionResidencia || ''}</td>
           <td>${r.direccionActual || r.direccion || ''}</td>
