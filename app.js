@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Indicadores KPI de Gestión con Desglose por Estado (Pendientes, En Proceso, Resueltos)
+ * Indicadores KPI de Gestión con Desglose por Estado (Garantizado en render general)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -456,12 +456,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderDashboard() {
     updateKPIs();
     renderTable();
+    
+    // Siempre actualizamos la analítica y los KPIs de gestión para asegurar visibilidad inmediata
+    renderManagementDashboard();
+
     if (state.activeTab === 'main') {
       updateMapMarkers();
     } else if (state.activeTab === 'analytics') {
       renderAnalyticsDashboard();
-    } else if (state.activeTab === 'management') {
-      renderManagementDashboard();
     }
   }
 
@@ -492,36 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderManagementDashboard() {
     const tbody = document.getElementById('mgmt-reports-tbody');
-    if (!tbody) return;
-
-    const elStatus = document.getElementById('mgmt-filter-status');
-    const elCat = document.getElementById('mgmt-filter-category');
-
-    const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
-    const statusFilter = elStatus ? elStatus.value : 'activos';
-    const catFilter = normalizeStr(elCat ? elCat.value : 'all');
-
-    const supportReports = state.reports.filter(r => {
-      const ap = r._nApoyo;
-      const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
-
-      const isApoyo = !ap.includes('estoy bien y seguro');
-
-      let matchStatus = false;
-      if (statusFilter === 'activos') {
-        matchStatus = mgmt.status !== 'resuelto';
-      } else if (statusFilter === 'all') {
-        matchStatus = true;
-      } else {
-        matchStatus = mgmt.status === statusFilter;
-      }
-
-      const matchCat = catFilter === 'all' || ap.includes(catFilter);
-
-      return isApoyo && matchStatus && matchCat;
-    });
-
+    
     let countPsico = 0, countPsicoPend = 0, countPsicoProc = 0, countPsicoRes = 0;
     let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
     let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
@@ -529,12 +502,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let countResueltos = 0;
 
     state.reports.forEach(r => {
-      const ap = r._nApoyo;
+      const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente' };
 
       if (!ap.includes('estoy bien y seguro')) {
-        if (ap.includes('psicologico')) {
+        if (ap.includes('psico')) {
           countPsico++;
           if (mgmt.status === 'resuelto') countPsicoRes++;
           else if (mgmt.status === 'proceso') countPsicoProc++;
@@ -546,13 +519,13 @@ document.addEventListener('DOMContentLoaded', () => {
           else if (mgmt.status === 'proceso') countSocialProc++;
           else countSocialPend++;
         }
-        if (ap.includes('medicamentos')) {
+        if (ap.includes('medicament') || ap.includes('salud') || ap.includes('receta')) {
           countMeds++;
           if (mgmt.status === 'resuelto') countMedsRes++;
           else if (mgmt.status === 'proceso') countMedsProc++;
           else countMedsPend++;
         }
-        if (ap.includes('alimentos')) {
+        if (ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado')) {
           countAlimentos++;
           if (mgmt.status === 'resuelto') countAlimentosRes++;
           else if (mgmt.status === 'proceso') countAlimentosProc++;
@@ -575,11 +548,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elResueltos) elResueltos.textContent = countResueltos;
 
     const makeBreakdownHTML = (pend, proc, res) => `
-      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; font-size:0.72rem;">
-        <span style="background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; font-weight:800;" title="Pendientes por contactar">🟡 ${pend}</span>
-        <span style="background:#E0F2FE; color:#075985; padding:2px 6px; border-radius:4px; font-weight:800;" title="En proceso / gestión">🔵 ${proc}</span>
-        <span style="background:#D1FAE5; color:#065F46; padding:2px 6px; border-radius:4px; font-weight:800;" title="Entregados / Resueltos">🟢 ${res}</span>
-      </div>
+      <span class="badge-kpi-pend" title="Pendientes por contactar">🟡 ${pend} Pend.</span>
+      <span class="badge-kpi-proc" title="En proceso / gestión">🔵 ${proc} Proc.</span>
+      <span class="badge-kpi-res" title="Entregados / Resueltos">🟢 ${res} Res.</span>
     `;
 
     const elPsicoBd = document.getElementById('mgmt-kpi-psico-breakdown');
@@ -592,7 +563,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elSocialBd) elSocialBd.innerHTML = makeBreakdownHTML(countSocialPend, countSocialProc, countSocialRes);
     if (elMedsBd) elMedsBd.innerHTML = makeBreakdownHTML(countMedsPend, countMedsProc, countMedsRes);
     if (elAlimentosBd) elAlimentosBd.innerHTML = makeBreakdownHTML(countAlimentosPend, countAlimentosProc, countAlimentosRes);
-    if (elResueltosBd) elResueltosBd.innerHTML = `<span style="color:var(--success); font-weight:700; font-size:0.75rem;">🎉 Apoyos Entregados</span>`;
+    if (elResueltosBd) elResueltosBd.innerHTML = `<span class="badge-kpi-res" style="width:100%; justify-content:center;">🎉 ${countResueltos} Casos Resueltos</span>`;
+
+    if (!tbody) return;
+
+    const elStatus = document.getElementById('mgmt-filter-status');
+    const elCat = document.getElementById('mgmt-filter-category');
+
+    const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
+    const statusFilter = elStatus ? elStatus.value : 'activos';
+    const catFilter = normalizeStr(elCat ? elCat.value : 'all');
+
+    const supportReports = state.reports.filter(r => {
+      const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
+      const doc = r.documento || r.cedula;
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
+
+      const isApoyo = !ap.includes('estoy bien y seguro');
+
+      let matchStatus = false;
+      if (statusFilter === 'activos') {
+        matchStatus = mgmt.status !== 'resuelto';
+      } else if (statusFilter === 'all') {
+        matchStatus = true;
+      } else {
+        matchStatus = mgmt.status === statusFilter;
+      }
+
+      const matchCat = catFilter === 'all' || ap.includes(catFilter);
+
+      return isApoyo && matchStatus && matchCat;
+    });
 
     if (supportReports.length === 0) {
       const emptyMsg = statusFilter === 'activos'
@@ -1116,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody></table></body></html>`;
+    tableHtml += `</tbody>mtable></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
