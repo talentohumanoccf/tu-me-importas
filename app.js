@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Textarea Multilínea para Observaciones Extensas y Separación de Responsable SST
+ * Sincronización Inmediata y Total de Casos Gestionados (Memoria, LocalStorage y Google Sheets)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -94,21 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const newStatus = 'proceso';
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
-    state.supportManagement[doc] = {
-      status: newStatus,
-      notes: currentNotesValue,
-      operator: currentOperator,
-      updatedAt: nowStr
-    };
-
-    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+    // Actualizar estado local y en reporte
+    updateLocalManagementState(doc, newStatus, currentNotesValue, currentOperator, nowStr);
 
     if (state.googleSheetsUrl && navigator.onLine) {
       sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
     alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}]. Puedes escribir tus observaciones extensas abajo.`);
-    renderManagementDashboard();
+    renderDashboard();
   };
 
   window.triggerExcelExport = function(isFilteredOnly) {
@@ -138,16 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmOverwrite) return;
     }
 
-    state.supportManagement[doc] = {
-      status: newStatus,
-      notes: newNotes,
-      operator: currentOperator || 'Operador SST',
-      updatedAt: nowStr
-    };
-
-    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
-    
-    statusEl.className = `mgmt-status-select ${newStatus}`;
+    // Actualizar estado local y en reporte
+    updateLocalManagementState(doc, newStatus, newNotes, currentOperator, nowStr);
 
     if (state.googleSheetsUrl && navigator.onLine) {
       sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
@@ -159,8 +145,32 @@ document.addEventListener('DOMContentLoaded', () => {
       alert(`✅ Caso guardado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     }
 
-    renderManagementDashboard();
+    renderDashboard();
   };
+
+  function updateLocalManagementState(doc, statusVal, notesVal, operatorVal, nowStr) {
+    const docStr = String(doc).trim();
+
+    state.supportManagement[docStr] = {
+      status: statusVal,
+      notes: notesVal,
+      operator: operatorVal || 'Operador SST',
+      updatedAt: nowStr
+    };
+
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+
+    // Sincronizar directamente con el array de reportes en memoria
+    state.reports.forEach(r => {
+      const rDoc = String(r.documento || r.cedula).trim();
+      if (rDoc === docStr) {
+        r.gestionStatus = statusVal;
+        r.gestionNotes = notesVal;
+        r.gestionOperator = operatorVal;
+        r.gestionUpdatedAt = nowStr;
+      }
+    });
+  }
 
   function sendManagementToSheets(doc, statusVal, notesVal, operatorVal) {
     const callbackName = 'onMgmtSaveResult';
@@ -339,13 +349,22 @@ document.addEventListener('DOMContentLoaded', () => {
       r._nStatus = normalizeStr(r.criticidad);
       r._nMuni = normalizeStr(r.municipio);
 
-      const doc = r.documento || r.cedula;
-      if (r.gestionStatus && !state.supportManagement[doc]) {
+      const doc = String(r.documento || r.cedula).trim();
+
+      // Si Google Sheets trae información de gestión de este documento, actualizar siempre
+      if (r.gestionStatus) {
         state.supportManagement[doc] = {
           status: r.gestionStatus || 'pendiente',
           notes: r.gestionNotes || '',
           updatedAt: r.gestionUpdatedAt || '',
           operator: r.gestionOperator || 'Operador SST'
+        };
+      } else if (!state.supportManagement[doc]) {
+        state.supportManagement[doc] = {
+          status: 'pendiente',
+          notes: '',
+          updatedAt: '',
+          operator: 'Operador SST'
         };
       }
 
@@ -496,8 +515,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.reports.forEach(r => {
       const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-      const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente' };
+      const doc = String(r.documento || r.cedula).trim();
+      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente' };
 
       if (!ap.includes('estoy bien y seguro')) {
         if (ap.includes('psico')) {
@@ -569,8 +588,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const supportReports = state.reports.filter(r => {
       const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-      const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
+      const doc = String(r.documento || r.cedula).trim();
+      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: '' };
 
       const isApoyo = !ap.includes('estoy bien y seguro');
 
@@ -598,8 +617,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tbody.innerHTML = supportReports.map(r => {
-      const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST', updatedAt: '' };
+      const doc = String(r.documento || r.cedula).trim();
+      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', operator: r.gestionOperator || 'Operador SST', updatedAt: r.gestionUpdatedAt || '' };
 
       const isTakenByOther = mgmt.status === 'proceso' && mgmt.operator && mgmt.operator !== currentOperator;
       const isTakenByMe = mgmt.status === 'proceso' && mgmt.operator === currentOperator;
@@ -723,8 +742,8 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     supportReports.forEach(r => {
-      const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', updatedAt: '', operator: 'Operador SST' };
+      const doc = String(r.documento || r.cedula).trim();
+      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', updatedAt: r.gestionUpdatedAt || '', operator: r.gestionOperator || 'Operador SST' };
       const statusLabel = mgmt.status === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
       const realPhone = getBestPhoneNumber(r);
 
