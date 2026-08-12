@@ -1,5 +1,6 @@
 /**
- * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL CON ETIQUETAS DE FAMILIARES AFECTADOS
+ * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL
+ * Obligatoriedad de digitar Nombre Completo si la Cédula no existe en BASE_PX
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -85,14 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (foundLocal) {
       applyEmployeeData(foundLocal);
     } else {
+      // SI NO ESTÁ EN MOCK LOCAL, ASIGNAR OBJETO TEMPORAL DESCONOCIDO
       applyEmployeeData({
         documento: doc,
         cedula: doc,
-        nombre: `Colaborador (${doc})`,
+        nombre: '', // VACÍO PARA OBLIGAR A DIGITAR
         cargo: "Comfamiliar Risaralda",
         sede: "Eje Cafetero",
         proceso: "General",
-        email: ""
+        email: "",
+        encontrado: false
       });
 
       if (state.googleSheetsUrl && navigator.onLine) {
@@ -109,17 +112,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyEmployeeData(found) {
     state.employee = found;
-    const fullName = found.nombre || 'Colaborador';
-    
-    if (empName) empName.textContent = `¡Hola, ${fullName}! 👋`;
-    
-    const cargoText = found.cargo ? `${found.cargo} ${found.proceso ? '• ' + found.proceso : ''}` : 'Colaborador Comfamiliar';
-    const sedeText = found.sede ? `🏢 Sede Registrada: ${found.sede}` : '🏢 Comfamiliar Risaralda';
-    
-    if (empMeta) empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
+
+    const isNewUnknown = !found.encontrado && (!found.nombre || found.nombre.includes('Colaborador'));
 
     const nombreInput = document.getElementById('user-nombre-input');
-    if (nombreInput) nombreInput.value = found.nombre || '';
+
+    if (isNewUnknown) {
+      // SI NO SE ENCONTRÓ EN BASE_PX: OBLIGAR A DIGITAR NOMBRE REAL
+      if (empName) empName.textContent = ` Documento ${found.documento}`;
+      if (empMeta) empMeta.innerHTML = `<span style="color:#D90429; font-weight:800;">⚠️ Cédula no registrada en la base precargada.</span><br>Por favor escribe tu Nombre y Apellidos completos a continuación.`;
+
+      if (nombreInput) {
+        nombreInput.value = '';
+        nombreInput.placeholder = '👉 Escribe aquí tus Nombres y Apellidos completos *';
+        nombreInput.required = true;
+        setTimeout(() => nombreInput.focus(), 300);
+      }
+    } else {
+      // SI SE ENCONTRÓ EN BASE_PX: USAR NOMBRE REAL Y DATOS REGISTRADOS
+      const fullName = found.nombre || 'Colaborador';
+      if (empName) empName.textContent = `¡Hola, ${fullName}! 👋`;
+      
+      const cargoText = found.cargo ? `${found.cargo} ${found.proceso ? '• ' + found.proceso : ''}` : 'Colaborador Comfamiliar';
+      const sedeText = found.sede ? `🏢 Sede Registrada: ${found.sede}` : '🏢 Comfamiliar Risaralda';
+      
+      if (empMeta) empMeta.innerHTML = `<strong>${cargoText}</strong><br>${sedeText}`;
+
+      if (nombreInput) {
+        nombreInput.value = found.nombre || '';
+        nombreInput.placeholder = 'Tus nombres y apellidos completos';
+      }
+    }
 
     const emailInput = document.getElementById('user-email-input');
     if (emailInput) emailInput.value = found.email || '';
@@ -147,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.onBasePXLookupResult = function(result) {
     if (result && result.status === 'found' && result.data) {
+      result.data.encontrado = true;
       applyEmployeeData(result.data);
     }
   };
@@ -237,6 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const nombreIngresado = getValue('user-nombre-input', '');
+      if (!nombreIngresado || nombreIngresado.length < 3 || nombreIngresado.includes('Colaborador (')) {
+        alert('⚠️ Por favor digita tu Nombre y Apellidos completos.');
+        const nInput = document.getElementById('user-nombre-input');
+        if (nInput) { nInput.focus(); nInput.style.borderColor = '#DC3545'; }
+        return;
+      }
+
       const emp = state.employee || {};
 
       let criticidad = 'verde';
@@ -265,7 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const dirHabitual = getValue('user-direccion-input', emp.direccion || '');
       const dirActual = getValue('user-direccion-actual-input', '');
 
-      // Construir texto de estado de familia concatenando los tags seleccionados si existen
       let estadoFamiliaFinal = state.estadoFamilia;
       if (state.familyTags.length > 0 && state.estadoFamilia !== 'Todos se encuentran bien') {
         estadoFamiliaFinal += ` [Afectados: ${state.familyTags.join(', ')}]`;
@@ -276,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
         documento: state.documento,
         cedula: state.documento,
-        nombre: getValue('user-nombre-input', emp.nombre || 'No especificado'),
+        nombre: nombreIngresado, // NOMBRE REAL DIGITADO
         cargo: emp.cargo || 'Comfamiliar Risaralda',
         emailPersonal: getValue('user-email-input', emp.email || ''),
         contrato: emp.contrato || '',
@@ -307,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
         origen: 'Formulario Oficial Web'
       };
 
-      // Guardar localmente siempre
       let localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
       const existingIdx = localReports.findIndex(r => r.documento === state.documento);
       if (existingIdx >= 0) {
@@ -317,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
 
-      // Sincronización Doble a Google Sheets (POST + Fallback)
       if (state.googleSheetsUrl && navigator.onLine) {
         sendReportToGoogleSheets(report);
       }
