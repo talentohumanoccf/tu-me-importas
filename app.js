@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Protección de Concurrencia y Bloqueo de Casos en Tiempo Real
+ * Visualización de Direcciones Dobles (Habitual y Contingencia) y Columna AF
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -79,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderManagementDashboard();
   };
 
-  // TOMAR O ASIGNAR UN CASO EXCLUSIVAMENTE
   window.claimCase = function(doc) {
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const existing = state.supportManagement[doc];
@@ -577,6 +576,24 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `<span style="background:linear-gradient(135deg, #003366 0%, #001F3F 100%); color:#FFFFFF; padding:6px 12px; border-radius:16px; font-weight:800; font-size:0.92rem; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(0,51,102,0.2);">📱 ${realPhone}</span>`
         : `<span style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">⚠️ Sin número</span>`;
 
+      const dirActual = r.direccionActual || r.direccion || 'Sin registrar';
+      const dirHabitual = r.direccionHabitual || r.direccionResidencia || r.direccionBase || 'Sin registrar';
+      const muniStr = r.municipio || 'Pereira';
+      const sedeStr = r.sede || 'Sede N/A';
+
+      const addressesHTML = `
+        <div style="font-size:0.8rem; line-height:1.35;">
+          <div style="color:#0284C7; font-weight:700;">📍 <b>Actual (Contingencia):</b> ${dirActual}</div>
+          <div style="color:var(--text-muted); font-size:0.76rem; margin-top:2px;">🏡 <b>Habitual:</b> ${dirHabitual}</div>
+          <div style="color:var(--primary); font-size:0.75rem; margin-top:2px;">🏢 ${sedeStr} • 🌆 ${muniStr}</div>
+        </div>
+      `;
+
+      const colAFText = r.columnaAF || r.estadoAF || '';
+      const colAFBadge = colAFText 
+        ? `<br><span style="background:#EEF2FF; color:#3730A3; font-weight:700; padding:3px 8px; border-radius:6px; font-size:0.75rem; display:inline-block; margin-top:4px; border:1px solid #C7D2FE;">📋 Col. AF: ${colAFText}</span>` 
+        : '';
+
       let concurrencyLockHTML = '';
       if (isTakenByOther) {
         concurrencyLockHTML = `<div class="case-locked-badge">🔒 En atención por: <b>${mgmt.operator}</b></div>`;
@@ -598,11 +615,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ${phoneHTML}
           </td>
           <td>
-            ${r.sede || 'Sede N/A'}<br>
-            <small style="color:var(--text-muted)">${r.municipio || 'Pereira'}</small>
+            ${addressesHTML}
           </td>
           <td>
             <strong style="color:var(--primary);">${r.situacionYApoyo || 'Sin novedad'}</strong>
+            ${colAFBadge}
           </td>
           <td>
             <select id="mgmt-select-${doc}" class="mgmt-status-select ${mgmt.status}">
@@ -637,7 +654,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const headers = [
       "Documento", "Nombre Completo", "Cargo", "Sede Registrada", "Teléfono Contacto Directo",
-      "Municipio / Dirección Actual", "Situación y Apoyo Requerido", "Estado de Gestión SST",
+      "Dirección Habitual (Residencia)", "Dirección Actual (Contingencia)", "Municipio",
+      "Situación y Apoyo Requerido", "Estado (Columna AF)", "Estado de Gestión SST",
       "Notas y Observaciones de Atención", "Fecha Última Gestión", "Responsable de Atención SST"
     ];
 
@@ -675,8 +693,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.cargo || ''}</td>
           <td>${r.sede || ''}</td>
           <td style="mso-number-format:'\\@'; font-weight:bold;">${realPhone || ''}</td>
-          <td>${r.municipio || ''} - ${r.direccionActual || r.direccion || ''}</td>
+          <td>${r.direccionHabitual || r.direccionResidencia || r.direccionBase || ''}</td>
+          <td>${r.direccionActual || r.direccion || ''}</td>
+          <td>${r.municipio || ''}</td>
           <td>${r.situacionYApoyo || ''}</td>
+          <td>${r.columnaAF || r.estadoAF || ''}</td>
           <td class="${mgmt.status}">${statusLabel}</td>
           <td>${mgmt.notes || ''}</td>
           <td>${mgmt.updatedAt || ''}</td>
@@ -1033,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.sede || ''}</td>
           <td style="mso-number-format:'\\@'; font-weight:bold;">${realPhone || ''}</td>
           <td>${r.contactoEmergencia || ''}</td>
-          <td>${r.direccionResidencia || ''}</td>
+          <td>${r.direccionHabitual || r.direccionResidencia || r.direccionBase || ''}</td>
           <td>${r.direccionActual || r.direccion || ''}</td>
           <td>${r.municipio || ''}</td>
           <td>${r.tipoSangre || ''}</td>
