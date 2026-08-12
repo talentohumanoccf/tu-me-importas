@@ -1,7 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Limpieza Total del Tablero (Solo Pendientes en Vista Activos)
- * KPI Prominente de Gestión por Actividades
+ * Filtro Inteligente de Fichas KPI (Muestreo Inteligente de Pendientes y Todos los Casos)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -91,16 +90,44 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerGlobalFilter = applyFilters;
   window.triggerMgmtRender = renderManagementDashboard;
   
+  // FILTRADO INTELIGENTE AL HACER CLIC EN LAS FICHAS KPI
   window.filterMgmtByCard = function(cardType) {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
+    if (!elStatus || !elCat) return;
+
     if (cardType === 'resueltos') {
-      if (elStatus) elStatus.value = 'resuelto';
-      if (elCat) elCat.value = 'all';
+      elStatus.value = 'resuelto';
+      elCat.value = 'all';
     } else {
-      if (elStatus) elStatus.value = 'pendiente';
-      if (elCat) elCat.value = cardType;
+      elCat.value = cardType;
+
+      const catKey = normalizeStr(cardType);
+      const pendingCount = state.reports.filter(r => {
+        const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
+        const doc = String(r.documento || r.cedula).trim();
+        const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente' };
+
+        const isApoyo = !ap.includes('estoy bien y seguro');
+        const isPend = mgmt.status === 'pendiente';
+
+        let isCategoryMatch = false;
+        if (catKey.includes('psico')) isCategoryMatch = ap.includes('psico');
+        else if (catKey.includes('social')) isCategoryMatch = ap.includes('social');
+        else if (catKey.includes('med')) isCategoryMatch = ap.includes('medicament') || ap.includes('salud');
+        else if (catKey.includes('aliment')) isCategoryMatch = ap.includes('aliment') || ap.includes('kit');
+        else isCategoryMatch = ap.includes(catKey);
+
+        return isApoyo && isPend && isCategoryMatch;
+      }).length;
+
+      // Si hay casos pendientes sin atender, se filtra automáticamente a pendientes por tomar. Si ya no hay pendientes, muestra todos los casos de esa categoría
+      if (pendingCount > 0) {
+        elStatus.value = 'pendiente';
+      } else {
+        elStatus.value = 'all';
+      }
     }
 
     renderManagementDashboard();
@@ -497,8 +524,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     script.onerror = function() {
       script.remove();
-      if (!isBackground && sheetsStatus) {
-        sheetsStatus.innerHTML = '<span style="color:var(--text-muted)">ℹ️ Conexión interrumpida o fuera de línea. Se reintentará automáticamente.</span>';
+      if (sheetsStatus) {
+        sheetsStatus.innerHTML = '<span style="color:var(--danger)">⚠️ Error de conexión con Google Sheets (ERR_CONNECTION_CLOSED). Mostrando datos locales en memoria. Revisa la publicación de tu script en Google Apps Script (Acceso: Cualquier persona).</span>';
       }
     };
 
@@ -697,7 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let matchStatus = false;
       if (statusFilter === 'pendiente' || statusFilter === 'activos') {
-        // EN VISTA DE PENDIENTES O ACTIVOS POR DEFECTO: Mostrar ÚNICAMENTE los pendientes por tomar para limpiar el tablero de casos en proceso o resueltos
         matchStatus = mgmt.status === 'pendiente';
       } else if (statusFilter === 'proceso') {
         matchStatus = mgmt.status === 'proceso';
@@ -709,7 +735,22 @@ document.addEventListener('DOMContentLoaded', () => {
         matchStatus = true;
       }
 
-      const matchCat = catFilter === 'all' || ap.includes(catFilter);
+      let matchCat = false;
+      if (catFilter === 'all') {
+        matchCat = true;
+      } else if (catFilter.includes('psico')) {
+        matchCat = ap.includes('psico');
+      } else if (catFilter.includes('social')) {
+        matchCat = ap.includes('social');
+      } else if (catFilter.includes('med')) {
+        matchCat = ap.includes('medicament') || ap.includes('salud') || ap.includes('receta');
+      } else if (catFilter.includes('aliment')) {
+        matchCat = ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado');
+      } else if (catFilter.includes('juri')) {
+        matchCat = ap.includes('juri') || ap.includes('legal');
+      } else {
+        matchCat = ap.includes(catFilter);
+      }
 
       return isApoyo && matchStatus && matchCat;
     });
@@ -717,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (supportReports.length === 0) {
       let emptyMsg = '';
       if (statusFilter === 'pendiente' || statusFilter === 'activos') {
-        emptyMsg = `🎉 ¡Excelente! No hay casos pendientes por tomar. Todos los apoyos están en gestión o resueltos.`;
+        emptyMsg = `🎉 ¡Excelente! No hay casos pendientes por tomar en esta categoría. Todos los apoyos están en gestión o resueltos.`;
       } else if (statusFilter === 'mis_casos') {
         emptyMsg = `✋ No tienes casos actualmente asignados a tu nombre (${currentOperator}). Toma uno de los pendientes.`;
       } else {
