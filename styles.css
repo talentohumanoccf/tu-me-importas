@@ -577,55 +577,57 @@ body {
 }
 
 /* DESGLOSE DE ESTADOS EN TARJETAS KPI DE GESTIÓN */
-
-/* DESGLOSE DE ESTADOS EN TARJETAS KPI DE GESTIÓN */
 .kpi-breakdown-container {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  display: block !important;
+  visibility: visible !important;
+  width: 100%;
   margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  border-top: 1.5px dashed rgba(0, 51, 102, 0.15);
 }
 
 .badge-kpi-pend {
-  background: #FEF3C7;
+  background: #FFFBEB;
   color: #92400E;
   border: 1px solid #FCD34D;
-  padding: 3px 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .badge-kpi-proc {
-  background: #E0F2FE;
+  background: #F0F9FF;
   color: #0369A1;
   border: 1px solid #7DD3FC;
-  padding: 3px 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .badge-kpi-res {
-  background: #D1FAE5;
+  background: #ECFDF5;
   color: #065F46;
   border: 1px solid #6EE7B7;
-  padding: 3px 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
+
 
 /* BARRAS DE PROGRESO GRÁFICO ACUMULATIVO SST */
 .mgmt-progress-bar-bg {
