@@ -1,7 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Limpieza Automática de Notas ("No" -> "") con sanitizeNotes()
- * Actualización Visual Inmediata (forceRender = true)
+ * Conteo Exacto de Base de Datos Real (1962 Registros Fieles de Google Sheets)
+ * Desactivación de Registros Mock Demo cuando la BD Remota está Conectada
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -226,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmOverwrite) return;
     }
 
-    // Quitar foco del campo de texto antes de renderizar para forzar la actualización de pantalla
     if (document.activeElement && document.activeElement.blur) {
       document.activeElement.blur();
     }
@@ -237,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
       sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
     }
     
-    // RE-RENDERIZADO FORZADO INMEDIATO (0ms)
     renderDashboard(true);
 
     if (newStatus === 'resuelto') {
@@ -379,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initLeafletMap();
     renderDashboard(true);
 
-    // Sincronización silenciosa cada 25 segundos (si la pestaña está visible)
     fetchLiveReportsFromSheets(true);
 
     if (state.refreshInterval) clearInterval(state.refreshInterval);
@@ -485,26 +482,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function loadMockAndLocalReports() {
     const cachedRemote = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports')) || [];
-    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-    const mockReports = window.INITIAL_MOCK_REPORTS || [];
-    
     const mapReports = new Map();
     
-    cachedRemote.forEach(r => {
-      if (r.documento) mapReports.set(String(r.documento).trim(), r);
-    });
+    if (cachedRemote.length > 0) {
+      cachedRemote.forEach(r => {
+        const doc = String(r.documento || r.cedula || '').trim();
+        if (doc) mapReports.set(doc, r);
+      });
+    } else {
+      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+      localReports.forEach(r => {
+        const doc = String(r.documento || r.cedula || '').trim();
+        if (doc) mapReports.set(doc, r);
+      });
 
-    localReports.forEach(r => {
-      if (r.documento && !mapReports.has(String(r.documento).trim())) {
-        mapReports.set(String(r.documento).trim(), r);
-      }
-    });
-
-    mockReports.forEach(r => {
-      if (r.documento && !mapReports.has(String(r.documento).trim())) {
-        mapReports.set(String(r.documento).trim(), r);
-      }
-    });
+      const mockReports = window.INITIAL_MOCK_REPORTS || [];
+      mockReports.forEach(r => {
+        const doc = String(r.documento || r.cedula || '').trim();
+        if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+      });
+    }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
     applyFilters();
@@ -518,38 +515,36 @@ document.addEventListener('DOMContentLoaded', () => {
       remoteReports = result.data;
     }
 
-    if (remoteReports.length > 0) {
-      localStorage.setItem('comfamiliar_cached_remote_reports', JSON.stringify(remoteReports));
-    }
-
     const mapReports = new Map();
 
+    // 1. SI HAY REGISTROS REMOTOS REALES DE GOOGLE SHEETS: USAR ÚNICAMENTE LA BASE DE DATOS REAL (1962 REGISTROS)
     if (remoteReports.length > 0) {
+      localStorage.setItem('comfamiliar_cached_remote_reports', JSON.stringify(remoteReports));
       remoteReports.forEach(r => {
-        if (r.documento) mapReports.set(String(r.documento).trim(), r);
+        const doc = String(r.documento || r.cedula || '').trim();
+        if (doc) mapReports.set(doc, r);
+      });
+    } else {
+      // 2. SI NO HAY CONEXIÓN AÚN, USAR MEMORIA LOCAL / FALLBACK DEMO
+      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+      localReports.forEach(r => {
+        const doc = String(r.documento || r.cedula || '').trim();
+        if (doc) mapReports.set(doc, r);
+      });
+
+      const mockReports = window.INITIAL_MOCK_REPORTS || [];
+      mockReports.forEach(r => {
+        const doc = String(r.documento || r.cedula || '').trim();
+        if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
       });
     }
-
-    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-    localReports.forEach(r => {
-      if (r.documento && !mapReports.has(String(r.documento).trim())) {
-        mapReports.set(String(r.documento).trim(), r);
-      }
-    });
-
-    const mockReports = window.INITIAL_MOCK_REPORTS || [];
-    mockReports.forEach(r => {
-      if (r.documento && !mapReports.has(String(r.documento).trim())) {
-        mapReports.set(String(r.documento).trim(), r);
-      }
-    });
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
     applyFilters();
 
     if (sheetsStatus) {
       if (remoteReports.length > 0) {
-        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado en Vivo: ${remoteReports.length} registros cargados al instante (${new Date().toLocaleTimeString()}). Total: ${state.reports.length}</span>`;
+        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado en Vivo: ${remoteReports.length} registros reales de Google Sheets.</span>`;
       } else {
         sheetsStatus.innerHTML = `<span style="color:var(--warning)">⚡ Datos en memoria activados (${state.reports.length} reportes).</span>`;
       }
@@ -774,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!tbody) return;
 
-    // PROTECCIÓN DE ESCRITURA EN VIVO (Solo se activa durante refrescos automáticos en segundo plano, NUNCA cuando el usuario presiona Guardar)
+    // PROTECCIÓN DE ESCRITURA EN VIVO
     if (!forceRender && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('mgmt-notes-textarea')) {
       console.log('✏️ Usuario escribiendo en observaciones. Se pospone el renderizado automático.');
       return;
