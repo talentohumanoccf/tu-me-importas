@@ -1,6 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Filtro Inteligente de Fichas KPI (Muestreo Inteligente de Pendientes y Todos los Casos)
+ * Normalización de Estados de Gestión (getNormalizedMgmtStatus)
+ * Sincronización Matemática Total entre Tarjetas KPI y Tabla de Casos
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,6 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // FUNCIÓN CANÓNICA DE NORMALIZACIÓN DE ESTADOS
+  function getNormalizedMgmtStatus(r) {
+    const doc = String(r.documento || r.cedula).trim();
+    const mgmt = state.supportManagement[doc] || {};
+    const rawStatus = normalizeStr(mgmt.status || r.gestionStatus || 'pendiente');
+
+    if (rawStatus.includes('resuelt') || rawStatus.includes('entregad') || rawStatus.includes('cerrad')) {
+      return 'resuelto';
+    }
+    if (rawStatus.includes('proces') || rawStatus.includes('gestion') || rawStatus.includes('atencion')) {
+      return 'proceso';
+    }
+    return 'pendiente';
+  }
+
   // DELEGACIÓN DE EVENTOS: GUARDADO INSTANTÁNEO AL ESCRIBIR EN TEXTAREA
   const mgmtTbody = document.getElementById('mgmt-reports-tbody');
   if (mgmtTbody) {
@@ -106,11 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const catKey = normalizeStr(cardType);
       const pendingCount = state.reports.filter(r => {
         const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-        const doc = String(r.documento || r.cedula).trim();
-        const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente' };
-
         const isApoyo = !ap.includes('estoy bien y seguro');
-        const isPend = mgmt.status === 'pendiente';
+        const st = getNormalizedMgmtStatus(r);
+        const isPend = st === 'pendiente';
 
         let isCategoryMatch = false;
         if (catKey.includes('psico')) isCategoryMatch = ap.includes('psico');
@@ -122,7 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return isApoyo && isPend && isCategoryMatch;
       }).length;
 
-      // Si hay casos pendientes sin atender, se filtra automáticamente a pendientes por tomar. Si ya no hay pendientes, muestra todos los casos de esa categoría
       if (pendingCount > 0) {
         elStatus.value = 'pendiente';
       } else {
@@ -154,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso ha DESAPARECIDO automáticamente del tablero de pendientes para limpiar la vista. Puedes consultarlo en 'Mis Casos Asignados'.`);
+    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso se ha movido automáticamente a tu bandeja de 'Mis Casos Asignados'.`);
 
     renderDashboard();
   };
@@ -195,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newStatus === 'resuelto') {
       alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado en el histórico.`);
     } else if (newStatus === 'proceso') {
-      alert(`🔵 Caso en GESTIÓN asignado a [${currentOperator}] para Cédula ${doc}. Se ha quitado de la lista de pendientes para limpiar el tablero.`);
+      alert(`🔵 Caso en GESTIÓN asignado a [${currentOperator}] para Cédula ${doc}.`);
     } else {
       alert(`✅ Caso actualizado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     }
@@ -581,35 +594,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.reports.forEach(r => {
       const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-      const doc = String(r.documento || r.cedula).trim();
-      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente' };
+      const st = getNormalizedMgmtStatus(r);
 
       if (!ap.includes('estoy bien y seguro')) {
         if (ap.includes('psico')) {
           countPsico++;
-          if (mgmt.status === 'resuelto') countPsicoRes++;
-          else if (mgmt.status === 'proceso') countPsicoProc++;
+          if (st === 'resuelto') countPsicoRes++;
+          else if (st === 'proceso') countPsicoProc++;
           else countPsicoPend++;
         }
         if (ap.includes('social')) {
           countSocial++;
-          if (mgmt.status === 'resuelto') countSocialRes++;
-          else if (mgmt.status === 'proceso') countSocialProc++;
+          if (st === 'resuelto') countSocialRes++;
+          else if (st === 'proceso') countSocialProc++;
           else countSocialPend++;
         }
         if (ap.includes('medicament') || ap.includes('salud') || ap.includes('receta')) {
           countMeds++;
-          if (mgmt.status === 'resuelto') countMedsRes++;
-          else if (mgmt.status === 'proceso') countMedsProc++;
+          if (st === 'resuelto') countMedsRes++;
+          else if (st === 'proceso') countMedsProc++;
           else countMedsPend++;
         }
         if (ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado')) {
           countAlimentos++;
-          if (mgmt.status === 'resuelto') countAlimentosRes++;
-          else if (mgmt.status === 'proceso') countAlimentosProc++;
+          if (st === 'resuelto') countAlimentosRes++;
+          else if (st === 'proceso') countAlimentosProc++;
           else countAlimentosPend++;
         }
-        if (mgmt.status === 'resuelto') countResueltos++;
+        if (st === 'resuelto') countResueltos++;
       }
     });
 
@@ -718,19 +730,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const supportReports = state.reports.filter(r => {
       const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
       const doc = String(r.documento || r.cedula).trim();
-      const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: '', operator: '' };
+      const mgmt = state.supportManagement[doc] || {};
+      const st = getNormalizedMgmtStatus(r);
 
       const isApoyo = !ap.includes('estoy bien y seguro');
 
       let matchStatus = false;
       if (statusFilter === 'pendiente' || statusFilter === 'activos') {
-        matchStatus = mgmt.status === 'pendiente';
+        matchStatus = st === 'pendiente';
       } else if (statusFilter === 'proceso') {
-        matchStatus = mgmt.status === 'proceso';
+        matchStatus = st === 'proceso';
       } else if (statusFilter === 'mis_casos') {
-        matchStatus = mgmt.status === 'proceso' && mgmt.operator === currentOperator;
+        matchStatus = st === 'proceso' && mgmt.operator === currentOperator;
       } else if (statusFilter === 'resuelto') {
-        matchStatus = mgmt.status === 'resuelto';
+        matchStatus = st === 'resuelto';
       } else if (statusFilter === 'all') {
         matchStatus = true;
       }
@@ -772,9 +785,10 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = supportReports.map(r => {
       const doc = String(r.documento || r.cedula).trim();
       const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', operator: r.gestionOperator || 'Operador SST', updatedAt: r.gestionUpdatedAt || '' };
+      const st = getNormalizedMgmtStatus(r);
 
-      const isTakenByOther = mgmt.status === 'proceso' && mgmt.operator && mgmt.operator !== currentOperator;
-      const isTakenByMe = mgmt.status === 'proceso' && mgmt.operator === currentOperator;
+      const isTakenByOther = st === 'proceso' && mgmt.operator && mgmt.operator !== currentOperator;
+      const isTakenByMe = st === 'proceso' && mgmt.operator === currentOperator;
 
       const realPhone = getBestPhoneNumber(r);
       const phoneClean = realPhone ? String(realPhone).replace(/\D/g, '') : '';
@@ -835,10 +849,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ${colAFBadge}
           </td>
           <td>
-            <select id="mgmt-select-${doc}" class="mgmt-status-select ${mgmt.status}">
-              <option value="pendiente" ${mgmt.status === 'pendiente' ? 'selected' : ''}>🟡 Pendiente por Contactar</option>
-              <option value="proceso" ${mgmt.status === 'proceso' ? 'selected' : ''}>🔵 En Gestión / En Proceso</option>
-              <option value="resuelto" ${mgmt.status === 'resuelto' ? 'selected' : ''}>🟢 Apoyo Entregado / Resuelto</option>
+            <select id="mgmt-select-${doc}" class="mgmt-status-select ${st}">
+              <option value="pendiente" ${st === 'pendiente' ? 'selected' : ''}>🟡 Pendiente por Contactar</option>
+              <option value="proceso" ${st === 'proceso' ? 'selected' : ''}>🔵 En Gestión / En Proceso</option>
+              <option value="resuelto" ${st === 'resuelto' ? 'selected' : ''}>🟢 Apoyo Entregado / Resuelto</option>
             </select>
           </td>
           <td>
@@ -897,7 +911,8 @@ document.addEventListener('DOMContentLoaded', () => {
     supportReports.forEach(r => {
       const doc = String(r.documento || r.cedula).trim();
       const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', updatedAt: r.gestionUpdatedAt || '', operator: r.gestionOperator || 'Operador SST' };
-      const statusLabel = mgmt.status === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
+      const st = getNormalizedMgmtStatus(r);
+      const statusLabel = st === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : st === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
       const realPhone = getBestPhoneNumber(r);
 
       tableHtml += `
@@ -911,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.direccionHabitual || r.direccionResidencia || r.direccionBase || ''}</td>
           <td>${r.situacionYApoyo || ''}</td>
           <td>${r.columnaAF || r.estadoAF || ''}</td>
-          <td class="${mgmt.status}">${statusLabel}</td>
+          <td class="${st}">${statusLabel}</td>
           <td>${mgmt.notes || ''}</td>
           <td>${mgmt.updatedAt || ''}</td>
           <td><strong>${mgmt.operator || 'Operador SST'}</strong></td>
