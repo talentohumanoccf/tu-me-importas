@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Captura y Auditoría de la Persona / Operador Responsable de la Atención
+ * Incorporación de la Columna de Teléfono de Contacto Directo en Tablero 3
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
-  // GUARDAR CASO CON REGISTRO DEL RESPONSABLE SST QUE INTERVINO
   window.saveSupportCase = function(doc) {
     const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
@@ -474,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elResueltos) elResueltos.textContent = countResueltos;
 
     if (supportReports.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">💚 No se encontraron solicitudes de apoyo pendientes con los filtros seleccionados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">💚 No se encontraron solicitudes de apoyo pendientes con los filtros seleccionados.</td></tr>`;
       return;
     }
 
@@ -482,7 +481,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST' };
 
+      const phoneDisplay = r.telefono || 'Sin registrar';
       const phoneClean = r.telefono ? r.telefono.replace(/\D/g, '') : '';
+      
       const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
       const callBtn = phoneClean ? `<a href="tel:${phoneClean}" class="action-btn-sm btn-call">📞 Llamar</a>` : '';
 
@@ -491,6 +492,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>
             <strong>${r.nombre || 'Colaborador'}</strong><br>
             <small style="color:var(--text-muted)">CC: ${doc}</small>
+          </td>
+          <td>
+            <span style="font-weight:800; color:var(--primary); font-size:0.92rem; display:inline-flex; align-items:center; gap:4px;">
+              📱 ${phoneDisplay}
+            </span>
           </td>
           <td>
             ${r.sede || 'Sede N/A'}<br>

@@ -354,11 +354,11 @@
               <span>🤝</span> Centro de Gestión y Seguimiento de Casos SST
             </h2>
             <p class="card-subtitle" style="margin-top:4px;">
-              Canalización, auditoría de responsable de atención y cambio de estados para auxilios de emergencia.
+              Canalización, contacto directo por teléfono/WhatsApp y cambio de estados para auxilios de emergencia.
             </p>
           </div>
           <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
-            📦 Exportar Matriz de Gestión con Responsables (.xls)
+            📦 Exportar Matriz de Gestión con Teléfonos (.xls)
           </button>
         </div>
 
@@ -413,12 +413,13 @@
           </div>
         </div>
 
-        <!-- TABLA INTERACTIVA DE GESTIÓN Y CAMBIO DE ESTADOS SST -->
+        <!-- TABLA INTERACTIVA CON COLUMNA DE TELÉFONO DE CONTACTO -->
         <div class="reports-table-container no-print">
           <table class="reports-table">
             <thead>
               <tr>
                 <th>Trabajador / Documento</th>
+                <th>📞 Teléfono Contacto</th>
                 <th>Sede / Ubicación</th>
                 <th>Necesidad de Apoyo Requerida</th>
                 <th>Estado de Gestión SST</th>
@@ -459,6 +460,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260812_04"></script>
+  <script src="app.js?v=20260812_05"></script>
 </body>
 </html>
