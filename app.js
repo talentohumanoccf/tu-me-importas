@@ -1,7 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Actualización Visual Inmediata tras Guardar o Tomar Casos (forceRender = true)
- * Elimina la Necesidad de Refrescar la Página
+ * Limpieza Automática de Notas ("No" -> "") con sanitizeNotes()
+ * Actualización Visual Inmediata (forceRender = true)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,9 +62,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- HELPER UNIFICADOS DE CLASIFICACIÓN ---
+  // --- HELPER UNIFICADOS DE CLASIFICACIÓN Y SANITIZACIÓN ---
   function normalizeStr(str) {
     return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  }
+
+  function sanitizeNotes(notesStr) {
+    if (!notesStr) return '';
+    const clean = String(notesStr).trim();
+    const lower = clean.toLowerCase();
+    if (lower === 'no' || lower === 'no.' || lower === 'false' || lower === 'null' || lower === 'undefined') {
+      return '';
+    }
+    return clean;
   }
 
   function getApoyoText(r) {
@@ -118,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           state.supportManagement[doc] = {
             status: existing.status || 'pendiente',
-            notes: val,
+            notes: sanitizeNotes(val),
             operator: existing.operator || currentOperator,
             updatedAt: existing.updatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
           };
@@ -169,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
-    const currentNotesValue = notesEl ? notesEl.value.trim() : (existing.notes || '');
+    const currentNotesValue = notesEl ? sanitizeNotes(notesEl.value) : sanitizeNotes(existing.notes || '');
 
     const newStatus = 'proceso';
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
@@ -206,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!statusEl || !notesEl) return;
 
     const newStatus = statusEl.value;
-    const newNotes = notesEl.value.trim();
+    const newNotes = sanitizeNotes(notesEl.value);
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
@@ -244,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.supportManagement[docStr] = {
       status: statusVal,
-      notes: notesVal,
+      notes: sanitizeNotes(notesVal),
       operator: operatorVal || 'Operador SST',
       updatedAt: nowStr
     };
@@ -255,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const rDoc = String(r.documento || r.cedula).trim();
       if (rDoc === docStr) {
         r.gestionStatus = statusVal;
-        r.gestionNotes = notesVal;
+        r.gestionNotes = sanitizeNotes(notesVal);
         r.gestionOperator = operatorVal;
         r.gestionUpdatedAt = nowStr;
       }
@@ -271,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(notesVal)}&operator=${encodeURIComponent(operatorVal)}&callback=${callbackName}`;
+    script.src = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(sanitizeNotes(notesVal))}&operator=${encodeURIComponent(operatorVal)}&callback=${callbackName}`;
     
     window.onMgmtSaveResult = function() {
       console.log('✅ Estado y Responsable SST sincronizados con Google Sheets.');
@@ -456,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (r.gestionStatus) {
         state.supportManagement[doc] = {
           status: r.gestionStatus || 'pendiente',
-          notes: r.gestionNotes || '',
+          notes: sanitizeNotes(r.gestionNotes),
           updatedAt: r.gestionUpdatedAt || '',
           operator: r.gestionOperator || 'Operador SST'
         };
@@ -865,6 +875,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const rowStyle = isTakenByOther ? 'background-color: rgba(224, 242, 254, 0.4);' : '';
 
+      const notesDisplayValue = sanitizeNotes(mgmt.notes || r.gestionNotes);
+
       return `
         <tr style="${rowStyle}">
           <td>
@@ -889,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </select>
           </td>
           <td>
-            <textarea id="mgmt-notes-${doc}" class="mgmt-notes-textarea" rows="2" placeholder="Escribe observaciones, acuerdos y notas detalladas del caso...">${mgmt.notes || ''}</textarea>
+            <textarea id="mgmt-notes-${doc}" class="mgmt-notes-textarea" rows="2" placeholder="Escribe observaciones, acuerdos y notas detalladas del caso...">${notesDisplayValue}</textarea>
             ${lastOperatorHTML}
             <div style="margin-top:6px;">${concurrencyLockHTML}</div>
           </td>
@@ -960,7 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.situacionYApoyo || ''}</td>
           <td>${r.columnaAF || r.estadoAF || ''}</td>
           <td class="${st}">${statusLabel}</td>
-          <td>${mgmt.notes || ''}</td>
+          <td>${sanitizeNotes(mgmt.notes)}</td>
           <td>${mgmt.updatedAt || ''}</td>
           <td><strong>${mgmt.operator || 'Operador SST'}</strong></td>
         </tr>
