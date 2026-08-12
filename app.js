@@ -1,7 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Protección de Escritura en Vivo (Previene borrado al escribir)
- * Desaparición Automática de Casos Tomados para Evitar Duplicidad
+ * Configuración Por Defecto Permanente: Muestra Siempre Casos Pendientes
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -82,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updatedAt: existing.updatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
           };
 
-          // Guardar en localStorage de inmediato para proteger cada pulsación de tecla
           localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
         }
       }
@@ -100,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elStatus) elStatus.value = 'resuelto';
       if (elCat) elCat.value = 'all';
     } else {
+      // POR DEFECTO SIEMPRE FILTRA LAS PENDIENTES
       if (elStatus) elStatus.value = 'pendiente';
       if (elCat) elCat.value = cardType;
     }
@@ -128,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n📌 Para evitar que otra persona lo tome, se ha movido automáticamente fuera de la lista de 'Pendientes por Tomar'. Puedes consultarlo seleccionando 'Mis Casos Asignados'.`);
+    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n📌 Al pasar a 'En Gestión', se ha quitado de la lista de 'Pendientes por Tomar'. Puedes consultarlo cuando desees en 'Mis Casos Asignados'.`);
 
     renderDashboard();
   };
@@ -167,9 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (newStatus === 'resuelto') {
-      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Se ha archivado fuera del tablero activo.`);
+      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado en el histórico.`);
     } else if (newStatus === 'proceso') {
-      alert(`🔵 Caso en GESTIÓN asignado a [${currentOperator}] para Cédula ${doc}. Se mantendrá en tu bandeja de casos en proceso.`);
+      alert(`🔵 Caso en GESTIÓN asignado a [${currentOperator}] para Cédula ${doc}.`);
     } else {
       alert(`✅ Caso actualizado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     }
@@ -277,6 +276,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (tabName === 'management') {
       if(tabBtnManagement) tabBtnManagement.classList.add('active');
       if(tabContentManagement) tabContentManagement.style.display = 'block';
+
+      // SIEMPRE POR DEFECTO MOSTRAR LAS PENDIENTES
+      const elStatus = document.getElementById('mgmt-filter-status');
+      if (elStatus && !elStatus.dataset.manualOverride) {
+        elStatus.value = 'pendiente';
+      }
+
       renderManagementDashboard();
     }
   }
@@ -314,6 +320,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
     if (btnExportExcelMain) btnExportExcelMain.addEventListener('click', () => exportAllToExcel());
     if (btnExportFilteredExcel) btnExportFilteredExcel.addEventListener('click', () => exportFilteredToExcel());
+
+    const mgmtStatusSelect = document.getElementById('mgmt-filter-status');
+    if (mgmtStatusSelect) {
+      mgmtStatusSelect.addEventListener('change', () => {
+        mgmtStatusSelect.dataset.manualOverride = 'true';
+      });
+    }
 
     if (btnExportPdf) {
       btnExportPdf.addEventListener('click', triggerPDFExport);
@@ -660,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!tbody) return;
 
-    // PROTECCIÓN DE ESCRITURA EN VIVO: Si el usuario tiene el foco activo en un textarea de la tabla, NO reemplazamos la tabla en este refresco
+    // PROTECCIÓN DE ESCRITURA EN VIVO
     if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('mgmt-notes-textarea')) {
       console.log('✏️ Usuario escribiendo en observaciones. Se pospone el renderizado de la tabla para proteger el texto.');
       return;
@@ -670,7 +683,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const elCat = document.getElementById('mgmt-filter-category');
 
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
-    const statusFilter = elStatus ? elStatus.value : 'pendiente';
+    
+    // FORZADO PERMANENTE: Si el selector no ha sido alterado explícitamente, siempre evalúa 'pendiente'
+    const statusFilter = elStatus ? (elStatus.value || 'pendiente') : 'pendiente';
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
 
     const supportReports = state.reports.filter(r => {
@@ -1232,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody>mtable></body></html>`;
+    tableHtml += `</tbody></table></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
