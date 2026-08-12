@@ -354,7 +354,7 @@
               <span>🤝</span> Centro de Gestión y Seguimiento de Casos SST
             </h2>
             <p class="card-subtitle" style="margin-top:4px;">
-              Visualización geográfica centrada en el Municipio y Direcciones (Habitual y Contingencia).
+              Consola de mando con desgloses gráficos porcentuales y seguimiento de todos los trabajadores.
             </p>
           </div>
           <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
@@ -362,44 +362,90 @@
           </button>
         </div>
 
-        <!-- TARJETAS INTERACTIVAS DE CONSOLA DE GESTIÓN (FILTRO AL CLIC) -->
-        <div class="kpi-grid" style="margin-bottom:24px;">
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('psicologico')" title="Haz clic para filtrar casos de Apoyo Psicológico" style="border-left: 5px solid #8B5CF6;">
-            <div class="kpi-header">🧠 Apoyo Psicológico 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-psico" style="color:#8B5CF6;">0</div>
-            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
+        <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS) -->
+        <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+              📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
+            </h3>
+            <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
+              <span class="badge-kpi-pend">🟡 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 En Gestión</span>
+              <span class="badge-kpi-res">🟢 Resueltos</span>
+            </div>
           </div>
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('social')" title="Haz clic para filtrar casos de Trabajo Social" style="border-left: 5px solid #0284C7;">
-            <div class="kpi-header">🤝 Trabajo Social 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-social" style="color:#0284C7;">0</div>
-            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
-          </div>
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('medicamentos')" title="Haz clic para filtrar casos de Medicamentos" style="border-left: 5px solid #DC3545;">
-            <div class="kpi-header">💊 Medicamentos / Salud 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-meds" style="color:#DC3545;">0</div>
-            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
-          </div>
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('alimentos')" title="Haz clic para filtrar Kits de Alimentos" style="border-left: 5px solid #D97706;">
-            <div class="kpi-header">📦 Kits de Alimentos 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-alimentos" style="color:#D97706;">0</div>
-            <div class="kpi-subtext">Haz clic para ver la lista ➔</div>
-          </div>
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('resueltos')" title="Haz clic para consultar Casos Resueltos" style="border-left: 5px solid #25D366;">
-            <div class="kpi-header">🟢 Casos Resueltos 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-resueltos" style="color:#25D366;">0</div>
-            <div class="kpi-subtext">Haz clic para ver histórico ➔</div>
+          <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
+            Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
+          </p>
+
+          <div class="analytics-grid" id="mgmt-visual-charts-container">
+            <!-- Se llena dinámicamente por JS -->
           </div>
         </div>
 
-        <!-- FILTROS DE SEGUIMIENTO CON MODO ACTIVO POR DEFECTO -->
+        <!-- TARJETAS INTERACTIVAS CON DESGLOSE DE ESTADOS POR ACTIVIDAD -->
+        <div class="kpi-grid" style="margin-bottom:24px;">
+          
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('psicologico')" title="Haz clic para cargar los casos PENDIENTES por atender de Apoyo Psicológico" style="border-left: 5px solid #8B5CF6;">
+            <div class="kpi-header">🧠 Apoyo Psicológico 🔍</div>
+            <div class="kpi-value" id="mgmt-kpi-psico" style="color:#8B5CF6;">0</div>
+            <div id="mgmt-kpi-psico-breakdown" class="kpi-breakdown-container">
+              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
+              <span class="badge-kpi-res">🟢 0 Resueltos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('social')" title="Haz clic para cargar los casos PENDIENTES por atender de Trabajo Social" style="border-left: 5px solid #0284C7;">
+            <div class="kpi-header">🤝 Trabajo Social 🔍</div>
+            <div class="kpi-value" id="mgmt-kpi-social" style="color:#0284C7;">0</div>
+            <div id="mgmt-kpi-social-breakdown" class="kpi-breakdown-container">
+              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
+              <span class="badge-kpi-res">🟢 0 Resueltos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('medicamentos')" title="Haz clic para cargar los casos PENDIENTES por atender de Medicamentos" style="border-left: 5px solid #DC3545;">
+            <div class="kpi-header">💊 Medicamentos / Salud 🔍</div>
+            <div class="kpi-value" id="mgmt-kpi-meds" style="color:#DC3545;">0</div>
+            <div id="mgmt-kpi-meds-breakdown" class="kpi-breakdown-container">
+              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
+              <span class="badge-kpi-res">🟢 0 Resueltos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('alimentos')" title="Haz clic para cargar los casos PENDIENTES por atender de Alimentos" style="border-left: 5px solid #D97706;">
+            <div class="kpi-header">📦 Kits de Alimentos 🔍</div>
+            <div class="kpi-value" id="mgmt-kpi-alimentos" style="color:#D97706;">0</div>
+            <div id="mgmt-kpi-alimentos-breakdown" class="kpi-breakdown-container">
+              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
+              <span class="badge-kpi-res:">🟢 0 Resueltos</span>
+            </div>
+          </div>
+
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('resueltos')" title="Haz clic para consultar el Histórico de Casos Resueltos" style="border-left: 5px solid #25D366;">
+            <div class="kpi-header">🟢 Total Casos Resueltos 🔍</div>
+            <div class="kpi-value" id="mgmt-kpi-resueltos" style="color:#25D366;">0</div>
+            <div id="mgmt-kpi-resueltos-breakdown" class="kpi-breakdown-container">
+              <span class="badge-kpi-res" style="width:100%; justify-content:center;">🎉 Histórico de Casos Cerrados</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FILTROS DE SEGUIMIENTO CON MODO PENDIENTES POR DEFECTO -->
         <div class="filter-bar no-print" style="margin-bottom:16px;">
           <div>
             <select id="mgmt-filter-status" onchange="window.triggerMgmtRender && window.triggerMgmtRender()" class="form-control" style="font-weight:700; background:rgba(0,51,102,0.06); border-color:var(--primary);">
-              <option value="activos" selected>⚡ Casos Activos (Pendientes + En Gestión)</option>
-              <option value="all">📋 Todos los Casos (Incluir Resueltos)</option>
-              <option value="pendiente">🟡 Pendientes por Contactar</option>
-              <option value="proceso">🔵 En Gestión / En Proceso</option>
+              <option value="pendiente" selected>🟡 Casos Pendientes por Tomar (Por Atender)</option>
+              <option value="mis_casos">✋ Mis Casos Asignados (En Atención por Mí)</option>
+              <option value="proceso">🔵 Casos En Gestión / En Proceso (Todos)</option>
+              <option value="activos">⚡ Todos los Activos (Pendientes + En Gestión)</option>
               <option value="resuelto">🟢 Apoyo Entregado / Resuelto (Histórico)</option>
+              <option value="all">📋 Todos los Casos Registrados</option>
             </select>
           </div>
           <div>
@@ -461,6 +507,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260812_09"></script>
+  <script src="app.js?v=20260812_18"></script>
 </body>
 </html>

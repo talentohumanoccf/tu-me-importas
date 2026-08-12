@@ -1,7 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Normalización de Estados de Gestión (getNormalizedMgmtStatus)
- * Sincronización Matemática Total entre Tarjetas KPI y Tabla de Casos
+ * Sistema Único y Unificado de Filtrado y Clasificación de Apoyos (isNeedSupport + matchesCategory + getNormalizedMgmtStatus)
+ * Concordancia Matemática Garantizada al 100% entre Tarjetas KPI y Tabla de Registros
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,7 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // FUNCIÓN CANÓNICA DE NORMALIZACIÓN DE ESTADOS
+  // --- HELPER UNIFICADOS DE CLASIFICACIÓN ---
+  function normalizeStr(str) {
+    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  }
+
+  function getApoyoText(r) {
+    return normalizeStr(r.situacionYApoyo || r.apoyo || r.necesidad || r.situacion || r._nApoyo || '');
+  }
+
+  function isNeedSupport(r) {
+    const ap = getApoyoText(r);
+    return ap.length > 0 && !ap.includes('estoy bien y seguro');
+  }
+
   function getNormalizedMgmtStatus(r) {
     const doc = String(r.documento || r.cedula).trim();
     const mgmt = state.supportManagement[doc] || {};
@@ -75,6 +88,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'proceso';
     }
     return 'pendiente';
+  }
+
+  function matchesCategory(r, category) {
+    const ap = getApoyoText(r);
+    const cat = normalizeStr(category);
+
+    if (cat === 'all') return true;
+    if (cat.includes('psico')) return ap.includes('psico');
+    if (cat.includes('social')) return ap.includes('social');
+    if (cat.includes('med')) return ap.includes('medicament') || ap.includes('salud') || ap.includes('receta');
+    if (cat.includes('aliment')) return ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado') || ap.includes('vivere') || ap.includes('comida');
+    if (cat.includes('juri')) return ap.includes('juri') || ap.includes('legal');
+    return ap.includes(cat);
   }
 
   // DELEGACIÓN DE EVENTOS: GUARDADO INSTANTÁNEO AL ESCRIBIR EN TEXTAREA
@@ -119,21 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       elCat.value = cardType;
 
-      const catKey = normalizeStr(cardType);
       const pendingCount = state.reports.filter(r => {
-        const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-        const isApoyo = !ap.includes('estoy bien y seguro');
-        const st = getNormalizedMgmtStatus(r);
-        const isPend = st === 'pendiente';
-
-        let isCategoryMatch = false;
-        if (catKey.includes('psico')) isCategoryMatch = ap.includes('psico');
-        else if (catKey.includes('social')) isCategoryMatch = ap.includes('social');
-        else if (catKey.includes('med')) isCategoryMatch = ap.includes('medicament') || ap.includes('salud');
-        else if (catKey.includes('aliment')) isCategoryMatch = ap.includes('aliment') || ap.includes('kit');
-        else isCategoryMatch = ap.includes(catKey);
-
-        return isApoyo && isPend && isCategoryMatch;
+        return isNeedSupport(r) && getNormalizedMgmtStatus(r) === 'pendiente' && matchesCategory(r, cardType);
       }).length;
 
       if (pendingCount > 0) {
@@ -415,17 +428,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
-  function normalizeStr(str) {
-    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  }
-
   function preprocessReports(list) {
     return list.map(r => {
       r._nNombre = normalizeStr(r.nombre);
       r._nDoc = normalizeStr(r.documento || r.cedula);
       r._nSede = normalizeStr(r.sede);
       r._nProceso = normalizeStr(r.proceso);
-      r._nApoyo = normalizeStr(r.situacionYApoyo);
+      r._nApoyo = getApoyoText(r);
       r._nStatus = normalizeStr(r.criticidad);
       r._nMuni = normalizeStr(r.municipio);
 
@@ -593,35 +602,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let countResueltos = 0;
 
     state.reports.forEach(r => {
-      const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-      const st = getNormalizedMgmtStatus(r);
+      if (isNeedSupport(r)) {
+        const st = getNormalizedMgmtStatus(r);
+        if (st === 'resuelto') countResueltos++;
 
-      if (!ap.includes('estoy bien y seguro')) {
-        if (ap.includes('psico')) {
+        if (matchesCategory(r, 'psicologico')) {
           countPsico++;
           if (st === 'resuelto') countPsicoRes++;
           else if (st === 'proceso') countPsicoProc++;
           else countPsicoPend++;
         }
-        if (ap.includes('social')) {
+        if (matchesCategory(r, 'social')) {
           countSocial++;
           if (st === 'resuelto') countSocialRes++;
           else if (st === 'proceso') countSocialProc++;
           else countSocialPend++;
         }
-        if (ap.includes('medicament') || ap.includes('salud') || ap.includes('receta')) {
+        if (matchesCategory(r, 'medicamentos')) {
           countMeds++;
           if (st === 'resuelto') countMedsRes++;
           else if (st === 'proceso') countMedsProc++;
           else countMedsPend++;
         }
-        if (ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado')) {
+        if (matchesCategory(r, 'alimentos')) {
           countAlimentos++;
           if (st === 'resuelto') countAlimentosRes++;
           else if (st === 'proceso') countAlimentosProc++;
           else countAlimentosPend++;
         }
-        if (st === 'resuelto') countResueltos++;
       }
     });
 
@@ -728,12 +736,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
 
     const supportReports = state.reports.filter(r => {
-      const ap = r._nApoyo || normalizeStr(r.situacionYApoyo || '');
-      const doc = String(r.documento || r.cedula).trim();
-      const mgmt = state.supportManagement[doc] || {};
-      const st = getNormalizedMgmtStatus(r);
+      if (!isNeedSupport(r)) return false;
 
-      const isApoyo = !ap.includes('estoy bien y seguro');
+      const st = getNormalizedMgmtStatus(r);
+      const mgmt = state.supportManagement[String(r.documento || r.cedula).trim()] || {};
 
       let matchStatus = false;
       if (statusFilter === 'pendiente' || statusFilter === 'activos') {
@@ -748,24 +754,9 @@ document.addEventListener('DOMContentLoaded', () => {
         matchStatus = true;
       }
 
-      let matchCat = false;
-      if (catFilter === 'all') {
-        matchCat = true;
-      } else if (catFilter.includes('psico')) {
-        matchCat = ap.includes('psico');
-      } else if (catFilter.includes('social')) {
-        matchCat = ap.includes('social');
-      } else if (catFilter.includes('med')) {
-        matchCat = ap.includes('medicament') || ap.includes('salud') || ap.includes('receta');
-      } else if (catFilter.includes('aliment')) {
-        matchCat = ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado');
-      } else if (catFilter.includes('juri')) {
-        matchCat = ap.includes('juri') || ap.includes('legal');
-      } else {
-        matchCat = ap.includes(catFilter);
-      }
+      const matchCat = matchesCategory(r, catFilter);
 
-      return isApoyo && matchStatus && matchCat;
+      return matchStatus && matchCat;
     });
 
     if (supportReports.length === 0) {
@@ -873,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exportManagementMatrixToExcel() {
-    const supportReports = state.reports.filter(r => !r._nApoyo.includes('estoy bien y seguro'));
+    const supportReports = state.reports.filter(r => isNeedSupport(r));
 
     if (supportReports.length === 0) {
       alert('⚠️ No hay casos de apoyos requeridos para exportar.');
