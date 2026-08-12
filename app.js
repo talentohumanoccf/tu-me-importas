@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Sincronización Doble (Local + Google Sheets en Vivo) para la Gestión de Apoyos
+ * Captura y Auditoría de la Persona / Operador Responsable de la Atención
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const state = {
     isAuthenticated: sessionStorage.getItem('comfamiliar_admin_auth') === 'true',
+    operatorName: localStorage.getItem('comfamiliar_operator_name') || 'Operador SST',
     reports: [],
     filteredReports: [],
     map: null,
@@ -21,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const loginScreen = document.getElementById('admin-login-screen');
   const loginForm = document.getElementById('admin-login-form');
+  const loginOperatorInput = document.getElementById('login-operator-name');
+  const topOperatorInput = document.getElementById('admin-user-name-input');
   const pinInput = document.getElementById('admin-pin-input');
   const loginError = document.getElementById('login-error-msg');
   
@@ -49,6 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnExportExcelMain = document.getElementById('btn-export-excel-main');
   const btnExportFilteredExcel = document.getElementById('btn-export-filtered-excel');
 
+  if (topOperatorInput) {
+    topOperatorInput.value = state.operatorName;
+    topOperatorInput.addEventListener('change', () => {
+      const val = topOperatorInput.value.trim() || 'Operador SST';
+      state.operatorName = val;
+      localStorage.setItem('comfamiliar_operator_name', val);
+    });
+  }
+
   window.triggerGlobalFilter = applyFilters;
   window.triggerMgmtRender = renderManagementDashboard;
   
@@ -62,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
-  // GUARDAR INTERACTIVO CON SINCRONIZACIÓN AUTOMÁTICA EN VIVO A GOOGLE SHEETS
+  // GUARDAR CASO CON REGISTRO DEL RESPONSABLE SST QUE INTERVINO
   window.saveSupportCase = function(doc) {
     const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
@@ -71,11 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const newStatus = statusEl.value;
     const newNotes = notesEl.value.trim();
+    const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
     state.supportManagement[doc] = {
       status: newStatus,
       notes: newNotes,
+      operator: currentOperator || 'Operador SST',
       updatedAt: nowStr
     };
 
@@ -83,16 +97,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     statusEl.className = `mgmt-status-select ${newStatus}`;
 
-    // SINCRONIZAR A GOOGLE SHEETS EN SEGUNDO PLANO
     if (state.googleSheetsUrl && navigator.onLine) {
-      sendManagementToSheets(doc, newStatus, newNotes);
+      sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
     }
     
-    alert(`✅ Caso guardado para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
+    alert(`✅ Caso guardado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     renderManagementDashboard();
   };
 
-  function sendManagementToSheets(doc, statusVal, notesVal) {
+  function sendManagementToSheets(doc, statusVal, notesVal, operatorVal) {
     const callbackName = 'onMgmtSaveResult';
     const scriptId = 'jsonp-save-mgmt-sync';
     
@@ -101,10 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(notesVal)}&callback=${callbackName}`;
+    script.src = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(notesVal)}&operator=${encodeURIComponent(operatorVal)}&callback=${callbackName}`;
     
     window.onMgmtSaveResult = function() {
-      console.log('✅ Estado de Gestión sincronizado con Google Sheets.');
+      console.log('✅ Estado y Responsable SST sincronizados con Google Sheets.');
     };
 
     document.body.appendChild(script);
@@ -117,6 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const enteredPin = pinInput.value.trim();
     const customPin = localStorage.getItem('comfamiliar_admin_pin');
+
+    const opName = loginOperatorInput ? loginOperatorInput.value.trim() : '';
+    if (opName) {
+      state.operatorName = opName;
+      localStorage.setItem('comfamiliar_operator_name', opName);
+      if (topOperatorInput) topOperatorInput.value = opName;
+    }
 
     if (VALID_PINS.includes(enteredPin) || (customPin && enteredPin === customPin)) {
       sessionStorage.setItem('comfamiliar_admin_auth', 'true');
@@ -262,13 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
       r._nStatus = normalizeStr(r.criticidad);
       r._nMuni = normalizeStr(r.municipio);
 
-      // INTEGRAR GESTIÓN DESDE GOOGLE SHEETS SI EXISTE
       const doc = r.documento || r.cedula;
       if (r.gestionStatus && !state.supportManagement[doc]) {
         state.supportManagement[doc] = {
           status: r.gestionStatus || 'pendiente',
           notes: r.gestionNotes || '',
-          updatedAt: r.gestionUpdatedAt || ''
+          updatedAt: r.gestionUpdatedAt || '',
+          operator: r.gestionOperator || 'Operador SST'
         };
       }
 
@@ -460,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = supportReports.map(r => {
       const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '' };
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST' };
 
       const phoneClean = r.telefono ? r.telefono.replace(/\D/g, '') : '';
       const whatsappBtn = phoneClean ? `<a href="https://wa.me/57${phoneClean}" target="_blank" class="action-btn-sm btn-whatsapp">💬 WhatsApp</a>` : '';
@@ -488,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td>
             <input type="text" id="mgmt-notes-${doc}" class="mgmt-notes-input" placeholder="Ej: Se entregó kit / Derivado a Psicología" value="${mgmt.notes || ''}">
-            ${mgmt.updatedAt ? `<br><small style="font-size:0.7rem; color:var(--text-muted);">Último cambio: ${mgmt.updatedAt}</small>` : ''}
+            ${mgmt.updatedAt ? `<br><small style="font-size:0.7rem; color:var(--text-muted);">👤 Atendido por: <b>${mgmt.operator || 'Operador SST'}</b> (${mgmt.updatedAt})</small>` : ''}
           </td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -513,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const headers = [
       "Documento", "Nombre Completo", "Cargo", "Sede Registrada", "Teléfono Contacto",
       "Municipio / Dirección Actual", "Situación y Apoyo Requerido", "Estado de Gestión SST",
-      "Notas y Observaciones de Atención", "Última Actualización"
+      "Notas y Observaciones de Atención", "Fecha Última Gestión", "Responsable de Atención SST"
     ];
 
     let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -539,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     supportReports.forEach(r => {
       const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', updatedAt: '' };
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', updatedAt: '', operator: 'Operador SST' };
       const statusLabel = mgmt.status === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
 
       tableHtml += `
@@ -554,6 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="${mgmt.status}">${statusLabel}</td>
           <td>${mgmt.notes || ''}</td>
           <td>${mgmt.updatedAt || ''}</td>
+          <td><strong>${mgmt.operator || 'Operador SST'}</strong></td>
         </tr>
       `;
     });
