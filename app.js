@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Pestaña 3: Centro de Gestión y Seguimiento de Apoyos SST
+ * Sincronización Doble (Local + Google Sheets en Vivo) para la Gestión de Apoyos
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     refreshInterval: null,
     activeTab: 'main',
-    // PERSISTENCIA DE GESTIÓN SST POR DOCUMENTO
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {}
   };
 
@@ -50,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnExportExcelMain = document.getElementById('btn-export-excel-main');
   const btnExportFilteredExcel = document.getElementById('btn-export-filtered-excel');
 
-  // FUNCIONES GLOBALES EN WINDOW PARA EVENTOS ONCLICK/ONCHANGE
   window.triggerGlobalFilter = applyFilters;
   window.triggerMgmtRender = renderManagementDashboard;
   
@@ -64,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
+  // GUARDAR INTERACTIVO CON SINCRONIZACIÓN AUTOMÁTICA EN VIVO A GOOGLE SHEETS
   window.saveSupportCase = function(doc) {
     const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
@@ -72,20 +71,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const newStatus = statusEl.value;
     const newNotes = notesEl.value.trim();
+    const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
     state.supportManagement[doc] = {
       status: newStatus,
       notes: newNotes,
-      updatedAt: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
+      updatedAt: nowStr
     };
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
     
     statusEl.className = `mgmt-status-select ${newStatus}`;
+
+    // SINCRONIZAR A GOOGLE SHEETS EN SEGUNDO PLANO
+    if (state.googleSheetsUrl && navigator.onLine) {
+      sendManagementToSheets(doc, newStatus, newNotes);
+    }
     
     alert(`✅ Caso guardado para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
     renderManagementDashboard();
   };
+
+  function sendManagementToSheets(doc, statusVal, notesVal) {
+    const callbackName = 'onMgmtSaveResult';
+    const scriptId = 'jsonp-save-mgmt-sync';
+    
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(notesVal)}&callback=${callbackName}`;
+    
+    window.onMgmtSaveResult = function() {
+      console.log('✅ Estado de Gestión sincronizado con Google Sheets.');
+    };
+
+    document.body.appendChild(script);
+  }
 
   setupTabsNavigation();
   checkAuthentication();
@@ -238,6 +261,17 @@ document.addEventListener('DOMContentLoaded', () => {
       r._nApoyo = normalizeStr(r.situacionYApoyo);
       r._nStatus = normalizeStr(r.criticidad);
       r._nMuni = normalizeStr(r.municipio);
+
+      // INTEGRAR GESTIÓN DESDE GOOGLE SHEETS SI EXISTE
+      const doc = r.documento || r.cedula;
+      if (r.gestionStatus && !state.supportManagement[doc]) {
+        state.supportManagement[doc] = {
+          status: r.gestionStatus || 'pendiente',
+          notes: r.gestionNotes || '',
+          updatedAt: r.gestionUpdatedAt || ''
+        };
+      }
+
       return r;
     });
   }
@@ -369,9 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elVivienda) elVivienda.textContent = sinLugar;
   }
 
-  // =========================================================================
-  // LÓGICA DE TABLERO 3: CENTRO DE GESTIÓN Y SEGUIMIENTO DE APOYOS SST
-  // =========================================================================
   function renderManagementDashboard() {
     const tbody = document.getElementById('mgmt-reports-tbody');
     if (!tbody) return;
@@ -382,7 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusFilter = elStatus ? elStatus.value : 'all';
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
 
-    // FILTRAR SOLO CASOS QUE REQUIEREN ALGÚN TIPO DE APOYO
     const supportReports = state.reports.filter(r => {
       const ap = r._nApoyo;
       const doc = r.documento || r.cedula;
@@ -395,7 +425,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return isApoyo && matchStatus && matchCat;
     });
 
-    // ACTUALIZAR KPIS DE LA GESTIÓN DE APOYOS
     let countPsico = 0, countSocial = 0, countMeds = 0, countAlimentos = 0, countResueltos = 0;
     
     state.reports.forEach(r => {
@@ -511,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
     supportReports.forEach(r => {
       const doc = r.documento || r.cedula;
       const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', updatedAt: '' };
-      const statusLabel = mgmt.status === 'resuelto' ? '🟢 APRESIADO / ENTREGADO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE';
+      const statusLabel = mgmt.status === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : mgmt.status === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
 
       tableHtml += `
         <tr>
@@ -890,7 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody>mtable></body></html>`;
+    tableHtml += `</tbody></table></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
