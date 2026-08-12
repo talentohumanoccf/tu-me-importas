@@ -1,6 +1,6 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Indicadores KPI de Gestión con Desglose por Estado (Garantizado en render general)
+ * Textarea Multilínea para Observaciones Extensas y Separación de Responsable SST
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -81,39 +81,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.claimCase = function(doc) {
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
-    const existing = state.supportManagement[doc];
+    const existing = state.supportManagement[doc] || {};
 
-    if (existing && existing.status === 'proceso' && existing.operator && existing.operator !== currentOperator) {
+    if (existing.status === 'proceso' && existing.operator && existing.operator !== currentOperator) {
       const confirmTransfer = confirm(`⚠️ Este caso ya está asignado a [${existing.operator}]. ¿Deseas reasignarlo a tu nombre (${currentOperator})?`);
       if (!confirmTransfer) return;
     }
 
-    const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
+    const currentNotesValue = notesEl ? notesEl.value.trim() : (existing.notes || '');
 
     const newStatus = 'proceso';
-    const newNotes = (notesEl && notesEl.value.trim().length > 0) ? notesEl.value.trim() : `Caso tomado por ${currentOperator}`;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
     state.supportManagement[doc] = {
       status: newStatus,
-      notes: newNotes,
+      notes: currentNotesValue,
       operator: currentOperator,
       updatedAt: nowStr
     };
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
-    if (statusEl) {
-      statusEl.value = 'proceso';
-      statusEl.className = 'mgmt-status-select proceso';
-    }
-
     if (state.googleSheetsUrl && navigator.onLine) {
-      sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
+      sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].`);
+    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}]. Puedes escribir tus observaciones extensas abajo.`);
     renderManagementDashboard();
   };
 
@@ -457,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateKPIs();
     renderTable();
     
-    // Siempre actualizamos la analítica y los KPIs de gestión para asegurar visibilidad inmediata
     renderManagementDashboard();
 
     if (state.activeTab === 'main') {
@@ -606,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = supportReports.map(r => {
       const doc = r.documento || r.cedula;
-      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST' };
+      const mgmt = state.supportManagement[doc] || { status: 'pendiente', notes: '', operator: 'Operador SST', updatedAt: '' };
 
       const isTakenByOther = mgmt.status === 'proceso' && mgmt.operator && mgmt.operator !== currentOperator;
       const isTakenByMe = mgmt.status === 'proceso' && mgmt.operator === currentOperator;
@@ -647,6 +640,10 @@ document.addEventListener('DOMContentLoaded', () => {
         concurrencyLockHTML = `<button onclick="window.claimCase('${doc}')" class="btn-claim-case">✋ Tomar Caso</button>`;
       }
 
+      const lastOperatorHTML = mgmt.operator 
+        ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; line-height:1.2;">👤 <b>Responsable:</b> ${mgmt.operator} ${mgmt.updatedAt ? `<br><small style="color:#64748B;">🕒 ${mgmt.updatedAt}</small>` : ''}</div>`
+        : `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">👤 <b>Responsable:</b> Sin asignar</div>`;
+
       const rowStyle = isTakenByOther ? 'background-color: rgba(224, 242, 254, 0.4);' : '';
 
       return `
@@ -673,8 +670,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </select>
           </td>
           <td>
-            <input type="text" id="mgmt-notes-${doc}" class="mgmt-notes-input" placeholder="Ej: Se entregó kit / Derivado a Psicología" value="${mgmt.notes || ''}">
-            <div style="margin-top:4px;">${concurrencyLockHTML}</div>
+            <textarea id="mgmt-notes-${doc}" class="mgmt-notes-textarea" rows="2" placeholder="Escribe observaciones, acuerdos y notas detalladas del caso...">${mgmt.notes || ''}</textarea>
+            ${lastOperatorHTML}
+            <div style="margin-top:6px;">${concurrencyLockHTML}</div>
           </td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -1117,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     });
 
-    tableHtml += `</tbody>mtable></body></html>`;
+    tableHtml += `</tbody></table></body></html>`;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);

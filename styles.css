@@ -553,6 +553,31 @@ body {
   background: #0369A1;
 }
 
+.mgmt-notes-textarea {
+  width: 100%;
+  min-width: 240px;
+  min-height: 54px;
+  max-height: 140px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  resize: vertical;
+  background: #FFFFFF;
+  color: var(--text-main);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.mgmt-notes-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+}
+
+/* DESGLOSE DE ESTADOS EN TARJETAS KPI DE GESTIÓN */
+
 /* DESGLOSE DE ESTADOS EN TARJETAS KPI DE GESTIÓN */
 .kpi-breakdown-container {
   display: flex;
