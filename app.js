@@ -692,6 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
     let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
     let countAlimentos = 0, countAlimentosPend = 0, countAlimentosProc = 0, countAlimentosRes = 0;
+    let countOtros = 0, countOtrosPend = 0, countOtrosProc = 0, countOtrosRes = 0;
     let globalPend = 0, globalProc = 0, globalRes = 0;
 
     state.reports.forEach(r => {
@@ -701,29 +702,40 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (st === 'proceso') globalProc++;
         else globalPend++;
 
-        if (matchesCategory(r, 'psicologico')) {
+        const hasPsico = matchesCategory(r, 'psicologico');
+        const hasSocial = matchesCategory(r, 'social');
+        const hasMeds = matchesCategory(r, 'medicamentos');
+        const hasAlim = matchesCategory(r, 'alimentos');
+
+        if (hasPsico) {
           countPsico++;
           if (st === 'resuelto') countPsicoRes++;
           else if (st === 'proceso') countPsicoProc++;
           else countPsicoPend++;
         }
-        if (matchesCategory(r, 'social')) {
+        if (hasSocial) {
           countSocial++;
           if (st === 'resuelto') countSocialRes++;
           else if (st === 'proceso') countSocialProc++;
           else countSocialPend++;
         }
-        if (matchesCategory(r, 'medicamentos')) {
+        if (hasMeds) {
           countMeds++;
           if (st === 'resuelto') countMedsRes++;
           else if (st === 'proceso') countMedsProc++;
           else countMedsPend++;
         }
-        if (matchesCategory(r, 'alimentos')) {
+        if (hasAlim) {
           countAlimentos++;
           if (st === 'resuelto') countAlimentosRes++;
           else if (st === 'proceso') countAlimentosProc++;
           else countAlimentosPend++;
+        }
+        if (!hasPsico && !hasSocial && !hasMeds && !hasAlim) {
+          countOtros++;
+          if (st === 'resuelto') countOtrosRes++;
+          else if (st === 'proceso') countOtrosProc++;
+          else countOtrosPend++;
         }
       }
     });
@@ -758,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <div class="mgmt-chart-legend">
               <span style="color:#92400E;">🟡 ${pend} Pend. (${pPend}%)</span>
-              <span style="color:#0369A1;">🔵 ${proc} Proc. (${pProc}%)</span>
+              <span style="color:#075985;">🔵 ${proc} Proc. (${pProc}%)</span>
               <span style="color:#065F46;">🟢 ${res} Res. (${pRes}%)</span>
             </div>
           </div>
@@ -770,6 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ${renderActivityChart('Trabajo Social', '🤝', countSocial, countSocialPend, countSocialProc, countSocialRes)}
         ${renderActivityChart('Medicamentos / Salud', '💊', countMeds, countMedsPend, countMedsProc, countMedsRes)}
         ${renderActivityChart('Kits de Alimentos', '📦', countAlimentos, countAlimentosPend, countAlimentosProc, countAlimentosRes)}
+        ${renderActivityChart('Vivienda / Apoyos Especiales', '🏠', countOtros, countOtrosPend, countOtrosProc, countOtrosRes)}
       `;
     }
 
