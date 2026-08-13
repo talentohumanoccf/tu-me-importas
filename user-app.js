@@ -244,6 +244,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const group = btn.getAttribute('data-group');
         const val = btn.getAttribute('data-value');
 
+        if (group === 'situacionYApoyo') {
+          if (val === 'Estoy bien y seguro') {
+            document.querySelectorAll(`.touch-option-btn[data-group="${group}"]`).forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+          } else {
+            const btnBien = document.querySelector(`.touch-option-btn[data-group="${group}"][data-value="Estoy bien y seguro"]`);
+            if (btnBien) btnBien.classList.remove('selected');
+
+            btn.classList.toggle('selected');
+
+            const selectedBtns = document.querySelectorAll(`.touch-option-btn[data-group="${group}"].selected`);
+            if (selectedBtns.length === 0 && btnBien) {
+              btnBien.classList.add('selected');
+            }
+          }
+
+          const selectedVals = Array.from(document.querySelectorAll(`.touch-option-btn[data-group="${group}"].selected`))
+                                   .map(b => b.getAttribute('data-value'));
+          state.situacionYApoyo = selectedVals.join(', ');
+          return;
+        }
+
         document.querySelectorAll(`.touch-option-btn[data-group="${group}"]`).forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
 
