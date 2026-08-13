@@ -367,28 +367,7 @@
           </button>
         </div>
 
-        <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS) -->
-        <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-            <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
-              📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
-            </h3>
-            <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
-              <span class="badge-kpi-pend">🟡 Pendientes</span>
-              <span class="badge-kpi-proc">🔵 En Gestión</span>
-              <span class="badge-kpi-res">🟢 Resueltos</span>
-            </div>
-          </div>
-          <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
-            Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
-          </p>
-
-          <div class="analytics-grid" id="mgmt-visual-charts-container">
-            <!-- Se llena dinámicamente por JS -->
-          </div>
-        </div>
-
-        <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST -->
+        <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
         <div class="kpi-grid" style="margin-bottom:24px;">
           
           <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
@@ -409,6 +388,27 @@
             <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
           </div>
 
+        </div>
+
+        <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS - SEGUNDA POSICIÓN) -->
+        <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+              📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
+            </h3>
+            <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
+              <span class="badge-kpi-pend">🟡 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 En Gestión</span>
+              <span class="badge-kpi-res">🟢 Resueltos</span>
+            </div>
+          </div>
+          <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
+            Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
+          </p>
+
+          <div class="analytics-grid" id="mgmt-visual-charts-container">
+            <!-- Se llena dinámicamente por JS -->
+          </div>
         </div>
 
         <!-- FILTROS DE SEGUIMIENTO CON MODO PENDIENTES POR DEFECTO -->
@@ -482,6 +482,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260813_04"></script>
+  <script src="app.js?v=20260813_05"></script>
 </body>
 </html>
