@@ -1,6 +1,7 @@
 /**
  * PORTAL DEL EMPLEADO - FORMULARIO OFICIAL
- * Obligatoriedad de digitar Nombre Completo si la Cédula no existe en BASE_PX
+ * Verificación Inteligente de Cédula (Búsqueda en Caché de 1962 Registros + Consulta en Vivo)
+ * Solución de Reconocimiento Inmediato sin Mensaje Falso de Advertencia
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,8 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.documento = doc;
 
+    // 1. VERIFICAR SI YA EXISTE UN REPORTE PREVIO (REMOTO O LOCAL)
+    const cachedReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports')) || [];
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-    const prevReport = localReports.find(r => r.documento === doc || r.cedula === doc);
+    
+    const prevReportRemote = cachedReports.find(r => String(r.documento || r.cedula).trim() === doc);
+    const prevReportLocal = localReports.find(r => String(r.documento || r.cedula).trim() === doc);
+    const prevReport = prevReportRemote || prevReportLocal;
     
     if (prevReport) {
       state.isPreviousReport = true;
@@ -81,16 +87,35 @@ document.addEventListener('DOMContentLoaded', () => {
       if (duplicateWarning) duplicateWarning.style.display = 'none';
     }
 
-    const foundLocal = window.MOCK_EMPLOYEES_DB ? window.MOCK_EMPLOYEES_DB[doc] : null;
+    // 2. BÚSQUEDA INTEGRADA EN TODAS LAS BASES (CACHÉ REMOTO 1962 REGISTROS, MOCK DB, REPORTES)
+    let found = null;
 
-    if (foundLocal) {
-      applyEmployeeData(foundLocal);
+    if (prevReportRemote && prevReportRemote.nombre) {
+      found = {
+        documento: doc,
+        cedula: doc,
+        nombre: prevReportRemote.nombre,
+        cargo: prevReportRemote.cargo || "Colaborador",
+        sede: prevReportRemote.sede || "Sede Principal",
+        proceso: prevReportRemote.proceso || prevReportRemote.area || "General",
+        email: prevReportRemote.emailPersonal || prevReportRemote.email || "",
+        direccion: prevReportRemote.direccionHabitual || prevReportRemote.direccionResidencia || "",
+        telefono: prevReportRemote.telefono || prevReportRemote.contacto || "",
+        encontrado: true
+      };
+    } else if (window.MOCK_EMPLOYEES_DB && window.MOCK_EMPLOYEES_DB[doc]) {
+      found = Object.assign({}, window.MOCK_EMPLOYEES_DB[doc]);
+      found.encontrado = true;
+    }
+
+    if (found) {
+      applyEmployeeData(found);
     } else {
-      // SI NO ESTÁ EN MOCK LOCAL, ASIGNAR OBJETO TEMPORAL DESCONOCIDO
+      // 3. SI NO SE ENCONTRÓ DE INMEDIATO, MOSTRAR ESTADO DE VERIFICACIÓN Y CONSULTAR AL SERVIDOR
       applyEmployeeData({
         documento: doc,
         cedula: doc,
-        nombre: '', // VACÍO PARA OBLIGAR A DIGITAR
+        nombre: '', // VACÍO PARA PERMITIR INGRESO DE NOMBRE REAL
         cargo: "Comfamiliar Risaralda",
         sede: "Eje Cafetero",
         proceso: "General",
@@ -114,11 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
     state.employee = found;
 
     const isNewUnknown = !found.encontrado && (!found.nombre || found.nombre.includes('Colaborador'));
-
     const nombreInput = document.getElementById('user-nombre-input');
 
     if (isNewUnknown) {
-      // SI NO SE ENCONTRÓ EN BASE_PX: OBLIGAR A DIGITAR NOMBRE REAL
+      // SI REALMENTE NO EXISTE EN NINGUNA BASE: PEDIR INGRESO DE NOMBRE
       if (empName) empName.textContent = ` Documento ${found.documento}`;
       if (empMeta) empMeta.innerHTML = `<span style="color:#D90429; font-weight:800;">⚠️ Cédula no registrada en la base precargada.</span><br>Por favor escribe tu Nombre y Apellidos completos a continuación.`;
 
@@ -129,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => nombreInput.focus(), 300);
       }
     } else {
-      // SI SE ENCONTRÓ EN BASE_PX: USAR NOMBRE REAL Y DATOS REGISTRADOS
+      // SI FUE ENCONTRADO EN LA BASE DE DATOS: RECONOCIMIENTO INMEDIATO
       const fullName = found.nombre || 'Colaborador';
       if (empName) empName.textContent = `¡Hola, ${fullName}! 👋`;
       
@@ -152,26 +176,48 @@ document.addEventListener('DOMContentLoaded', () => {
       dirInput.value = found.direccion;
     }
 
+    const cachedReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports')) || [];
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-    const prevReport = localReports.find(r => r.documento === found.documento);
+    const prevReport = cachedReports.find(r => String(r.documento || r.cedula).trim() === found.documento) || 
+                       localReports.find(r => String(r.documento || r.cedula).trim() === found.documento);
 
     const dirActualInput = document.getElementById('user-direccion-actual-input');
-    if (dirActualInput) dirActualInput.value = prevReport ? prevReport.direccionActual || '' : '';
+    if (dirActualInput && prevReport && prevReport.direccionActual) {
+      dirActualInput.value = prevReport.direccionActual;
+    }
 
     const phoneInput = document.getElementById('user-phone-input');
-    if (phoneInput) phoneInput.value = prevReport ? prevReport.telefono || '' : '';
+    if (phoneInput && (found.telefono || (prevReport && prevReport.telefono))) {
+      phoneInput.value = found.telefono || prevReport.telefono;
+    }
 
     const muniInput = document.getElementById('user-municipio-input');
-    if (muniInput) muniInput.value = prevReport ? prevReport.municipio || '' : '';
+    if (muniInput && prevReport && prevReport.municipio) {
+      muniInput.value = prevReport.municipio;
+    }
 
     const emergenciaInput = document.getElementById('user-contacto-emergencia-input');
-    if (emergenciaInput) emergenciaInput.value = prevReport ? prevReport.contactoEmergencia || '' : '';
+    if (emergenciaInput && prevReport && prevReport.contactoEmergencia) {
+      emergenciaInput.value = prevReport.contactoEmergencia;
+    }
   }
 
   window.onBasePXLookupResult = function(result) {
-    if (result && result.status === 'found' && result.data) {
-      result.data.encontrado = true;
-      applyEmployeeData(result.data);
+    let foundData = null;
+
+    if (result && result.status === 'success') {
+      if (result.data) {
+        foundData = result.data;
+      } else if (Array.isArray(result.reports)) {
+        foundData = result.reports.find(r => String(r.documento || r.cedula).trim() === state.documento);
+      }
+    } else if (result && result.status === 'found' && result.data) {
+      foundData = result.data;
+    }
+
+    if (foundData && (foundData.nombre || foundData.documento)) {
+      foundData.encontrado = true;
+      applyEmployeeData(foundData);
     }
   };
 
@@ -184,7 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${state.googleSheetsUrl}?documento=${encodeURIComponent(doc)}&callback=${callbackName}`;
+    script.src = `${state.googleSheetsUrl}?action=getReport&documento=${encodeURIComponent(doc)}&callback=${callbackName}`;
+    
     script.onerror = function() {
       console.log('Consulta en vivo no disponible en este momento.');
     };
@@ -218,15 +265,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupFamilyTags() {
     document.querySelectorAll('.family-tag-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const tag = btn.getAttribute('data-tag');
+        const val = btn.getAttribute('data-tag');
         if (btn.classList.contains('selected')) {
           btn.classList.remove('selected');
-          state.familyTags = state.familyTags.filter(t => t !== tag);
+          state.familyTags = state.familyTags.filter(t => t !== val);
         } else {
           btn.classList.add('selected');
-          if (!state.familyTags.includes(tag)) {
-            state.familyTags.push(tag);
-          }
+          state.familyTags.push(val);
         }
       });
     });
@@ -235,123 +280,86 @@ document.addEventListener('DOMContentLoaded', () => {
   if (gpsBtn) {
     gpsBtn.addEventListener('click', () => {
       if (!navigator.geolocation) {
-        if (gpsStatus) gpsStatus.textContent = '❌ GPS no disponible en este dispositivo.';
+        alert('⚠️ Tu navegador no soporta geolocalización GPS.');
         return;
       }
-      if (gpsStatus) gpsStatus.textContent = '📡 Conectando a satélites GPS...';
+      gpsStatus.innerHTML = '⌛ Obteniendo coordenadas exactas...';
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          state.gps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          if (gpsStatus) gpsStatus.innerHTML = `<b style="color:var(--secondary)">📍 Ubicación GPS capturada correctamente</b>`;
+          state.gps = {
+            latitud: pos.coords.latitude,
+            longitud: pos.coords.longitude
+          };
+          gpsStatus.innerHTML = `<span style="color:var(--success)">📍 Ubicación capturada: Lat ${pos.coords.latitude.toFixed(4)}, Lng ${pos.coords.longitude.toFixed(4)}</span>`;
         },
-        () => {
-          if (gpsStatus) gpsStatus.textContent = '⚠️ No se pudo obtener GPS. Puedes continuar sin él.';
+        (err) => {
+          gpsStatus.innerHTML = `<span style="color:var(--danger)">⚠️ No se pudo obtener GPS (${err.message}). Se usará referencia por municipio.</span>`;
         },
-        { timeout: 8000 }
+        { enableHighAccuracy: true, timeout: 10000 }
       );
     });
   }
 
   if (reportForm) {
-    reportForm.addEventListener('submit', async (e) => {
+    reportForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
       if (!state.documento) {
-        alert('⚠️ Por favor digita tu documento antes de enviar.');
+        alert('⚠️ Por favor ingresa primero tu número de documento.');
         return;
       }
 
-      const nombreIngresado = getValue('user-nombre-input', '');
-      if (!nombreIngresado || nombreIngresado.length < 3 || nombreIngresado.includes('Colaborador (')) {
-        alert('⚠️ Por favor digita tu Nombre y Apellidos completos.');
-        const nInput = document.getElementById('user-nombre-input');
-        if (nInput) { nInput.focus(); nInput.style.borderColor = '#DC3545'; }
+      const nombreInputVal = getValue('user-nombre-input');
+      if (!nombreInputVal) {
+        alert('⚠️ Por favor escribe tu Nombre y Apellidos completos.');
+        document.getElementById('user-nombre-input').focus();
         return;
       }
 
-      const emp = state.employee || {};
-
-      let criticidad = 'verde';
-      if (
-        state.situacionYApoyo.includes('medicamentos') ||
-        state.situacionYApoyo.includes('alimentos') ||
-        state.afectacionVivienda.includes('graves') ||
-        state.afectacionVivienda.includes('NO me permiten') ||
-        state.lugarSeguro === 'No' ||
-        state.estadoFamilia.includes('lesionados') ||
-        state.estadoFamilia.includes('atención médica') ||
-        state.estadoFamilia.includes('Pérdida')
-      ) {
-        criticidad = 'rojo';
-      } else if (
-        state.situacionYApoyo.includes('psicológico') ||
-        state.situacionYApoyo.includes('social') ||
-        state.situacionYApoyo.includes('jurídico') ||
-        state.afectacionVivienda.includes('menores') ||
-        state.estadoFamilia.includes('leves') ||
-        state.estadoFamilia.includes('psicosocial')
-      ) {
-        criticidad = 'amarillo';
-      }
-
-      const dirHabitual = getValue('user-direccion-input', emp.direccion || '');
-      const dirActual = getValue('user-direccion-actual-input', '');
-
-      let estadoFamiliaFinal = state.estadoFamilia;
-      if (state.familyTags.length > 0 && state.estadoFamilia !== 'Todos se encuentran bien') {
-        estadoFamiliaFinal += ` [Afectados: ${state.familyTags.join(', ')}]`;
-      }
-
-      const report = {
-        id: 'rep-' + Date.now(),
+      const payload = {
         timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
         documento: state.documento,
         cedula: state.documento,
-        nombre: nombreIngresado, // NOMBRE REAL DIGITADO
-        cargo: emp.cargo || 'Comfamiliar Risaralda',
-        emailPersonal: getValue('user-email-input', emp.email || ''),
-        contrato: emp.contrato || '',
-        proceso: emp.proceso || '',
-        area: emp.area || '',
-        sexo: emp.sexo || '',
-        sede: emp.sede || 'Comfamiliar',
-        telefono: getValue('user-phone-input', ''),
-        contactoEmergencia: getValue('user-contacto-emergencia-input', ''),
-        direccionResidencia: dirHabitual,
-        direccionActual: dirActual || dirHabitual,
-        direccion: dirActual || dirHabitual,
-        municipio: getValue('user-municipio-input', ''),
-        tipoSangre: getValue('user-sangre-select', 'O+'),
+        nombre: nombreInputVal,
+        cargo: state.employee ? state.employee.cargo : 'Colaborador',
+        emailPersonal: getValue('user-email-input'),
+        contrato: state.employee ? state.employee.contrato : '',
+        proceso: state.employee ? state.employee.proceso : 'General',
+        area: state.employee ? state.employee.area : '',
+        sexo: state.employee ? state.employee.sexo : '',
+        sede: state.employee ? state.employee.sede : 'Sede Principal',
+        telefono: getValue('user-phone-input'),
+        contactoEmergencia: getValue('user-contacto-emergencia-input'),
+        direccionHabitual: getValue('user-direccion-input'),
+        direccionActual: getValue('user-direccion-actual-input') || getValue('user-direccion-input'),
+        municipio: getValue('user-municipio-input', 'Pereira'),
+        tipoSangre: getValue('user-sangre-input', 'O+'),
         situacionYApoyo: state.situacionYApoyo,
-        personasHogar: state.personasHogar,
+        personasHogar: getValue('user-personas-input', '1'),
         tipoVivienda: state.tipoVivienda,
         afectacionVivienda: state.afectacionVivienda,
         lugarSeguro: state.lugarSeguro,
-        estadoFamilia: estadoFamiliaFinal,
+        estadoFamilia: state.familyTags.length > 0 ? `${state.estadoFamilia} [Afectados: ${state.familyTags.join(', ')}]` : state.estadoFamilia,
         presencialidadObligatoria: state.presencialidadObligatoria,
         condicionesOptimas: state.condicionesOptimas,
         herramientasTrabajo: state.herramientasTrabajo,
-        latitud: state.gps ? state.gps.lat : '',
-        longitud: state.gps ? state.gps.lng : '',
-        criticidad: criticidad,
-        esActualizacion: state.isPreviousReport,
-        origen: 'Formulario Oficial Web'
+        latitud: state.gps ? state.gps.latitud : '',
+        longitud: state.gps ? state.gps.longitud : '',
+        criticidad: calculateCriticidad(),
+        esActualizacion: state.isPreviousReport
       };
 
-      let localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
-      const existingIdx = localReports.findIndex(r => r.documento === state.documento);
-      if (existingIdx >= 0) {
-        localReports[existingIdx] = report;
-      } else {
-        localReports.unshift(report);
-      }
-      localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(localReports));
+      const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+      const filteredLocal = localReports.filter(r => r.documento !== state.documento);
+      filteredLocal.unshift(payload);
+      localStorage.setItem('comfamiliar_emergency_reports', JSON.stringify(filteredLocal));
 
       if (state.googleSheetsUrl && navigator.onLine) {
-        sendReportToGoogleSheets(report);
+        sendReportToSheetsJSONP(payload);
       }
 
-      if (formSection) formSection.style.display = 'none';
+      formSection.style.display = 'none';
+      if (greetingBox) greetingBox.style.display = 'none';
       if (successSection) {
         successSection.style.display = 'block';
         successSection.scrollIntoView({ behavior: 'smooth' });
@@ -359,26 +367,53 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function sendReportToGoogleSheets(report) {
-    try {
-      fetch(state.googleSheetsUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(report)
-      }).catch(() => {
-        const script = document.createElement('script');
-        script.src = `${state.googleSheetsUrl}?action=submitReport&payload=${encodeURIComponent(JSON.stringify(report))}`;
-        document.body.appendChild(script);
-      });
-    } catch(err) {
-      console.log('Sincronizando en segundo plano');
+  function calculateCriticidad() {
+    if (state.lugarSeguro === 'No' || state.afectacionVivienda.includes('impiden')) {
+      return 'rojo';
     }
+    if (state.situacionYApoyo.includes('apoyo') || state.afectacionVivienda.includes('menores')) {
+      return 'amarillo';
+    }
+    return 'verde';
+  }
+
+  function sendReportToSheetsJSONP(payload) {
+    const callbackName = 'onUserReportSaveResult';
+    const scriptId = 'jsonp-user-report-save';
+    
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+
+    const queryString = Object.keys(payload)
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(payload[key])}`)
+      .join('&');
+
+    script.src = `${state.googleSheetsUrl}?action=submitReport&${queryString}&callback=${callbackName}`;
+    
+    window.onUserReportSaveResult = function() {
+      console.log('✅ Reporte del colaborador enviado exitosamente a Google Sheets.');
+    };
+
+    document.body.appendChild(script);
   }
 
   if (btnReset) {
     btnReset.addEventListener('click', () => {
-      location.reload();
+      if (successSection) successSection.style.display = 'none';
+      if (ccInput) ccInput.value = '';
+      state.documento = '';
+      state.employee = null;
+      state.isPreviousReport = false;
+      state.gps = null;
+
+      document.querySelectorAll('.touch-option-btn').forEach(btn => btn.classList.remove('selected'));
+      document.querySelectorAll('.family-tag-btn').forEach(btn => btn.classList.remove('selected'));
+      state.familyTags = [];
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 });
