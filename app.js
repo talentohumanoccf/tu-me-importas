@@ -36,10 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabBtnMain = document.getElementById('tab-btn-main');
   const tabBtnAnalytics = document.getElementById('tab-btn-analytics');
   const tabBtnManagement = document.getElementById('tab-btn-management');
+  const tabBtnDonations = document.getElementById('tab-btn-donations');
 
   const tabContentMain = document.getElementById('tab-content-main');
   const tabContentAnalytics = document.getElementById('tab-content-analytics');
   const tabContentManagement = document.getElementById('tab-content-management');
+  const tabContentDonations = document.getElementById('tab-content-donations');
   
   const sheetsUrlInput = document.getElementById('admin-sheets-url');
   const btnSaveSheets = document.getElementById('btn-save-sheets');
@@ -378,9 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
       checkAuthentication();
     });
   }
-
-  const tabBtnDonations = document.getElementById('tab-btn-donations');
-  const tabContentDonations = document.getElementById('tab-content-donations');
 
   function setupTabsNavigation() {
     if (tabBtnMain) tabBtnMain.addEventListener('click', () => switchTab('main'));
