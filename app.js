@@ -1466,7 +1466,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'Insumos Salud';
     }
     // 3. Aseo Personal
-    if (raw.includes('PAPEL HIGIENICO') || raw.includes('PAPEL HIGIÉNICO') || raw.includes('PROTECTOR') || raw.includes('PROTECTORES') || raw.includes('CREMAS DENTALES') || raw.includes('CREMA DENTAL') || raw.includes('TOALLA') || raw.includes('TOALLAS') || raw.includes('HIGIENICA') || raw.includes('HIGIÉNICA') || raw.includes('ASEO PERSONAL') || raw.includes('JABON') || raw.includes('JABÓN') || raw.includes('SHAMPOO') || raw.includes('DESODORANTE') || raw.includes('CEPILLO')) {
+    if (raw.includes('CEPILLO') || raw.includes('PAPEL HIGIENICO') || raw.includes('PAPEL HIGIÉNICO') || raw.includes('PROTECTOR') || raw.includes('PROTECTORES') || raw.includes('CREMAS DENTALES') || raw.includes('CREMA DENTAL') || raw.includes('TOALLA') || raw.includes('TOALLAS') || raw.includes('HIGIENICA') || raw.includes('HIGIÉNICA') || raw.includes('ASEO PERSONAL') || raw.includes('JABON') || raw.includes('JABÓN') || raw.includes('SHAMPOO') || raw.includes('DESODORANTE')) {
       return 'Aseo Personal';
     }
     // 4. Mercado
@@ -1486,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'Varios Adulto';
     }
     // 8. Frutas o Verduras
-    if (raw.includes('FRUTA') || raw.includes('VERDURA') || raw.includes('PAPA') || raw.includes('PLATANO') || raw.includes('PLÁTANO') || raw.includes('CEBOLLA') || raw.includes('TOMATE')) {
+    if (raw.includes('MANGO') || raw.includes('FRUTA') || raw.includes('VERDURA') || raw.includes('PAPA') || raw.includes('PLATANO') || raw.includes('PLÁTANO') || raw.includes('CEBOLLA') || raw.includes('TOMATE')) {
       return 'Frutas o Verduras';
     }
     // 9. Mecato
@@ -1506,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'Comida Animales';
     }
     // 13. Aseo General
-    if (raw.includes('ASEO GENERAL') || raw.includes('LIMPIDO') || raw.includes('CLORO') || raw.includes('DETERGENTE') || raw.includes('ESCOBA')) {
+    if (raw.includes('BOLSA DE BASURA') || raw.includes('BASURA') || raw.includes('ASEO GENERAL') || raw.includes('LIMPIDO') || raw.includes('CLORO') || raw.includes('DETERGENTE') || raw.includes('ESCOBA')) {
       return 'Aseo General';
     }
     // 14. Insumos
@@ -1538,6 +1538,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getAggregatedDonationsByClasificador() {
+    const OFFICIAL_SET = new Set([
+      "Insumos Salud", "Medicamento Salud", "Bebidas", "Varios Bebés", "Varios Bebes",
+      "Aseo Personal", "Mercado", "Varios Adulto", "Frutas o Verduras", "Insumos",
+      "Mecato", "Varios General", "Enseres", "Comida Animales", "Aseo General", "EPP"
+    ]);
+
     const defaultDonations = [
       { clasificador: "Insumos Salud", cantidad: 28748, entradas: 28748, salidas: 4120, saldo: 24628, icon: "💉", estado: "Suficiente" },
       { clasificador: "Medicamento Salud", cantidad: 27334, entradas: 27334, salidas: 5210, saldo: 22124, icon: "💊", estado: "Suficiente" },
@@ -1563,8 +1569,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rawList.forEach(item => {
       let rawName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Varios General").trim();
-      let cleanClas = item.clasificador ? String(item.clasificador).trim() : normalizeToStandardClasificador(rawName);
-      cleanClas = cleanClas.replace(/^total\s+/i, '').trim();
+      rawName = rawName.replace(/^total\s+/i, '').trim();
+
+      // VALIDACIÓN ESTRICTA: Si no es uno de los clasificadores oficiales, mapearlo automáticamente
+      let cleanClas = rawName;
+      if (!OFFICIAL_SET.has(rawName)) {
+        cleanClas = normalizeToStandardClasificador(item.clasificador || item.articulo || item.articuloGeneral || rawName);
+      }
 
       const ent = Number(item.entradas !== undefined ? item.entradas : (item.cantidad || 0));
       const sal = Number(item.salidas !== undefined ? item.salidas : 0);
