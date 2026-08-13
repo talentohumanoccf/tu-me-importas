@@ -1563,7 +1563,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rawList.forEach(item => {
       let rawName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Varios General").trim();
-      let cleanClas = normalizeToStandardClasificador(rawName);
+      let cleanClas = item.clasificador ? String(item.clasificador).trim() : normalizeToStandardClasificador(rawName);
+      cleanClas = cleanClas.replace(/^total\s+/i, '').trim();
 
       const ent = Number(item.entradas !== undefined ? item.entradas : (item.cantidad || 0));
       const sal = Number(item.salidas !== undefined ? item.salidas : 0);
