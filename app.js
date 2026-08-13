@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     activeTab: 'main',
     isTypingActive: false,
     typingTimer: null,
-    supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {}
+    supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
+    donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null
   };
 
   const loginScreen = document.getElementById('admin-login-screen');
@@ -616,6 +617,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = String(r.documento || r.cedula || '').trim();
         if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
       });
+    }
+
+    if (result && result.donations) {
+      state.donationsData = result.donations;
+      localStorage.setItem('comfamiliar_donations_data', JSON.stringify(result.donations));
+      if (state.activeTab === 'donations') {
+        renderDonationsDashboard();
+      }
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
