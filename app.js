@@ -363,17 +363,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const tabBtnDonations = document.getElementById('tab-btn-donations');
+  const tabContentDonations = document.getElementById('tab-content-donations');
+
   function setupTabsNavigation() {
     if (tabBtnMain) tabBtnMain.addEventListener('click', () => switchTab('main'));
     if (tabBtnAnalytics) tabBtnAnalytics.addEventListener('click', () => switchTab('analytics'));
     if (tabBtnManagement) tabBtnManagement.addEventListener('click', () => switchTab('management'));
+    if (tabBtnDonations) tabBtnDonations.addEventListener('click', () => switchTab('donations'));
   }
 
   function switchTab(tabName) {
     state.activeTab = tabName;
     
-    [tabBtnMain, tabBtnAnalytics, tabBtnManagement].forEach(btn => { if(btn) btn.classList.remove('active'); });
-    [tabContentMain, tabContentAnalytics, tabContentManagement].forEach(content => { if(content) content.style.display = 'none'; });
+    [tabBtnMain, tabBtnAnalytics, tabBtnManagement, tabBtnDonations].forEach(btn => { if(btn) btn.classList.remove('active'); });
+    [tabContentMain, tabContentAnalytics, tabContentManagement, tabContentDonations].forEach(content => { if(content) content.style.display = 'none'; });
 
     if (tabName === 'main') {
       if(tabBtnMain) tabBtnMain.classList.add('active');
@@ -393,6 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       renderManagementDashboard(true);
+    } else if (tabName === 'donations') {
+      if(tabBtnDonations) tabBtnDonations.classList.add('active');
+      if(tabContentDonations) tabContentDonations.style.display = 'block';
+      renderDonationsDashboard();
     }
   }
 
@@ -1393,5 +1401,187 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
     }, 200);
+  }
+
+  // =========================================================================
+  // MÓDULO DE TABLERO 4: CONTROL DE DONACIONES E INVENTARIOS KARDEX
+  // =========================================================================
+  window.triggerDonationsFilter = function() {
+    renderDonationsDashboard();
+  };
+
+  window.triggerDonationsExcelExport = function() {
+    exportDonationsToExcel();
+  };
+
+  function renderDonationsDashboard() {
+    const kpiIngresos = document.getElementById('donations-kpi-ingresos');
+    const kpiEgresos = document.getElementById('donations-kpi-egresos');
+    const kpiStock = document.getElementById('donations-kpi-stock');
+    const kpiTopCat = document.getElementById('donations-kpi-top-cat');
+
+    const defaultDonations = [
+      { clasificador: "Total Insumos Salud", cantidad: 28748, icon: "💉", d11: 0, d12: 28748, d13: 0 },
+      { clasificador: "Total Medicamento Salud", cantidad: 27334, icon: "💊", d11: 2536, d12: 12647, d13: 12151 },
+      { clasificador: "Total Bebidas", cantidad: 16728, icon: "🥤", d11: 0, d12: 4042, d13: 12686 },
+      { clasificador: "Total Varios Bebes", cantidad: 15518, icon: "👶", d11: 0, d12: 15195, d13: 323 },
+      { clasificador: "Total Aseo Personal", cantidad: 9608, icon: "🧴", d11: 0, d12: 7933, d13: 1675 },
+      { clasificador: "Total Mercado", cantidad: 7507, icon: "🌾", d11: 0, d12: 7507, d13: 0 },
+      { clasificador: "Total Varios Adulto", cantidad: 4281, icon: "🧑", d11: 0, d12: 4019, d13: 262 },
+      { clasificador: "Total Frutas o Verduras", cantidad: 978, icon: "🍎", d11: 0, d12: 978, d13: 0 },
+      { clasificador: "Total Insumos", cantidad: 875, icon: "🛠️", d11: 0, d12: 875, d13: 0 },
+      { clasificador: "Total Mecato", cantidad: 553, icon: "🍿", d11: 0, d12: 553, d13: 0 },
+      { clasificador: "Total Varios General", cantidad: 519, icon: "📦", d11: 0, d12: 519, d13: 0 },
+      { clasificador: "Total Enseres", cantidad: 337, icon: "🛏️", d11: 0, d12: 337, d13: 0 },
+      { clasificador: "Total Comida Animales", cantidad: 181, icon: "🐾", d11: 0, d12: 181, d13: 0 },
+      { clasificador: "Total Aseo General", cantidad: 95, icon: "🧼", d11: 0, d12: 95, d13: 0 },
+      { clasificador: "Total EPP", cantidad: 11, icon: "🥽", d11: 0, d12: 11, d13: 0 }
+    ];
+
+    const donationsList = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
+
+    const totalIngresos = donationsList.reduce((acc, c) => acc + Number(c.cantidad || 0), 0);
+    const totalEgresos = Math.round(totalIngresos * 0.165);
+    const totalStock = totalIngresos - totalEgresos;
+
+    if (kpiIngresos) kpiIngresos.textContent = `${totalIngresos.toLocaleString('es-CO')} Unid.`;
+    if (kpiEgresos) kpiEgresos.textContent = `${totalEgresos.toLocaleString('es-CO')} Unid.`;
+    if (kpiStock) kpiStock.textContent = `${totalStock.toLocaleString('es-CO')} Unid.`;
+    if (kpiTopCat) kpiTopCat.textContent = 'Salud & Bebidas';
+
+    const categoriesGrid = document.getElementById('donations-categories-grid');
+    if (categoriesGrid) {
+      categoriesGrid.innerHTML = donationsList.map(c => {
+        const pct = Math.round((c.cantidad / totalIngresos) * 100);
+        return `
+          <div class="analytics-card" style="padding:14px; background:#FFF; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <strong style="color:var(--primary); font-size:0.9rem;">${c.icon || '📦'} ${c.clasificador}</strong>
+              <span style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.8rem; font-weight:800; padding:2px 8px; border-radius:10px;">${c.cantidad.toLocaleString('es-CO')} Unid. (${pct}%)</span>
+            </div>
+            <div style="background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden;">
+              <div style="background:linear-gradient(90deg, #003366 0%, #00A88F 100%); width:${Math.max(pct, 2)}%; height:100%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+              <span>📅 11-Ago: ${(c.d11 || 0).toLocaleString()}</span>
+              <span>📅 12-Ago: ${(c.d12 || 0).toLocaleString()}</span>
+              <span>📅 13-Ago: ${(c.d13 || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    renderDonationsTable(donationsList, totalIngresos);
+  }
+
+  function renderDonationsTable(list, totalIngresos) {
+    const tbody = document.getElementById('donations-table-tbody');
+    if (!tbody) return;
+
+    const searchInput = document.getElementById('donations-search-input');
+    const filterCat = document.getElementById('donations-filter-clasificador');
+
+    const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const catVal = filterCat ? filterCat.value.toLowerCase().trim() : 'all';
+
+    const filtered = list.filter(c => {
+      const matchSearch = !searchVal || c.clasificador.toLowerCase().includes(searchVal);
+      const matchCat = catVal === 'all' || c.clasificador.toLowerCase().includes(catVal);
+      return matchSearch && matchCat;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">No se encontraron insumos con los filtros seleccionados.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(c => {
+      const pct = totalIngresos > 0 ? ((c.cantidad / totalIngresos) * 100).toFixed(1) : 0;
+      return `
+        <tr>
+          <td><strong>${c.icon || '📦'} ${c.clasificador}</strong></td>
+          <td><span style="font-weight:800; color:var(--primary); font-size:1.05rem;">${c.cantidad.toLocaleString('es-CO')}</span> Unidades</td>
+          <td>${(c.d11 || 0).toLocaleString()}</td>
+          <td>${(c.d12 || 0).toLocaleString()}</td>
+          <td>${(c.d13 || 0).toLocaleString()}</td>
+          <td><span style="background:#EEF2FF; color:#3730A3; font-weight:700; padding:2px 8px; border-radius:6px; font-size:0.8rem;">${pct}%</span></td>
+          <td><span style="background:#D1FAE5; color:#065F46; font-weight:700; padding:3px 10px; border-radius:12px; font-size:0.8rem;">🟢 Stock Disponible</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function exportDonationsToExcel() {
+    const defaultDonations = [
+      { clasificador: "Total Insumos Salud", cantidad: 28748, d11: 0, d12: 28748, d13: 0 },
+      { clasificador: "Total Medicamento Salud", cantidad: 27334, d11: 2536, d12: 12647, d13: 12151 },
+      { clasificador: "Total Bebidas", cantidad: 16728, d11: 0, d12: 4042, d13: 12686 },
+      { clasificador: "Total Varios Bebes", cantidad: 15518, d11: 0, d12: 15195, d13: 323 },
+      { clasificador: "Total Aseo Personal", cantidad: 9608, d11: 0, d12: 7933, d13: 1675 },
+      { clasificador: "Total Mercado", cantidad: 7507, d11: 0, d12: 7507, d13: 0 },
+      { clasificador: "Total Varios Adulto", cantidad: 4281, d11: 0, d12: 4019, d13: 262 },
+      { clasificador: "Total Frutas o Verduras", cantidad: 978, d11: 0, d12: 978, d13: 0 },
+      { clasificador: "Total Insumos", cantidad: 875, d11: 0, d12: 875, d13: 0 },
+      { clasificador: "Total Mecato", cantidad: 553, d11: 0, d12: 553, d13: 0 },
+      { clasificador: "Total Varios General", cantidad: 519, d11: 0, d12: 519, d13: 0 },
+      { clasificador: "Total Enseres", cantidad: 337, d11: 0, d12: 337, d13: 0 },
+      { clasificador: "Total Comida Animales", cantidad: 181, d11: 0, d12: 181, d13: 0 },
+      { clasificador: "Total Aseo General", cantidad: 95, d11: 0, d12: 95, d13: 0 },
+      { clasificador: "Total EPP", cantidad: 11, d11: 0, d12: 11, d13: 0 }
+    ];
+
+    const list = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
+
+    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        th { background-color: #003366; color: #FFFFFF; font-weight: bold; border: 1px solid #CBD5E1; padding: 8px; font-family: Arial, sans-serif; font-size: 12px; }
+        td { border: 1px solid #CBD5E1; padding: 6px; font-family: Arial, sans-serif; font-size: 11px; }
+      </style>
+    </head>
+    <body>
+      <h2 style="color:#003366; font-family:Arial, sans-serif;">Comfamiliar Risaralda - Kardex e Inventario de Donaciones</h2>
+      <p style="font-family:Arial, sans-serif; font-size:12px;">Fecha de Exportación: ${new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Clasificador de Insumo</th>
+            <th>Cantidad Total Ingresada</th>
+            <th>2026/08/11</th>
+            <th>2026/08/12</th>
+            <th>2026/08/13</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    list.forEach(c => {
+      tableHtml += `
+        <tr>
+          <td><strong>${c.clasificador}</strong></td>
+          <td>${c.cantidad}</td>
+          <td>${c.d11 || 0}</td>
+          <td>${c.d12 || 0}</td>
+          <td>${c.d13 || 0}</td>
+        </tr>
+      `;
+    });
+
+    tableHtml += `
+        </tbody>
+      </table>
+    </body>
+    </html>`;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Comfamiliar_Inventario_Kardex_${new Date().toISOString().slice(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 });
