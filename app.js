@@ -6,7 +6,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
-  const VALID_PINS = ['2026', 'comfamiliar2026', 'sst2026'];
+  const VALID_PINS = ['2026', 'comfamiliar2026', 'comfamiliar 2026', 'sst2026', 'admin', 'admin2026', '1234', 'comfamiliar'];
 
   const state = {
     isAuthenticated: sessionStorage.getItem('comfamiliar_admin_auth') === 'true',
@@ -329,8 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupTabsNavigation();
   checkAuthentication();
-
-  const VALID_PINS = ['2026', 'comfamiliar2026', 'comfamiliar 2026', 'sst2026', 'admin', 'admin2026', '1234', 'comfamiliar'];
 
   window.directUnlockAdmin = function() {
     sessionStorage.setItem('comfamiliar_admin_auth', 'true');
