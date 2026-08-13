@@ -691,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderDashboard(forceRender = false) {
     updateKPIs();
+    renderConfrontationInterventions();
     renderTable();
     
     renderManagementDashboard(forceRender);
@@ -702,30 +703,184 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderConfrontationInterventions() {
+    const grid = document.getElementById('confrontation-interventions-grid');
+    if (!grid) return;
+
+    const categories = [
+      { key: 'psicologico', name: 'Apoyo Psicológico', icon: '🧠', color: '#003366' },
+      { key: 'alimentos', name: 'Kits de Alimentos / Mercado', icon: '📦', color: '#00A88F' },
+      { key: 'medicamentos', name: 'Medicamentos', icon: '💊', color: '#E63946' },
+      { key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' },
+      { key: 'juridico', name: 'Apoyo Jurídico', icon: '⚖️', color: '#8B5CF6' },
+      { key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' }
+    ];
+
+    const dataset = state.reports; // Usar universo completo de reportes para métricas ejecutivas
+
+    grid.innerHTML = categories.map(cat => {
+      let solicitados = 0;
+      let intervencionAtendida = 0;
+      let intervencionEnProceso = 0;
+      let pendientes = 0;
+
+      dataset.forEach(r => {
+        let isMatch = false;
+        if (cat.key === 'vivienda') {
+          isMatch = (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden')));
+        } else {
+          isMatch = matchesCategory(r, cat.key);
+        }
+
+        if (isMatch) {
+          solicitados++;
+          const doc = String(r.documento || r.cedula || '').trim();
+          const mgmt = state.supportManagement[doc] || {};
+          const st = (r.gestionStatus || mgmt.status || 'pendiente').toLowerCase();
+
+          if (st === 'resuelto' || st === 'atendido' || st === 'contactado' || st === 'finalizado') {
+            intervencionAtendida++;
+          } else if (st === 'proceso' || st === 'en proceso') {
+            intervencionEnProceso++;
+          } else {
+            pendientes++;
+          }
+        }
+      });
+
+      const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
+      const pctCobertura = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
+
+      return `
+        <div class="analytics-card" style="background:#FFF; border:1px solid var(--border); padding:16px; border-radius:14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="color:var(--primary); font-size:0.92rem; display:flex; align-items:center; gap:6px;">
+              <span>${cat.icon}</span> ${cat.name}
+            </strong>
+            <span style="background:${pctCobertura >= 80 ? '#D1FAE5' : pctCobertura >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pctCobertura >= 80 ? '#065F46' : pctCobertura >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:3px 10px; border-radius:12px;">
+              ${pctCobertura}% Cobertura
+            </span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px; font-size:0.85rem;">
+            <div style="background:rgba(0,51,102,0.05); padding:8px 10px; border-radius:8px;">
+              <span style="color:var(--text-muted); font-size:0.72rem; display:block; font-weight:700;">📋 Solicitados</span>
+              <b style="color:var(--primary); font-size:1.25rem;">${solicitados.toLocaleString('es-CO')}</b> <span style="font-size:0.72rem; color:var(--text-muted);">Casos</span>
+            </div>
+            <div style="background:rgba(5,150,105,0.08); padding:8px 10px; border-radius:8px;">
+              <span style="color:#065F46; font-size:0.72rem; display:block; font-weight:700;">✅ Intervenidos</span>
+              <b style="color:#059669; font-size:1.25rem;">${totalIntervenidos.toLocaleString('es-CO')}</b> <span style="font-size:0.72rem; color:#065F46;">Casos</span>
+            </div>
+          </div>
+
+          <div style="background:#E2E8F0; height:8px; border-radius:4px; overflow:hidden; margin-bottom:8px;">
+            <div style="background:linear-gradient(90deg, ${cat.color} 0%, #059669 100%); width:${Math.max(pctCobertura, 3)}%; height:100%;"></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:var(--text-muted); font-weight:700;">
+            <span>🟢 Atendidos: <b style="color:#059669;">${intervencionAtendida}</b> | 🟡 En Proceso: <b style="color:#D97706;">${intervencionEnProceso}</b></span>
+            <span>🔴 Pendientes: <b style="color:#DC2626;">${pendientes}</b></span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   function updateKPIs() {
     const dataset = state.filteredReports;
     const total = dataset.length;
     const salvo = dataset.filter(r => r.criticidad === 'verde').length;
     const leve = dataset.filter(r => r.criticidad === 'amarillo').length;
-    const urgente = dataset.filter(r => r.criticidad === 'rojo').length;
-    const sinLugar = dataset.filter(r => r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.includes('impiden'))).length;
 
-    // Conteo de Solicitud Explícita de Apoyo Psicológico
-    const psicoDirecto = dataset.filter(r => matchesCategory(r, 'psicologico')).length;
+    // HELPER DE CONFRONTACIÓN EN TIEMPO REAL (DEMANDA VS INTERVENCIONES SST)
+    function getConfrontationMetrics(categoryKey) {
+      let solicitados = 0;
+      let intervencionAtendida = 0;
+      let intervencionEnProceso = 0;
+      let pendientes = 0;
+
+      dataset.forEach(r => {
+        let isMatch = false;
+        if (categoryKey === 'vivienda') {
+          isMatch = (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden')));
+        } else {
+          isMatch = matchesCategory(r, categoryKey);
+        }
+
+        if (isMatch) {
+          solicitados++;
+          const doc = String(r.documento || r.cedula || '').trim();
+          const mgmt = state.supportManagement[doc] || {};
+          const st = (r.gestionStatus || mgmt.status || 'pendiente').toLowerCase();
+
+          if (st === 'resuelto' || st === 'atendido' || st === 'contactado' || st === 'finalizado') {
+            intervencionAtendida++;
+          } else if (st === 'proceso' || st === 'en proceso') {
+            intervencionEnProceso++;
+          } else {
+            pendientes++;
+          }
+        }
+      });
+
+      const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
+      const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
+      return { solicitados, totalIntervenidos, intervencionAtendida, intervencionEnProceso, pendientes, pct };
+    }
+
+    const psico = getConfrontationMetrics('psicologico');
+    const alimentos = getConfrontationMetrics('alimentos');
+    const vivienda = getConfrontationMetrics('vivienda');
 
     const elTotal = document.getElementById('kpi-total');
     const elSalvo = document.getElementById('kpi-salvo');
     const elLeve = document.getElementById('kpi-leve');
-    const elPsicoDirecto = document.getElementById('kpi-psico-directo');
-    const elUrgente = document.getElementById('kpi-urgente');
-    const elVivienda = document.getElementById('kpi-vivienda');
 
     if (elTotal) elTotal.textContent = total;
     if (elSalvo) elSalvo.textContent = salvo;
-    if (elLeve) elLeve.textContent = leve; // 633: Pueden requerir apoyo psicológico
-    if (elPsicoDirecto) elPsicoDirecto.textContent = psicoDirecto; // 68: Solicitaron apoyo psicológico
-    if (elUrgente) elUrgente.textContent = urgente;
-    if (elVivienda) elVivienda.textContent = sinLugar;
+    if (elLeve) elLeve.textContent = leve;
+
+    // 1. CONFRONTACIÓN EN TARJETA APOYO PSICOLÓGICO
+    const elPsicoDirecto = document.getElementById('kpi-psico-directo');
+    const elPsicoBadge = document.getElementById('kpi-psico-badge');
+    const elPsicoConfronted = document.getElementById('kpi-psico-confronted');
+    if (elPsicoDirecto) elPsicoDirecto.textContent = psico.solicitados;
+    if (elPsicoBadge) {
+      elPsicoBadge.textContent = `${psico.pct}% Cobertura`;
+      elPsicoBadge.style.background = psico.pct >= 80 ? '#D1FAE5' : psico.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
+      elPsicoBadge.style.color = psico.pct >= 80 ? '#065F46' : psico.pct >= 40 ? '#92400E' : '#991B1B';
+    }
+    if (elPsicoConfronted) {
+      elPsicoConfronted.innerHTML = `✅ <b style="color:#059669;">${psico.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${psico.pendientes}</b> pendientes)`;
+    }
+
+    // 2. CONFRONTACIÓN EN TARJETA KITS DE ALIMENTOS
+    const elAlimDirecto = document.getElementById('kpi-alimentos-directo');
+    const elAlimBadge = document.getElementById('kpi-alimentos-badge');
+    const elAlimConfronted = document.getElementById('kpi-alimentos-confronted');
+    if (elAlimDirecto) elAlimDirecto.textContent = alimentos.solicitados;
+    if (elAlimBadge) {
+      elAlimBadge.textContent = `${alimentos.pct}% Cobertura`;
+      elAlimBadge.style.background = alimentos.pct >= 80 ? '#D1FAE5' : alimentos.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
+      elAlimBadge.style.color = alimentos.pct >= 80 ? '#065F46' : alimentos.pct >= 40 ? '#92400E' : '#991B1B';
+    }
+    if (elAlimConfronted) {
+      elAlimConfronted.innerHTML = `✅ <b style="color:#059669;">${alimentos.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${alimentos.pendientes}</b> pendientes)`;
+    }
+
+    // 3. CONFRONTACIÓN EN TARJETA SIN LUGAR SEGURO / VIVIENDA
+    const elVivienda = document.getElementById('kpi-vivienda');
+    const elViviendaBadge = document.getElementById('kpi-vivienda-badge');
+    const elViviendaConfronted = document.getElementById('kpi-vivienda-confronted');
+    if (elVivienda) elVivienda.textContent = vivienda.solicitados;
+    if (elViviendaBadge) {
+      elViviendaBadge.textContent = `${vivienda.pct}% Cobertura`;
+      elViviendaBadge.style.background = vivienda.pct >= 80 ? '#D1FAE5' : vivienda.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
+      elViviendaBadge.style.color = vivienda.pct >= 80 ? '#065F46' : vivienda.pct >= 40 ? '#92400E' : '#991B1B';
+    }
+    if (elViviendaConfronted) {
+      elViviendaConfronted.innerHTML = `✅ <b style="color:#059669;">${vivienda.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${vivienda.pendientes}</b> pendientes)`;
+    }
   }
 
   function getBestPhoneNumber(r) {

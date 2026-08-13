@@ -155,7 +155,7 @@
           <span>📊</span> Indicadores Clave de Riesgo y Priorización (KPIs)
         </h2>
 
-        <!-- KPIS -->
+        <!-- KPIS PRINCIPALES DE RIESGO CON CONFRONTACIÓN DE INTERVENCIONES EN TIEMPO REAL -->
         <div class="kpi-grid">
           <div class="kpi-card kpi-primary">
             <div class="kpi-header">Total Registrados</div>
@@ -174,18 +174,27 @@
           </div>
           <div class="kpi-card kpi-info">
             <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
-            <div class="kpi-value" id="kpi-psico-directo">0</div>
-            <div class="kpi-subtext">Solicitud explícita en encuesta</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div class="kpi-value" id="kpi-psico-directo">0</div>
+              <span id="kpi-psico-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+            </div>
+            <div class="kpi-subtext" id="kpi-psico-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+          </div>
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-header">Solicitaron Kits de Alimentos</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div class="kpi-value" id="kpi-alimentos-directo">0</div>
+              <span id="kpi-alimentos-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+            </div>
+            <div class="kpi-subtext" id="kpi-alimentos-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
           </div>
           <div class="kpi-card kpi-danger">
-            <div class="kpi-header">Prioridad Crítica</div>
-            <div class="kpi-value" id="kpi-urgente">0</div>
-            <div class="kpi-subtext">Vivienda/Familia en riesgo</div>
-          </div>
-          <div class="kpi-card kpi-danger">
-            <div class="kpi-header">Sin Lugar Seguro / Daños</div>
-            <div class="kpi-value" id="kpi-vivienda">0</div>
-            <div class="kpi-subtext">Requieren reubicación</div>
+            <div class="kpi-header">Sin Lugar Seguro / Vivienda</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div class="kpi-value" id="kpi-vivienda">0</div>
+              <span id="kpi-vivienda-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+            </div>
+            <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
           </div>
         </div>
 
@@ -194,6 +203,14 @@
           🗺️ Ubicación Satelital de Trabajadores Registrados
         </h3>
         <div id="emergency-map" class="no-print"></div>
+
+        <!-- CONFRONTACIÓN EJECUTIVA: DEMANDA DE APOYOS VS INTERVENCIONES EJECUTADAS -->
+        <h3 class="no-print" style="font-size: 1.15rem; color: var(--primary); margin: 24px 0 12px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
+          <span>⚖️</span> Confrontación de Intervenciones: Demanda de Apoyos vs Gestión Realizada SST
+        </h3>
+        <div id="confrontation-interventions-grid" class="no-print" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom: 24px;">
+          <!-- Renderizado dinámicamente desde app.js -->
+        </div>
 
         <!-- BARRA DE FILTROS AVANZADOS -->
         <div class="filter-bar no-print" style="margin-top: 24px;">
@@ -597,6 +614,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260813_114_STRICT_COL_B_AND_SIN_CLASIFICAR"></script>
+  <script src="app.js?v=20260813_116_TOP_KPIS_CONFRONTED"></script>
 </body>
 </html>
