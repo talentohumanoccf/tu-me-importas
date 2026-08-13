@@ -1538,17 +1538,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getAggregatedDonationsByClasificador() {
-    const OFFICIAL_SET = new Set([
-      "Insumos Salud", "Medicamento Salud", "Bebidas", "Varios Bebés", "Varios Bebes",
-      "Aseo Personal", "Mercado", "Varios Adulto", "Frutas o Verduras", "Insumos",
-      "Mecato", "Varios General", "Enseres", "Comida Animales", "Aseo General", "EPP"
-    ]);
-
     const defaultDonations = [
       { clasificador: "Insumos Salud", cantidad: 28748, entradas: 28748, salidas: 4120, saldo: 24628, icon: "💉", estado: "Suficiente" },
       { clasificador: "Medicamento Salud", cantidad: 27334, entradas: 27334, salidas: 5210, saldo: 22124, icon: "💊", estado: "Suficiente" },
       { clasificador: "Bebidas", cantidad: 16728, entradas: 16728, salidas: 3450, saldo: 13278, icon: "🥤", estado: "Suficiente" },
-      { clasificador: "Varios Bebes", cantidad: 15518, entradas: 15518, salidas: 2180, saldo: 13338, icon: "👶", estado: "Suficiente" },
+      { clasificador: "Varios Bebés", cantidad: 15518, entradas: 15518, salidas: 2180, saldo: 13338, icon: "👶", estado: "Suficiente" },
       { clasificador: "Aseo Personal", cantidad: 9608, entradas: 9608, salidas: 1420, saldo: 8188, icon: "🧴", estado: "Suficiente" },
       { clasificador: "Mercado", cantidad: 7507, entradas: 7507, salidas: 950, saldo: 6557, icon: "🌾", estado: "Suficiente" },
       { clasificador: "Varios Adulto", cantidad: 4281, entradas: 4281, salidas: 620, saldo: 3661, icon: "🧑", estado: "Suficiente" },
@@ -1564,35 +1558,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let rawList = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
 
-    // AGRUPACIÓN OBLIGATORIA CLIENTE POR CLASIFICADOR
+    // AGRUPACIÓN OBLIGATORIA CLIENTE Y DETECCIÓN DINÁMICA DE NUEVOS CLASIFICADORES
     const map = new Map();
 
     rawList.forEach(item => {
       let rawName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Varios General").trim();
       rawName = rawName.replace(/^total\s+/i, '').trim();
 
-      // VALIDACIÓN ESTRICTA: Si no es uno de los clasificadores oficiales, mapearlo automáticamente
-      let cleanClas = rawName;
-      if (!OFFICIAL_SET.has(rawName)) {
-        cleanClas = normalizeToStandardClasificador(item.clasificador || item.articulo || item.articuloGeneral || rawName);
-      }
+      if (!rawName) return;
 
       const ent = Number(item.entradas !== undefined ? item.entradas : (item.cantidad || 0));
       const sal = Number(item.salidas !== undefined ? item.salidas : 0);
       const stk = Number(item.saldo !== undefined ? item.saldo : (ent - sal));
 
-      if (!map.has(cleanClas)) {
-        map.set(cleanClas, {
-          clasificador: cleanClas,
+      if (!map.has(rawName)) {
+        map.set(rawName, {
+          clasificador: rawName,
           entradas: 0,
           salidas: 0,
           saldo: 0,
           cantidad: 0,
-          icon: item.icon || getClassifierIcon(cleanClas)
+          icon: item.icon || getClassifierIcon(rawName)
         });
       }
 
-      const existing = map.get(cleanClas);
+      const existing = map.get(rawName);
       existing.entradas += ent;
       existing.salidas += sal;
       existing.saldo += stk;
@@ -1658,6 +1648,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const searchInput = document.getElementById('donations-search-input');
     const filterCat = document.getElementById('donations-filter-clasificador');
+
+    if (filterCat && (!filterCat.dataset.populated || filterCat.options.length <= 1)) {
+      const selectedValue = filterCat.value || 'all';
+      let optionsHtml = `<option value="all">📦 Todos los Clasificadores (${list.length} Categorías en Vivo)</option>`;
+      list.forEach(item => {
+        optionsHtml += `<option value="${item.clasificador}">${item.icon || '📦'} ${item.clasificador}</option>`;
+      });
+      filterCat.innerHTML = optionsHtml;
+      if ([...filterCat.options].some(o => o.value === selectedValue)) {
+        filterCat.value = selectedValue;
+      }
+      filterCat.dataset.populated = "true";
+    }
 
     const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
     const catVal = filterCat ? filterCat.value.toLowerCase().trim() : 'all';
