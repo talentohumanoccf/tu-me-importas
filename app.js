@@ -1457,50 +1457,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const raw = String(name || '').toUpperCase().trim();
     if (!raw) return 'Varios General';
 
-    if (raw.includes('ACETAMINOFEN') || raw.includes('MEDICAMEN') || raw.includes('JARABE') || raw.includes('PASTA') || raw.includes('PASTILLA') || raw.includes('DOLEX') || raw.includes('AMOXICILINA') || raw.includes('IBUPROFENO') || raw.includes('SALBUTAMOL') || raw.includes('CAPSULA') || raw.includes('MEDICINA')) {
+    // 1. Medicamento Salud
+    if (raw.includes('DICLOFENACO') || raw.includes('NAPROXENO') || raw.includes('CLORURO DE SODIO') || raw.includes('ACETAMINOFEN') || raw.includes('ACETAMINOFÉN') || raw.includes('MEDICAMEN') || raw.includes('JARABE') || raw.includes('PASTA') || raw.includes('PASTILLA') || raw.includes('DOLEX') || raw.includes('AMOXICILINA') || raw.includes('IBUPROFENO') || raw.includes('SALBUTAMOL') || raw.includes('CAPSULA') || raw.includes('MEDICINA') || raw.includes('SUERO ORAL')) {
       return 'Medicamento Salud';
     }
-    if (raw.includes('BEBIDA') || raw.includes('AGUA') || raw.includes('JUGO') || raw.includes('GATORADE') || raw.includes('SUERO') || raw.includes('HIDRATANTE') || raw.includes('REFRESCO')) {
+    // 2. Insumos Salud
+    if (raw.includes('AGUJA') || raw.includes('HIPODÉRMICA') || raw.includes('HIPODERMICA') || raw.includes('CATÉTER') || raw.includes('CATETER') || raw.includes('TAPABOCAS') || raw.includes('JERINGA') || raw.includes('INSULINA') || raw.includes('INSUMO SALUD') || raw.includes('ALCOHOL') || raw.includes('GAZA') || raw.includes('VENDAR') || raw.includes('CURA') || raw.includes('ALGODON') || raw.includes('GUANTE') || raw.includes('TERMOMETRO') || raw.includes('CANULA') || raw.includes('N95')) {
+      return 'Insumos Salud';
+    }
+    // 3. Aseo Personal
+    if (raw.includes('PAPEL HIGIENICO') || raw.includes('PAPEL HIGIÉNICO') || raw.includes('PROTECTOR') || raw.includes('PROTECTORES') || raw.includes('CREMAS DENTALES') || raw.includes('CREMA DENTAL') || raw.includes('TOALLA') || raw.includes('TOALLAS') || raw.includes('HIGIENICA') || raw.includes('HIGIÉNICA') || raw.includes('ASEO PERSONAL') || raw.includes('JABON') || raw.includes('JABÓN') || raw.includes('SHAMPOO') || raw.includes('DESODORANTE') || raw.includes('CEPILLO')) {
+      return 'Aseo Personal';
+    }
+    // 4. Mercado
+    if (raw.includes('ATÚN') || raw.includes('ATUN') || raw.includes('ENLATADO') || raw.includes('LECHE') || raw.includes('LÍQUIDA') || raw.includes('LIQUIDA') || raw.includes('MERCADO') || raw.includes('ALIMENTO') || raw.includes('ARROZ') || raw.includes('ACEITE') || raw.includes('GRANO') || raw.includes('FRLJOL') || raw.includes('FRIJOL') || raw.includes('LENTEJA') || raw.includes('PANELA') || raw.includes('SAL') || raw.includes('AZUCAR') || raw.includes('CAFÉ') || raw.includes('HARINA')) {
+      return 'Mercado';
+    }
+    // 5. Bebidas
+    if (raw.includes('BEBIDA') || raw.includes('AGUA') || raw.includes('JUGO') || raw.includes('GATORADE') || raw.includes('HIDRATANTE') || raw.includes('REFRESCO')) {
       return 'Bebidas';
     }
+    // 6. Varios Bebés
     if (raw.includes('PAÑIT') || raw.includes('PAÑAL BEB') || raw.includes('PAÑAL NIÑ') || raw.includes('BEBE') || raw.includes('BEBÉ') || raw.includes('TETERO') || raw.includes('COMPOTA') || raw.includes('LACTEA') || raw.includes('FÓRMULA')) {
       return 'Varios Bebés';
     }
+    // 7. Varios Adulto
     if (raw.includes('PAÑAL ADULTO') || raw.includes('ADULTO') || raw.includes('ROPA ADULTO')) {
       return 'Varios Adulto';
     }
-    if (raw.includes('TAPABOCAS') || raw.includes('JERINGA') || raw.includes('INSULINA') || raw.includes('INSUMO SALUD') || raw.includes('ALCOHOL') || raw.includes('GAZA') || raw.includes('VENDAR') || raw.includes('CURA') || raw.includes('ALGODON') || raw.includes('GUANTE') || raw.includes('CATETER') || raw.includes('TERMOMETRO')) {
-      return 'Insumos Salud';
-    }
-    if (raw.includes('TOALLA') || raw.includes('TOALLAS') || raw.includes('HIGIENICA') || raw.includes('HIGIÉNICA') || raw.includes('ASEO PERSONAL') || raw.includes('JABON') || raw.includes('JABÓN') || raw.includes('SHAMPOO') || raw.includes('DESODORANTE') || raw.includes('PASTA DENTAL') || raw.includes('CEPILLO')) {
-      return 'Aseo Personal';
-    }
-    if (raw.includes('MERCADO') || raw.includes('ALIMENTO') || raw.includes('ARROZ') || raw.includes('ACEITE') || raw.includes('GRANO') || raw.includes('FRLJOL') || raw.includes('LENTEJA') || raw.includes('PANELA') || raw.includes('ATUN') || raw.includes('SAL') || raw.includes('AZUCAR') || raw.includes('CAFÉ') || raw.includes('HARINA')) {
-      return 'Mercado';
-    }
+    // 8. Frutas o Verduras
     if (raw.includes('FRUTA') || raw.includes('VERDURA') || raw.includes('PAPA') || raw.includes('PLATANO') || raw.includes('PLÁTANO') || raw.includes('CEBOLLA') || raw.includes('TOMATE')) {
       return 'Frutas o Verduras';
     }
-    if (raw.includes('ENSERES') || raw.includes('COBIJA') || raw.includes('COLCHON') || raw.includes('COLCHÓN') || raw.includes('SABANA') || raw.includes('ALMOHADA') || raw.includes('CAMA')) {
-      return 'Enseres';
-    }
-    if (raw.includes('EPP') || raw.includes('CASCO') || raw.includes('CHALECO') || raw.includes('BOTAS')) {
-      return 'EPP';
-    }
+    // 9. Mecato
     if (raw.includes('MECATO') || raw.includes('GALLETA') || raw.includes('DULCE') || raw.includes('CHOCOLATE')) {
       return 'Mecato';
     }
+    // 10. Enseres
+    if (raw.includes('ENSERES') || raw.includes('COBIJA') || raw.includes('COLCHON') || raw.includes('COLCHÓN') || raw.includes('SABANA') || raw.includes('ALMOHADA') || raw.includes('CAMA')) {
+      return 'Enseres';
+    }
+    // 11. EPP
+    if (raw.includes('EPP') || raw.includes('CASCO') || raw.includes('CHALECO') || raw.includes('BOTAS')) {
+      return 'EPP';
+    }
+    // 12. Comida Animales
     if (raw.includes('ANIMAL') || raw.includes('PERRO') || raw.includes('GATO') || raw.includes('MASCOTA')) {
       return 'Comida Animales';
     }
+    // 13. Aseo General
     if (raw.includes('ASEO GENERAL') || raw.includes('LIMPIDO') || raw.includes('CLORO') || raw.includes('DETERGENTE') || raw.includes('ESCOBA')) {
       return 'Aseo General';
     }
+    // 14. Insumos
     if (raw.includes('INSUMO')) {
       return 'Insumos';
     }
 
-    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    return 'Varios General';
   }
 
   function getClassifierIcon(name) {
