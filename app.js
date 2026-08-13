@@ -1562,27 +1562,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = new Map();
 
     rawList.forEach(item => {
-      let rawName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Varios General").trim();
-      rawName = rawName.replace(/^total\s+/i, '').trim();
+      // REGLA ESTRICTA: Leer única y exclusivamente el campo Clasificador (Columna B de Kardex)
+      let rawColB = String(item.clasificador !== undefined && item.clasificador !== null ? item.clasificador : "").trim();
+      rawColB = rawColB.replace(/^total\s+/i, '').trim();
 
-      if (!rawName) return;
+      // Si no tiene Clasificador en la Columna B, agrupar bajo "Sin Clasificar"
+      let cleanClas = rawColB ? rawColB : "Sin Clasificar";
 
       const ent = Number(item.entradas !== undefined ? item.entradas : (item.cantidad || 0));
       const sal = Number(item.salidas !== undefined ? item.salidas : 0);
       const stk = Number(item.saldo !== undefined ? item.saldo : (ent - sal));
 
-      if (!map.has(rawName)) {
-        map.set(rawName, {
-          clasificador: rawName,
+      if (!map.has(cleanClas)) {
+        map.set(cleanClas, {
+          clasificador: cleanClas,
           entradas: 0,
           salidas: 0,
           saldo: 0,
           cantidad: 0,
-          icon: item.icon || getClassifierIcon(rawName)
+          icon: item.icon || getClassifierIcon(cleanClas)
         });
       }
 
-      const existing = map.get(rawName);
+      const existing = map.get(cleanClas);
       existing.entradas += ent;
       existing.salidas += sal;
       existing.saldo += stk;
