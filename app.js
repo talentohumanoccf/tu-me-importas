@@ -1,7 +1,7 @@
 /**
  * PANEL DE ADMINISTRACIÓN SST - COMFAMILIAR RISARALDA
- * Conteo Exacto de Base de Datos Real (1962 Registros Fieles de Google Sheets)
- * Desactivación de Registros Mock Demo cuando la BD Remota está Conectada
+ * Protección Total Contra Borrado de Texto Durante la Escritura en Observaciones (Shielding)
+ * Preservación de Estado Local y Prevención de Sobreescritura del DOM
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     refreshInterval: null,
     activeTab: 'main',
+    isTypingActive: false,
+    typingTimer: null,
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {}
   };
 
@@ -113,11 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return ap.includes(cat);
   }
 
-  // DELEGACIÓN DE EVENTOS: GUARDADO INSTANTÁNEO AL ESCRIBIR EN TEXTAREA
+  // DELEGACIÓN DE EVENTOS: CAPTURA INSTANTÁNEA TECLA A TECLA CON PROTECCIÓN DE BLINDAJE
   const mgmtTbody = document.getElementById('mgmt-reports-tbody');
   if (mgmtTbody) {
     mgmtTbody.addEventListener('input', (e) => {
       if (e.target && e.target.classList.contains('mgmt-notes-textarea')) {
+        state.isTypingActive = true;
+        
+        if (state.typingTimer) clearTimeout(state.typingTimer);
+        state.typingTimer = setTimeout(() => {
+          state.isTypingActive = false;
+        }, 5000); // 5 segundos de inmunidad total tras pulsar la última tecla
+
         const textareaId = e.target.id;
         const doc = textareaId.replace('mgmt-notes-', '').trim();
         const val = e.target.value;
@@ -128,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           state.supportManagement[doc] = {
             status: existing.status || 'pendiente',
-            notes: sanitizeNotes(val),
+            notes: val, // Guardar el valor exacto en tiempo real
             operator: existing.operator || currentOperator,
             updatedAt: existing.updatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
           };
@@ -139,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  window.triggerGlobalFilter = applyFilters;
+  window.triggerGlobalFilter = function() { applyFilters(true); };
   window.triggerMgmtRender = function() { renderManagementDashboard(true); };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS FICHAS KPI
@@ -170,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.claimCase = function(doc) {
+    state.isTypingActive = false;
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const existing = state.supportManagement[doc] || {};
 
@@ -210,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
   window.saveSupportCase = function(doc) {
+    state.isTypingActive = false;
     const statusEl = document.getElementById(`mgmt-select-${doc}`);
     const notesEl = document.getElementById(`mgmt-notes-${doc}`);
     
@@ -386,10 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 25000);
 
-    if (filterSearch) filterSearch.addEventListener('input', applyFilters);
-    if (filterApoyo) filterApoyo.addEventListener('change', applyFilters);
-    if (filterStatus) filterStatus.addEventListener('change', applyFilters);
-    if (filterMunicipio) filterMunicipio.addEventListener('change', applyFilters);
+    if (filterSearch) filterSearch.addEventListener('input', () => applyFilters(true));
+    if (filterApoyo) filterApoyo.addEventListener('change', () => applyFilters(true));
+    if (filterStatus) filterStatus.addEventListener('change', () => applyFilters(true));
+    if (filterMunicipio) filterMunicipio.addEventListener('change', () => applyFilters(true));
     if (btnExportExcelMain) btnExportExcelMain.addEventListener('click', () => exportAllToExcel());
     if (btnExportFilteredExcel) btnExportFilteredExcel.addEventListener('click', () => exportFilteredToExcel());
 
@@ -397,6 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mgmtStatusSelect) {
       mgmtStatusSelect.addEventListener('change', () => {
         mgmtStatusSelect.dataset.manualOverride = 'true';
+        renderManagementDashboard(true);
       });
     }
 
@@ -460,12 +472,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const doc = String(r.documento || r.cedula).trim();
 
+      // PRESERVAR NOTAS LOCALE MIENTRAS EL USUARIO ESCRIBE O TIENE CAMBIOS NO GUARDADOS
+      const localMgmt = state.supportManagement[doc];
+
       if (r.gestionStatus) {
         state.supportManagement[doc] = {
-          status: r.gestionStatus || 'pendiente',
-          notes: sanitizeNotes(r.gestionNotes),
-          updatedAt: r.gestionUpdatedAt || '',
-          operator: r.gestionOperator || 'Operador SST'
+          status: localMgmt && localMgmt.status ? localMgmt.status : (r.gestionStatus || 'pendiente'),
+          notes: localMgmt && localMgmt.notes !== undefined && state.isTypingActive ? localMgmt.notes : sanitizeNotes(r.gestionNotes || (localMgmt ? localMgmt.notes : '')),
+          updatedAt: r.gestionUpdatedAt || (localMgmt ? localMgmt.updatedAt : ''),
+          operator: localMgmt && localMgmt.operator ? localMgmt.operator : (r.gestionOperator || 'Operador SST')
         };
       } else if (!state.supportManagement[doc]) {
         state.supportManagement[doc] = {
@@ -504,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
-    applyFilters();
+    applyFilters(true);
   }
 
   window.onLiveReportsReceived = function(result) {
@@ -517,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const mapReports = new Map();
 
-    // 1. SI HAY REGISTROS REMOTOS REALES DE GOOGLE SHEETS: USAR ÚNICAMENTE LA BASE DE DATOS REAL (1962 REGISTROS)
     if (remoteReports.length > 0) {
       localStorage.setItem('comfamiliar_cached_remote_reports', JSON.stringify(remoteReports));
       remoteReports.forEach(r => {
@@ -525,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (doc) mapReports.set(doc, r);
       });
     } else {
-      // 2. SI NO HAY CONEXIÓN AÚN, USAR MEMORIA LOCAL / FALLBACK DEMO
       const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
       localReports.forEach(r => {
         const doc = String(r.documento || r.cedula || '').trim();
@@ -540,7 +553,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
-    applyFilters();
+    
+    // EN SINCRONIZACIÓN AUTOMÁTICA DE FONDO: NUNCA FORZAR RE-RENDERIZADO DE TABLA DE GESTIÓN (forceRender = false)
+    applyFilters(false);
 
     if (sheetsStatus) {
       if (remoteReports.length > 0) {
@@ -563,7 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
       sheetsStatus.innerHTML = '⌛ Consultando en vivo a Google Sheets...';
     }
 
-    // 1. INTENTO PRIMARIO VÍA FETCH API NATIVO
     try {
       const response = await fetch(`${state.googleSheetsUrl}?action=getAllReports&_t=${Date.now()}`, {
         method: 'GET',
@@ -580,7 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('ℹ️ Fetch directo con restricciones de política de red, intentando fallback vía script tag JSONP...');
     }
 
-    // 2. FALLBACK SECUNDARIO VÍA SCRIPT TAG JSONP
     const callbackName = 'onLiveReportsReceived';
     const scriptId = 'jsonp-live-dashboard-sync';
     
@@ -686,7 +699,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const elAlimentos = document.getElementById('mgmt-kpi-alimentos');
     const elResueltos = document.getElementById('mgmt-kpi-resueltos');
 
-    // NÚMEROS PRINCIPALES DE TARJETAS = PENDIENTES POR ATENDER
     if (elPsico) elPsico.innerHTML = `${countPsicoPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
     if (elSocial) elSocial.innerHTML = `${countSocialPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
     if (elMeds) elMeds.innerHTML = `${countMedsPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
@@ -701,7 +713,6 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    // 1. Renderizar desgloses KPI garantizados en cada tarjeta
     const kpiCards = [
       { selector: '.clickable-kpi-card[onclick*="psicologico"]', pend: countPsicoPend, proc: countPsicoProc, res: countPsicoRes },
       { selector: '.clickable-kpi-card[onclick*="social"]', pend: countSocialPend, proc: countSocialProc, res: countSocialRes },
@@ -729,7 +740,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 2. Renderizar Consola Gráfica de Barras Porcentuales Acumuladas
     const visualChartsContainer = document.getElementById('mgmt-visual-charts-container');
     if (visualChartsContainer) {
       const renderActivityChart = (title, icon, total, pend, proc, res) => {
@@ -769,9 +779,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!tbody) return;
 
-    // PROTECCIÓN DE ESCRITURA EN VIVO
-    if (!forceRender && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('mgmt-notes-textarea')) {
-      console.log('✏️ Usuario escribiendo en observaciones. Se pospone el renderizado automático.');
+    // COMPROBACIÓN RIGUROSA DE PROTECCIÓN DE TECLADO: NUNCA BORRAR O REMPLAZAR EL DOM MIENTRAS EL USUARIO ESCRIBE
+    const activeEl = document.activeElement;
+    const isEditingText = activeEl && (
+      activeEl.tagName === 'TEXTAREA' || 
+      activeEl.tagName === 'INPUT' || 
+      (activeEl.classList && activeEl.classList.contains('mgmt-notes-textarea'))
+    );
+
+    if (!forceRender && (isEditingText || state.isTypingActive)) {
+      console.log('🛡️ INMUNIDAD DE ESCRITURA ACTIVADA: El usuario está redactando observaciones. Se protege el texto en pantalla y se pospone la actualización del DOM.');
       return;
     }
 
@@ -1206,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function applyFilters() {
+  function applyFilters(forceRender = false) {
     const elSearch = document.getElementById('filter-search');
     const elApoyo = document.getElementById('filter-apoyo');
     const elStatus = document.getElementById('filter-status');
@@ -1231,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return matchSearch && matchApoyo && matchStatus && matchMun;
     });
 
-    renderDashboard(true);
+    renderDashboard(forceRender);
   }
 
   function exportFilteredToExcel() {
