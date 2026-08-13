@@ -1453,6 +1453,56 @@ document.addEventListener('DOMContentLoaded', () => {
     exportDonationsToExcel();
   };
 
+  function normalizeToStandardClasificador(name) {
+    const raw = String(name || '').toUpperCase().trim();
+    if (!raw) return 'Varios General';
+
+    if (raw.includes('ACETAMINOFEN') || raw.includes('MEDICAMEN') || raw.includes('JARABE') || raw.includes('PASTA') || raw.includes('PASTILLA') || raw.includes('DOLEX') || raw.includes('AMOXICILINA') || raw.includes('IBUPROFENO') || raw.includes('SALBUTAMOL') || raw.includes('CAPSULA') || raw.includes('MEDICINA')) {
+      return 'Medicamento Salud';
+    }
+    if (raw.includes('BEBIDA') || raw.includes('AGUA') || raw.includes('JUGO') || raw.includes('GATORADE') || raw.includes('SUERO') || raw.includes('HIDRATANTE') || raw.includes('REFRESCO')) {
+      return 'Bebidas';
+    }
+    if (raw.includes('PAÑIT') || raw.includes('PAÑAL BEB') || raw.includes('PAÑAL NIÑ') || raw.includes('BEBE') || raw.includes('BEBÉ') || raw.includes('TETERO') || raw.includes('COMPOTA') || raw.includes('LACTEA') || raw.includes('FÓRMULA')) {
+      return 'Varios Bebés';
+    }
+    if (raw.includes('PAÑAL ADULTO') || raw.includes('ADULTO') || raw.includes('ROPA ADULTO')) {
+      return 'Varios Adulto';
+    }
+    if (raw.includes('TAPABOCAS') || raw.includes('JERINGA') || raw.includes('INSULINA') || raw.includes('INSUMO SALUD') || raw.includes('ALCOHOL') || raw.includes('GAZA') || raw.includes('VENDAR') || raw.includes('CURA') || raw.includes('ALGODON') || raw.includes('GUANTE') || raw.includes('CATETER') || raw.includes('TERMOMETRO')) {
+      return 'Insumos Salud';
+    }
+    if (raw.includes('TOALLA') || raw.includes('TOALLAS') || raw.includes('HIGIENICA') || raw.includes('HIGIÉNICA') || raw.includes('ASEO PERSONAL') || raw.includes('JABON') || raw.includes('JABÓN') || raw.includes('SHAMPOO') || raw.includes('DESODORANTE') || raw.includes('PASTA DENTAL') || raw.includes('CEPILLO')) {
+      return 'Aseo Personal';
+    }
+    if (raw.includes('MERCADO') || raw.includes('ALIMENTO') || raw.includes('ARROZ') || raw.includes('ACEITE') || raw.includes('GRANO') || raw.includes('FRLJOL') || raw.includes('LENTEJA') || raw.includes('PANELA') || raw.includes('ATUN') || raw.includes('SAL') || raw.includes('AZUCAR') || raw.includes('CAFÉ') || raw.includes('HARINA')) {
+      return 'Mercado';
+    }
+    if (raw.includes('FRUTA') || raw.includes('VERDURA') || raw.includes('PAPA') || raw.includes('PLATANO') || raw.includes('PLÁTANO') || raw.includes('CEBOLLA') || raw.includes('TOMATE')) {
+      return 'Frutas o Verduras';
+    }
+    if (raw.includes('ENSERES') || raw.includes('COBIJA') || raw.includes('COLCHON') || raw.includes('COLCHÓN') || raw.includes('SABANA') || raw.includes('ALMOHADA') || raw.includes('CAMA')) {
+      return 'Enseres';
+    }
+    if (raw.includes('EPP') || raw.includes('CASCO') || raw.includes('CHALECO') || raw.includes('BOTAS')) {
+      return 'EPP';
+    }
+    if (raw.includes('MECATO') || raw.includes('GALLETA') || raw.includes('DULCE') || raw.includes('CHOCOLATE')) {
+      return 'Mecato';
+    }
+    if (raw.includes('ANIMAL') || raw.includes('PERRO') || raw.includes('GATO') || raw.includes('MASCOTA')) {
+      return 'Comida Animales';
+    }
+    if (raw.includes('ASEO GENERAL') || raw.includes('LIMPIDO') || raw.includes('CLORO') || raw.includes('DETERGENTE') || raw.includes('ESCOBA')) {
+      return 'Aseo General';
+    }
+    if (raw.includes('INSUMO')) {
+      return 'Insumos';
+    }
+
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  }
+
   function getClassifierIcon(name) {
     const n = String(name || '').toLowerCase();
     if (n.includes('salud') && n.includes('insumo')) return '💉';
@@ -1498,27 +1548,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = new Map();
 
     rawList.forEach(item => {
-      let cName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Otros").trim();
-      cName = cName.replace(/^total\s+/i, '').trim();
-
-      if (!cName) cName = "Otros";
+      let rawName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Varios General").trim();
+      let cleanClas = normalizeToStandardClasificador(rawName);
 
       const ent = Number(item.entradas !== undefined ? item.entradas : (item.cantidad || 0));
       const sal = Number(item.salidas !== undefined ? item.salidas : 0);
       const stk = Number(item.saldo !== undefined ? item.saldo : (ent - sal));
 
-      if (!map.has(cName)) {
-        map.set(cName, {
-          clasificador: cName,
+      if (!map.has(cleanClas)) {
+        map.set(cleanClas, {
+          clasificador: cleanClas,
           entradas: 0,
           salidas: 0,
           saldo: 0,
           cantidad: 0,
-          icon: item.icon || getClassifierIcon(cName)
+          icon: item.icon || getClassifierIcon(cleanClas)
         });
       }
 
-      const existing = map.get(cName);
+      const existing = map.get(cleanClas);
       existing.entradas += ent;
       existing.salidas += sal;
       existing.saldo += stk;
