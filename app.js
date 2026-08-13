@@ -1453,12 +1453,27 @@ document.addEventListener('DOMContentLoaded', () => {
     exportDonationsToExcel();
   };
 
-  function renderDonationsDashboard() {
-    const kpiIngresos = document.getElementById('donations-kpi-ingresos');
-    const kpiEgresos = document.getElementById('donations-kpi-egresos');
-    const kpiStock = document.getElementById('donations-kpi-stock');
-    const kpiTopCat = document.getElementById('donations-kpi-top-cat');
+  function getClassifierIcon(name) {
+    const n = String(name || '').toLowerCase();
+    if (n.includes('salud') && n.includes('insumo')) return '💉';
+    if (n.includes('medicament') || n.includes('salud')) return '💊';
+    if (n.includes('bebida') || n.includes('agua') || n.includes('jugo')) return '🥤';
+    if (n.includes('bebe') || n.includes('pañal') || n.includes('lact')) return '👶';
+    if (n.includes('aseo personal') || n.includes('jabon') || n.includes('shampoo')) return '🧴';
+    if (n.includes('mercado') || n.includes('alimento') || n.includes('vivere')) return '🌾';
+    if (n.includes('adulto') || n.includes('ropa')) return '🧑';
+    if (n.includes('fruta') || n.includes('verdura')) return '🍎';
+    if (n.includes('insumo')) return '🛠️';
+    if (n.includes('mecato') || n.includes('snack')) return '🍿';
+    if (n.includes('general')) return '📦';
+    if (n.includes('enser') || n.includes('cobija') || n.includes('colchon')) return '🛏️';
+    if (n.includes('animal') || n.includes('mascota')) return '🐾';
+    if (n.includes('aseo general') || n.includes('limpieza')) return '🧼';
+    if (n.includes('epp') || n.includes('proteccion')) return '🥽';
+    return '📦';
+  }
 
+  function getAggregatedDonationsByClasificador() {
     const defaultDonations = [
       { clasificador: "Insumos Salud", cantidad: 28748, entradas: 28748, salidas: 4120, saldo: 24628, icon: "💉", estado: "Suficiente" },
       { clasificador: "Medicamento Salud", cantidad: 27334, entradas: 27334, salidas: 5210, saldo: 22124, icon: "💊", estado: "Suficiente" },
@@ -1477,22 +1492,68 @@ document.addEventListener('DOMContentLoaded', () => {
       { clasificador: "EPP", cantidad: 11, entradas: 11, salidas: 0, saldo: 11, icon: "🥽", estado: "Bajo Stock" }
     ];
 
-    const donationsList = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
+    let rawList = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
 
-    const totalIngresos = donationsList.reduce((acc, c) => acc + Number(c.entradas || c.cantidad || 0), 0);
-    const totalEgresos = donationsList.reduce((acc, c) => acc + Number(c.salidas !== undefined ? c.salidas : Math.round((c.cantidad || 0) * 0.163)), 0);
+    // AGRUPACIÓN OBLIGATORIA CLIENTE POR CLASIFICADOR
+    const map = new Map();
+
+    rawList.forEach(item => {
+      let cName = String(item.clasificador || item.clasificacion || item.articuloGeneral || item.articulo || "Otros").trim();
+      cName = cName.replace(/^total\s+/i, '').trim();
+
+      if (!cName) cName = "Otros";
+
+      const ent = Number(item.entradas !== undefined ? item.entradas : (item.cantidad || 0));
+      const sal = Number(item.salidas !== undefined ? item.salidas : 0);
+      const stk = Number(item.saldo !== undefined ? item.saldo : (ent - sal));
+
+      if (!map.has(cName)) {
+        map.set(cName, {
+          clasificador: cName,
+          entradas: 0,
+          salidas: 0,
+          saldo: 0,
+          cantidad: 0,
+          icon: item.icon || getClassifierIcon(cName)
+        });
+      }
+
+      const existing = map.get(cName);
+      existing.entradas += ent;
+      existing.salidas += sal;
+      existing.saldo += stk;
+      existing.cantidad += ent;
+    });
+
+    const aggregated = Array.from(map.values());
+    aggregated.sort((a, b) => b.entradas - a.entradas);
+    return aggregated;
+  }
+
+  function renderDonationsDashboard() {
+    const kpiIngresos = document.getElementById('donations-kpi-ingresos');
+    const kpiEgresos = document.getElementById('donations-kpi-egresos');
+    const kpiStock = document.getElementById('donations-kpi-stock');
+    const kpiTopCat = document.getElementById('donations-kpi-top-cat');
+
+    const donationsList = getAggregatedDonationsByClasificador();
+
+    const totalIngresos = donationsList.reduce((acc, c) => acc + Number(c.entradas || 0), 0);
+    const totalEgresos = donationsList.reduce((acc, c) => acc + Number(c.salidas || 0), 0);
     const totalStock = totalIngresos - totalEgresos;
 
     if (kpiIngresos) kpiIngresos.textContent = `${totalIngresos.toLocaleString('es-CO')} Unid.`;
     if (kpiEgresos) kpiEgresos.textContent = `${totalEgresos.toLocaleString('es-CO')} Unid.`;
     if (kpiStock) kpiStock.textContent = `${totalStock.toLocaleString('es-CO')} Unid.`;
-    if (kpiTopCat) kpiTopCat.textContent = 'Salud & Medicamentos';
+    if (kpiTopCat && donationsList.length > 0) {
+      kpiTopCat.textContent = donationsList[0].clasificador;
+    }
 
     const categoriesGrid = document.getElementById('donations-categories-grid');
     if (categoriesGrid) {
       categoriesGrid.innerHTML = donationsList.map(c => {
-        const entradas = Number(c.entradas || c.cantidad || 0);
-        const salidas = Number(c.salidas !== undefined ? c.salidas : Math.round(entradas * 0.163));
+        const entradas = Number(c.entradas || 0);
+        const salidas = Number(c.salidas || 0);
         const saldo = entradas - salidas;
         const pct = totalIngresos > 0 ? Math.round((entradas / totalIngresos) * 100) : 0;
 
@@ -1565,26 +1626,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exportDonationsToExcel() {
-    const defaultDonations = [
-      { clasificador: "Total Insumos Salud", entradas: 28748, salidas: 4120, saldo: 24628 },
-      { clasificador: "Total Medicamento Salud", entradas: 27334, salidas: 5210, saldo: 22124 },
-      { clasificador: "Total Bebidas", entradas: 16728, salidas: 3450, saldo: 13278 },
-      { clasificador: "Total Varios Bebes", entradas: 15518, salidas: 2180, saldo: 13338 },
-      { clasificador: "Total Aseo Personal", entradas: 9608, salidas: 1420, saldo: 8188 },
-      { clasificador: "Total Mercado", entradas: 7507, salidas: 950, saldo: 6557 },
-      { clasificador: "Total Varios Adulto", entradas: 4281, salidas: 620, saldo: 3661 },
-      { clasificador: "Total Frutas o Verduras", entradas: 978, salidas: 240, saldo: 738 },
-      { clasificador: "Total Insumos", entradas: 875, salidas: 110, saldo: 765 },
-      { clasificador: "Total Mecato", entradas: 553, salidas: 85, saldo: 468 },
-      { clasificador: "Total Varios General", entradas: 519, salidas: 40, saldo: 479 },
-      { clasificador: "Total Enseres", entradas: 337, salidas: 15, saldo: 322 },
-      { clasificador: "Total Comida Animales", entradas: 181, salidas: 10, saldo: 171 },
-      { clasificador: "Total Aseo General", entradas: 95, salidas: 0, saldo: 95 },
-      { clasificador: "Total EPP", entradas: 11, salidas: 0, saldo: 11 }
-    ];
-
-    const list = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
-    const totalIngresos = list.reduce((acc, c) => acc + Number(c.entradas || c.cantidad || 0), 0);
+    const list = getAggregatedDonationsByClasificador();
+    const totalIngresos = list.reduce((acc, c) => acc + Number(c.entradas || 0), 0);
 
     let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
