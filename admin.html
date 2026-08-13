@@ -159,9 +159,14 @@
             <div class="kpi-subtext">Sin necesidad de apoyos</div>
           </div>
           <div class="kpi-card kpi-warning">
-            <div class="kpi-header">Afectación Leve / Orientación</div>
+            <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
             <div class="kpi-value" id="kpi-leve">0</div>
-            <div class="kpi-subtext">Solicitan apoyos / orientación</div>
+            <div class="kpi-subtext">Afectación leve / moderada</div>
+          </div>
+          <div class="kpi-card kpi-info">
+            <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
+            <div class="kpi-value" id="kpi-psico-directo">0</div>
+            <div class="kpi-subtext">Solicitud explícita en encuesta</div>
           </div>
           <div class="kpi-card kpi-danger">
             <div class="kpi-header">Prioridad Crítica</div>
@@ -383,55 +388,25 @@
           </div>
         </div>
 
-        <!-- TARJETAS INTERACTIVAS CON DESGLOSE DE ESTADOS POR ACTIVIDAD -->
+        <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST -->
         <div class="kpi-grid" style="margin-bottom:24px;">
           
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('psicologico')" title="Haz clic para cargar los casos PENDIENTES por atender de Apoyo Psicológico" style="border-left: 5px solid #8B5CF6;">
-            <div class="kpi-header">🧠 Apoyo Psicológico 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-psico" style="color:#8B5CF6;">0</div>
-            <div id="mgmt-kpi-psico-breakdown" class="kpi-breakdown-container">
-              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
-              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
-              <span class="badge-kpi-res">🟢 0 Resueltos</span>
-            </div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
+            <div class="kpi-header" style="color:#B45309;">🟡 1. Pendientes por Contactar</div>
+            <div class="kpi-value" id="mgmt-global-kpi-pend" style="color:#B45309;">0</div>
+            <div class="kpi-subtext" style="color:#92400E; font-weight:700;">Requieren primer contacto del equipo SST</div>
           </div>
 
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('social')" title="Haz clic para cargar los casos PENDIENTES por atender de Trabajo Social" style="border-left: 5px solid #0284C7;">
-            <div class="kpi-header">🤝 Trabajo Social 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-social" style="color:#0284C7;">0</div>
-            <div id="mgmt-kpi-social-breakdown" class="kpi-breakdown-container">
-              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
-              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
-              <span class="badge-kpi-res">🟢 0 Resueltos</span>
-            </div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('proceso')" title="Haz clic para filtrar casos EN ATENCIÓN / PROCESO" style="border-left: 5px solid #0284C7; background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%);">
+            <div class="kpi-header" style="color:#0369A1;">🔵 2. En Atención / Gestión</div>
+            <div class="kpi-value" id="mgmt-global-kpi-proc" style="color:#0369A1;">0</div>
+            <div class="kpi-subtext" style="color:#075985; font-weight:700;">En seguimiento activo por profesional SST</div>
           </div>
 
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('medicamentos')" title="Haz clic para cargar los casos PENDIENTES por atender de Medicamentos" style="border-left: 5px solid #DC3545;">
-            <div class="kpi-header">💊 Medicamentos / Salud 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-meds" style="color:#DC3545;">0</div>
-            <div id="mgmt-kpi-meds-breakdown" class="kpi-breakdown-container">
-              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
-              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
-              <span class="badge-kpi-res">🟢 0 Resueltos</span>
-            </div>
-          </div>
-
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('alimentos')" title="Haz clic para cargar los casos PENDIENTES por atender de Alimentos" style="border-left: 5px solid #D97706;">
-            <div class="kpi-header">📦 Kits de Alimentos 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-alimentos" style="color:#D97706;">0</div>
-            <div id="mgmt-kpi-alimentos-breakdown" class="kpi-breakdown-container">
-              <span class="badge-kpi-pend">🟡 0 Pendientes</span>
-              <span class="badge-kpi-proc">🔵 0 En Gestión</span>
-              <span class="badge-kpi-res:">🟢 0 Resueltos</span>
-            </div>
-          </div>
-
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByCard && window.filterMgmtByCard('resueltos')" title="Haz clic para consultar el Histórico de Casos Resueltos" style="border-left: 5px solid #25D366;">
-            <div class="kpi-header">🟢 Total Casos Resueltos 🔍</div>
-            <div class="kpi-value" id="mgmt-kpi-resueltos" style="color:#25D366;">0</div>
-            <div id="mgmt-kpi-resueltos-breakdown" class="kpi-breakdown-container">
-              <span class="badge-kpi-res" style="width:100%; justify-content:center;">🎉 Histórico de Casos Cerrados</span>
-            </div>
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('resuelto')" title="Haz clic para consultar HISTÓRICO DE CASOS CERRADOS" style="border-left: 5px solid #107C41; background: linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 100%);">
+            <div class="kpi-header" style="color:#065F46;">🟢 3. Apoyos Entregados / Resueltos</div>
+            <div class="kpi-value" id="mgmt-global-kpi-res" style="color:#065F46;">0</div>
+            <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
           </div>
 
         </div>
@@ -507,6 +482,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260813_02"></script>
+  <script src="app.js?v=20260813_04"></script>
 </body>
 </html>

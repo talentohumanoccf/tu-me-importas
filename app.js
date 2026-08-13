@@ -151,32 +151,21 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerGlobalFilter = function() { applyFilters(true); };
   window.triggerMgmtRender = function() { renderManagementDashboard(true); };
   
-  // FILTRADO INTELIGENTE AL HACER CLIC EN LAS FICHAS KPI
-  window.filterMgmtByCard = function(cardType) {
+  // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
+  window.filterMgmtByStatusCard = function(status) {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
-    if (!elStatus || !elCat) return;
+    if (!elStatus) return;
 
-    if (cardType === 'resueltos') {
-      elStatus.value = 'resuelto';
-      elCat.value = 'all';
-    } else {
-      elCat.value = cardType;
-
-      const pendingCount = state.reports.filter(r => {
-        return isNeedSupport(r) && getNormalizedMgmtStatus(r) === 'pendiente' && matchesCategory(r, cardType);
-      }).length;
-
-      if (pendingCount > 0) {
-        elStatus.value = 'pendiente';
-      } else {
-        elStatus.value = 'all';
-      }
-    }
+    elStatus.value = status;
+    elStatus.dataset.manualOverride = 'true';
+    if (elCat) elCat.value = 'all';
 
     renderManagementDashboard(true);
   };
+
+  window.filterMgmtByCard = window.filterMgmtByStatusCard;
 
   window.claimCase = function(doc) {
     state.isTypingActive = false;
@@ -635,15 +624,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const urgente = dataset.filter(r => r.criticidad === 'rojo').length;
     const sinLugar = dataset.filter(r => r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.includes('impiden'))).length;
 
+    // Conteo de Solicitud Explícita de Apoyo Psicológico
+    const psicoDirecto = dataset.filter(r => matchesCategory(r, 'psicologico')).length;
+
     const elTotal = document.getElementById('kpi-total');
     const elSalvo = document.getElementById('kpi-salvo');
     const elLeve = document.getElementById('kpi-leve');
+    const elPsicoDirecto = document.getElementById('kpi-psico-directo');
     const elUrgente = document.getElementById('kpi-urgente');
     const elVivienda = document.getElementById('kpi-vivienda');
 
     if (elTotal) elTotal.textContent = total;
     if (elSalvo) elSalvo.textContent = salvo;
-    if (elLeve) elLeve.textContent = leve;
+    if (elLeve) elLeve.textContent = leve; // 633: Pueden requerir apoyo psicológico
+    if (elPsicoDirecto) elPsicoDirecto.textContent = psicoDirecto; // 68: Solicitaron apoyo psicológico
     if (elUrgente) elUrgente.textContent = urgente;
     if (elVivienda) elVivienda.textContent = sinLugar;
   }
@@ -659,12 +653,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
     let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
     let countAlimentos = 0, countAlimentosPend = 0, countAlimentosProc = 0, countAlimentosRes = 0;
-    let countResueltos = 0;
+    let globalPend = 0, globalProc = 0, globalRes = 0;
 
     state.reports.forEach(r => {
       if (isNeedSupport(r)) {
         const st = getNormalizedMgmtStatus(r);
-        if (st === 'resuelto') countResueltos++;
+        if (st === 'resuelto') globalRes++;
+        else if (st === 'proceso') globalProc++;
+        else globalPend++;
 
         if (matchesCategory(r, 'psicologico')) {
           countPsico++;
@@ -693,52 +689,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    const elPsico = document.getElementById('mgmt-kpi-psico');
-    const elSocial = document.getElementById('mgmt-kpi-social');
-    const elMeds = document.getElementById('mgmt-kpi-meds');
-    const elAlimentos = document.getElementById('mgmt-kpi-alimentos');
-    const elResueltos = document.getElementById('mgmt-kpi-resueltos');
+    const elGlobalPend = document.getElementById('mgmt-global-kpi-pend');
+    const elGlobalProc = document.getElementById('mgmt-global-kpi-proc');
+    const elGlobalRes = document.getElementById('mgmt-global-kpi-res');
 
-    if (elPsico) elPsico.innerHTML = `${countPsicoPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
-    if (elSocial) elSocial.innerHTML = `${countSocialPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
-    if (elMeds) elMeds.innerHTML = `${countMedsPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
-    if (elAlimentos) elAlimentos.innerHTML = `${countAlimentosPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Pendientes</small>`;
-    if (elResueltos) elResueltos.innerHTML = `${countResueltos} <small style="font-size:0.85rem; color:#065F46; font-weight:700;">Cerrados</small>`;
-
-    const makeBreakdownHTML = (pend, proc, res) => `
-      <div style="display:flex; justify-content:space-between; width:100%; gap:4px; margin-top:2px;">
-        <span class="badge-kpi-pend" title="Casos sin contactar">🟡 ${pend} Pend.</span>
-        <span class="badge-kpi-proc" title="En atención / gestión">🔵 ${proc} Proc.</span>
-        <span class="badge-kpi-res" title="Apoyos entregados">🟢 ${res} Res.</span>
-      </div>
-    `;
-
-    const kpiCards = [
-      { selector: '.clickable-kpi-card[onclick*="psicologico"]', pend: countPsicoPend, proc: countPsicoProc, res: countPsicoRes },
-      { selector: '.clickable-kpi-card[onclick*="social"]', pend: countSocialPend, proc: countSocialProc, res: countSocialRes },
-      { selector: '.clickable-kpi-card[onclick*="medicamentos"]', pend: countMedsPend, proc: countMedsProc, res: countMedsRes },
-      { selector: '.clickable-kpi-card[onclick*="alimentos"]', pend: countAlimentosPend, proc: countAlimentosProc, res: countAlimentosRes }
-    ];
-
-    kpiCards.forEach(c => {
-      const cardEl = document.querySelector(c.selector);
-      if (cardEl) {
-        let bdEl = cardEl.querySelector('.kpi-breakdown-container') || cardEl.querySelector('.kpi-subtext');
-        if (bdEl) {
-          bdEl.className = 'kpi-breakdown-container';
-          bdEl.innerHTML = makeBreakdownHTML(c.pend, c.proc, c.res);
-        }
-      }
-    });
-
-    const resCard = document.querySelector('.clickable-kpi-card[onclick*="resueltos"]');
-    if (resCard) {
-      let bdEl = resCard.querySelector('.kpi-breakdown-container') || resCard.querySelector('.kpi-subtext');
-      if (bdEl) {
-        bdEl.className = 'kpi-breakdown-container';
-        bdEl.innerHTML = `<span class="badge-kpi-res" style="width:100%; justify-content:center; padding:4px 8px;">🎉 ${countResueltos} Casos Entregados / Resueltos</span>`;
-      }
-    }
+    if (elGlobalPend) elGlobalPend.innerHTML = `${globalPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Casos</small>`;
+    if (elGlobalProc) elGlobalProc.innerHTML = `${globalProc} <small style="font-size:0.85rem; color:#075985; font-weight:700;">Casos</small>`;
+    if (elGlobalRes) elGlobalRes.innerHTML = `${globalRes} <small style="font-size:0.85rem; color:#065F46; font-weight:700;">Casos</small>`;
 
     const visualChartsContainer = document.getElementById('mgmt-visual-charts-container');
     if (visualChartsContainer) {

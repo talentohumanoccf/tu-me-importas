@@ -221,6 +221,8 @@ body {
 .kpi-success { border-left: 5px solid var(--success); }
 .kpi-warning { border-left: 5px solid var(--accent); }
 .kpi-danger { border-left: 5px solid var(--danger); }
+.kpi-info { border-left: 5px solid #6366F1; }
+.kpi-info .kpi-value { color: #4F46E5; }
 
 .kpi-header {
   font-size: 0.8rem;
