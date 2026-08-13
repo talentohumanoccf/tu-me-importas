@@ -270,7 +270,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function sendManagementToSheets(doc, statusVal, notesVal, operatorVal) {
+  async function sendManagementToSheets(doc, statusVal, notesVal, operatorVal) {
+    if (!state.googleSheetsUrl) return;
+
+    const cleanNotes = sanitizeNotes(notesVal);
+    const url = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(cleanNotes)}&operator=${encodeURIComponent(operatorVal || 'Operador SST')}&_t=${Date.now()}`;
+
+    // 1. INTENTO PRIMARIO VÍA FETCH API NATIVO
+    try {
+      const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+      if (response.ok) {
+        console.log('✅ Gestión SST guardada exitosamente vía Fetch en Google Sheets.');
+        return;
+      }
+    } catch(err) {
+      console.log('ℹ️ Fetch directo con restricciones de política de red, intentando fallback vía script tag JSONP...');
+    }
+
+    // 2. FALLBACK SECUNDARIO VÍA SCRIPT TAG JSONP
     const callbackName = 'onMgmtSaveResult';
     const scriptId = 'jsonp-save-mgmt-sync';
     
@@ -279,10 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(sanitizeNotes(notesVal))}&operator=${encodeURIComponent(operatorVal)}&callback=${callbackName}`;
+    script.src = `${url}&callback=${callbackName}`;
     
-    window.onMgmtSaveResult = function() {
-      console.log('✅ Estado y Responsable SST sincronizados con Google Sheets.');
+    window.onMgmtSaveResult = function(res) {
+      console.log('✅ Estado y Responsable SST sincronizados con Google Sheets vía JSONP:', res);
     };
 
     document.body.appendChild(script);
