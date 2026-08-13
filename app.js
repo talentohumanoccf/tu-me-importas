@@ -382,29 +382,44 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setupTabsNavigation() {
-    if (tabBtnMain) tabBtnMain.addEventListener('click', () => switchTab('main'));
-    if (tabBtnAnalytics) tabBtnAnalytics.addEventListener('click', () => switchTab('analytics'));
-    if (tabBtnManagement) tabBtnManagement.addEventListener('click', () => switchTab('management'));
-    if (tabBtnDonations) tabBtnDonations.addEventListener('click', () => switchTab('donations'));
+    const btn1 = document.getElementById('tab-btn-main');
+    const btn2 = document.getElementById('tab-btn-analytics');
+    const btn3 = document.getElementById('tab-btn-management');
+    const btn4 = document.getElementById('tab-btn-donations');
+
+    if (btn1) btn1.addEventListener('click', () => switchTab('main'));
+    if (btn2) btn2.addEventListener('click', () => switchTab('analytics'));
+    if (btn3) btn3.addEventListener('click', () => switchTab('management'));
+    if (btn4) btn4.addEventListener('click', () => switchTab('donations'));
   }
 
   function switchTab(tabName) {
     state.activeTab = tabName;
     
-    [tabBtnMain, tabBtnAnalytics, tabBtnManagement, tabBtnDonations].forEach(btn => { if(btn) btn.classList.remove('active'); });
-    [tabContentMain, tabContentAnalytics, tabContentManagement, tabContentDonations].forEach(content => { if(content) content.style.display = 'none'; });
+    const btn1 = document.getElementById('tab-btn-main');
+    const btn2 = document.getElementById('tab-btn-analytics');
+    const btn3 = document.getElementById('tab-btn-management');
+    const btn4 = document.getElementById('tab-btn-donations');
+
+    const c1 = document.getElementById('tab-content-main');
+    const c2 = document.getElementById('tab-content-analytics');
+    const c3 = document.getElementById('tab-content-management');
+    const c4 = document.getElementById('tab-content-donations');
+
+    [btn1, btn2, btn3, btn4].forEach(btn => { if(btn) btn.classList.remove('active'); });
+    [c1, c2, c3, c4].forEach(content => { if(content) content.style.display = 'none'; });
 
     if (tabName === 'main') {
-      if(tabBtnMain) tabBtnMain.classList.add('active');
-      if(tabContentMain) tabContentMain.style.display = 'block';
+      if(btn1) btn1.classList.add('active');
+      if(c1) c1.style.display = 'block';
       if (state.map) setTimeout(() => state.map.invalidateSize(), 150);
     } else if (tabName === 'analytics') {
-      if(tabBtnAnalytics) tabBtnAnalytics.classList.add('active');
-      if(tabContentAnalytics) tabContentAnalytics.style.display = 'block';
+      if(btn2) btn2.classList.add('active');
+      if(c2) c2.style.display = 'block';
       renderAnalyticsDashboard();
     } else if (tabName === 'management') {
-      if(tabBtnManagement) tabBtnManagement.classList.add('active');
-      if(tabContentManagement) tabContentManagement.style.display = 'block';
+      if(btn3) btn3.classList.add('active');
+      if(c3) c3.style.display = 'block';
 
       const elStatus = document.getElementById('mgmt-filter-status');
       if (elStatus && !elStatus.dataset.manualOverride) {
@@ -413,8 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderManagementDashboard(true);
     } else if (tabName === 'donations') {
-      if(tabBtnDonations) tabBtnDonations.classList.add('active');
-      if(tabContentDonations) tabContentDonations.style.display = 'block';
+      if(btn4) btn4.classList.add('active');
+      if(c4) c4.style.display = 'block';
       renderDonationsDashboard();
     }
   }
@@ -1477,10 +1492,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden;">
               <div style="background:linear-gradient(90deg, #003366 0%, #00A88F 100%); width:${Math.max(pct, 2)}%; height:100%;"></div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-              <span>📅 11-Ago: ${(c.d11 || 0).toLocaleString()}</span>
-              <span>📅 12-Ago: ${(c.d12 || 0).toLocaleString()}</span>
-              <span>📅 13-Ago: ${(c.d13 || 0).toLocaleString()}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:var(--text-muted); margin-top:8px; font-weight:700;">
+              <span>📦 Acumulado Bodega: <b style="color:var(--primary);">${c.cantidad.toLocaleString('es-CO')} Unid.</b></span>
+              <span style="color:#059669; background:#D1FAE5; padding:2px 8px; border-radius:8px; font-size:0.72rem;">🟢 Disponible</span>
             </div>
           </div>
         `;
