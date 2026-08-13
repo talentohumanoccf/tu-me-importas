@@ -198,6 +198,28 @@ document.addEventListener('DOMContentLoaded', () => {
     alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso se ha movido automáticamente a tu bandeja de 'Mis Casos Asignados'.`);
   };
 
+  window.releaseCase = function(doc) {
+    state.isTypingActive = false;
+    const existing = state.supportManagement[doc] || {};
+    const notesEl = document.getElementById(`mgmt-notes-${doc}`);
+    const currentNotesValue = notesEl ? sanitizeNotes(notesEl.value) : sanitizeNotes(existing.notes || '');
+
+    const newStatus = 'pendiente';
+    const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
+
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+
+    updateLocalManagementState(doc, newStatus, currentNotesValue, 'Sin asignar', nowStr);
+
+    if (state.googleSheetsUrl && navigator.onLine) {
+      sendManagementToSheets(doc, newStatus, currentNotesValue, 'Sin asignar');
+    }
+
+    renderDashboard(true);
+  };
+
   window.triggerExcelExport = function(isFilteredOnly) {
     if (isFilteredOnly) {
       exportFilteredToExcel();
@@ -850,10 +872,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isTakenByOther) {
         concurrencyLockHTML = `<div class="case-locked-badge">🔒 En atención por: <b>${mgmt.operator}</b></div>`;
       } else if (isTakenByMe) {
-        concurrencyLockHTML = `<div class="case-locked-badge" style="background:#D1FAE5; color:#065F46; border-color:#86EFAC;">✋ En atención por TI</div>`;
+        concurrencyLockHTML = `
+          <div class="case-locked-badge" style="background:#D1FAE5; color:#065F46; border-color:#86EFAC; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 10px;">
+            <span>✋ En atención por TI</span>
+            <button onclick="window.releaseCase('${doc}')" title="Haz clic para desmarcar este caso y devolverlo a Pendiente" style="background:#DC2626; color:#FFFFFF; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:800; font-size:0.75rem; transition:all 0.2s; box-shadow:0 2px 4px rgba(220,38,38,0.2);">↩️ Desmarcar</button>
+          </div>
+        `;
       } else {
         concurrencyLockHTML = `<button onclick="window.claimCase('${doc}')" class="btn-claim-case">✋ Tomar Caso</button>`;
       }
+
+      const releaseBtnHTML = st !== 'pendiente' 
+        ? `<button onclick="window.releaseCase('${doc}')" class="action-btn-sm" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; font-weight:700;" title="Devolver este caso a Pendiente">↩️ Liberar</button>`
+        : '';
 
       const lastOperatorHTML = mgmt.operator 
         ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; line-height:1.2;">👤 <b>Responsable:</b> ${mgmt.operator} ${mgmt.updatedAt ? `<br><small style="color:#64748B;">🕒 ${mgmt.updatedAt}</small>` : ''}</div>`
@@ -894,6 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
               <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn">💾 Guardar</button>
+              ${releaseBtnHTML}
               ${whatsappBtn}
               ${callBtn}
             </div>
