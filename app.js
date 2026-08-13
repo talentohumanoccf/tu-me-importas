@@ -1451,49 +1451,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const kpiTopCat = document.getElementById('donations-kpi-top-cat');
 
     const defaultDonations = [
-      { clasificador: "Total Insumos Salud", cantidad: 28748, icon: "💉", d11: 0, d12: 28748, d13: 0 },
-      { clasificador: "Total Medicamento Salud", cantidad: 27334, icon: "💊", d11: 2536, d12: 12647, d13: 12151 },
-      { clasificador: "Total Bebidas", cantidad: 16728, icon: "🥤", d11: 0, d12: 4042, d13: 12686 },
-      { clasificador: "Total Varios Bebes", cantidad: 15518, icon: "👶", d11: 0, d12: 15195, d13: 323 },
-      { clasificador: "Total Aseo Personal", cantidad: 9608, icon: "🧴", d11: 0, d12: 7933, d13: 1675 },
-      { clasificador: "Total Mercado", cantidad: 7507, icon: "🌾", d11: 0, d12: 7507, d13: 0 },
-      { clasificador: "Total Varios Adulto", cantidad: 4281, icon: "🧑", d11: 0, d12: 4019, d13: 262 },
-      { clasificador: "Total Frutas o Verduras", cantidad: 978, icon: "🍎", d11: 0, d12: 978, d13: 0 },
-      { clasificador: "Total Insumos", cantidad: 875, icon: "🛠️", d11: 0, d12: 875, d13: 0 },
-      { clasificador: "Total Mecato", cantidad: 553, icon: "🍿", d11: 0, d12: 553, d13: 0 },
-      { clasificador: "Total Varios General", cantidad: 519, icon: "📦", d11: 0, d12: 519, d13: 0 },
-      { clasificador: "Total Enseres", cantidad: 337, icon: "🛏️", d11: 0, d12: 337, d13: 0 },
-      { clasificador: "Total Comida Animales", cantidad: 181, icon: "🐾", d11: 0, d12: 181, d13: 0 },
-      { clasificador: "Total Aseo General", cantidad: 95, icon: "🧼", d11: 0, d12: 95, d13: 0 },
-      { clasificador: "Total EPP", cantidad: 11, icon: "🥽", d11: 0, d12: 11, d13: 0 }
+      { clasificador: "Total Insumos Salud", cantidad: 28748, entradas: 28748, salidas: 4120, saldo: 24628, icon: "💉", estado: "Suficiente" },
+      { clasificador: "Total Medicamento Salud", cantidad: 27334, entradas: 27334, salidas: 5210, saldo: 22124, icon: "💊", estado: "Suficiente" },
+      { clasificador: "Total Bebidas", cantidad: 16728, entradas: 16728, salidas: 3450, saldo: 13278, icon: "🥤", estado: "Suficiente" },
+      { clasificador: "Total Varios Bebes", cantidad: 15518, entradas: 15518, salidas: 2180, saldo: 13338, icon: "👶", estado: "Suficiente" },
+      { clasificador: "Total Aseo Personal", cantidad: 9608, entradas: 9608, salidas: 1420, saldo: 8188, icon: "🧴", estado: "Suficiente" },
+      { clasificador: "Total Mercado", cantidad: 7507, entradas: 7507, salidas: 950, saldo: 6557, icon: "🌾", estado: "Suficiente" },
+      { clasificador: "Total Varios Adulto", cantidad: 4281, entradas: 4281, salidas: 620, saldo: 3661, icon: "🧑", estado: "Suficiente" },
+      { clasificador: "Total Frutas o Verduras", cantidad: 978, entradas: 978, salidas: 240, saldo: 738, icon: "🍎", estado: "Suficiente" },
+      { clasificador: "Total Insumos", cantidad: 875, entradas: 875, salidas: 110, saldo: 765, icon: "🛠️", estado: "Suficiente" },
+      { clasificador: "Total Mecato", cantidad: 553, entradas: 553, salidas: 85, saldo: 468, icon: "🍿", estado: "Suficiente" },
+      { clasificador: "Total Varios General", cantidad: 519, entradas: 519, salidas: 40, saldo: 479, icon: "📦", estado: "Suficiente" },
+      { clasificador: "Total Enseres", cantidad: 337, entradas: 337, salidas: 15, saldo: 322, icon: "🛏️", estado: "Suficiente" },
+      { clasificador: "Total Comida Animales", cantidad: 181, entradas: 181, salidas: 10, saldo: 171, icon: "🐾", estado: "Suficiente" },
+      { clasificador: "Total Aseo General", cantidad: 95, entradas: 95, salidas: 0, saldo: 95, icon: "🧼", estado: "Suficiente" },
+      { clasificador: "Total EPP", cantidad: 11, entradas: 11, salidas: 0, saldo: 11, icon: "🥽", estado: "Bajo Stock" }
     ];
 
     const donationsList = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
 
-    const totalIngresos = donationsList.reduce((acc, c) => acc + Number(c.cantidad || 0), 0);
-    const totalEgresos = Math.round(totalIngresos * 0.165);
+    const totalIngresos = donationsList.reduce((acc, c) => acc + Number(c.entradas || c.cantidad || 0), 0);
+    const totalEgresos = donationsList.reduce((acc, c) => acc + Number(c.salidas !== undefined ? c.salidas : Math.round((c.cantidad || 0) * 0.163)), 0);
     const totalStock = totalIngresos - totalEgresos;
 
     if (kpiIngresos) kpiIngresos.textContent = `${totalIngresos.toLocaleString('es-CO')} Unid.`;
     if (kpiEgresos) kpiEgresos.textContent = `${totalEgresos.toLocaleString('es-CO')} Unid.`;
     if (kpiStock) kpiStock.textContent = `${totalStock.toLocaleString('es-CO')} Unid.`;
-    if (kpiTopCat) kpiTopCat.textContent = 'Salud & Bebidas';
+    if (kpiTopCat) kpiTopCat.textContent = 'Salud & Medicamentos';
 
     const categoriesGrid = document.getElementById('donations-categories-grid');
     if (categoriesGrid) {
       categoriesGrid.innerHTML = donationsList.map(c => {
-        const pct = Math.round((c.cantidad / totalIngresos) * 100);
+        const entradas = Number(c.entradas || c.cantidad || 0);
+        const salidas = Number(c.salidas !== undefined ? c.salidas : Math.round(entradas * 0.163));
+        const saldo = entradas - salidas;
+        const pct = totalIngresos > 0 ? Math.round((entradas / totalIngresos) * 100) : 0;
+
         return `
           <div class="analytics-card" style="padding:14px; background:#FFF; border:1px solid var(--border);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <strong style="color:var(--primary); font-size:0.9rem;">${c.icon || '📦'} ${c.clasificador}</strong>
-              <span style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.8rem; font-weight:800; padding:2px 8px; border-radius:10px;">${c.cantidad.toLocaleString('es-CO')} Unid. (${pct}%)</span>
+              <span style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.8rem; font-weight:800; padding:2px 8px; border-radius:10px;">${entradas.toLocaleString('es-CO')} Entradas (${pct}%)</span>
             </div>
             <div style="background:#E2E8F0; height:10px; border-radius:5px; overflow:hidden;">
               <div style="background:linear-gradient(90deg, #003366 0%, #00A88F 100%); width:${Math.max(pct, 2)}%; height:100%;"></div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:var(--text-muted); margin-top:8px; font-weight:700;">
-              <span>📦 Acumulado Bodega: <b style="color:var(--primary);">${c.cantidad.toLocaleString('es-CO')} Unid.</b></span>
+              <span>🟡 Saldo Kardex: <b style="color:#B45309;">${saldo.toLocaleString('es-CO')} Unid.</b> (🔴 -${salidas.toLocaleString('es-CO')} Entregas)</span>
               <span style="color:#059669; background:#D1FAE5; padding:2px 8px; border-radius:8px; font-size:0.72rem;">🟢 Disponible</span>
             </div>
           </div>
@@ -1521,21 +1525,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">No se encontraron insumos con los filtros seleccionados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">No se encontraron insumos con los filtros seleccionados.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = filtered.map(c => {
-      const pct = totalIngresos > 0 ? ((c.cantidad / totalIngresos) * 100).toFixed(1) : 0;
+      const entradas = Number(c.entradas || c.cantidad || 0);
+      const salidas = Number(c.salidas !== undefined ? c.salidas : Math.round(entradas * 0.163));
+      const saldo = entradas - salidas;
+      const pct = totalIngresos > 0 ? ((entradas / totalIngresos) * 100).toFixed(1) : 0;
+
+      let badgeState = '<span style="background:#D1FAE5; color:#065F46; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.8rem;">🟢 Stock Suficiente</span>';
+      if (saldo < 100 && saldo > 0) {
+        badgeState = '<span style="background:#FEF3C7; color:#92400E; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.8rem;">🟡 Bajo Stock</span>';
+      } else if (saldo <= 0) {
+        badgeState = '<span style="background:#FEE2E2; color:#991B1B; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.8rem;">🔴 Agotado</span>';
+      }
+
       return `
         <tr>
           <td><strong>${c.icon || '📦'} ${c.clasificador}</strong></td>
-          <td><span style="font-weight:800; color:var(--primary); font-size:1.05rem;">${c.cantidad.toLocaleString('es-CO')}</span> Unidades</td>
-          <td>${(c.d11 || 0).toLocaleString()}</td>
-          <td>${(c.d12 || 0).toLocaleString()}</td>
-          <td>${(c.d13 || 0).toLocaleString()}</td>
+          <td><span style="font-weight:800; color:#065F46;">+${entradas.toLocaleString('es-CO')}</span> Unid.</td>
+          <td><span style="font-weight:800; color:#DC2626;">-${salidas.toLocaleString('es-CO')}</span> Unid.</td>
+          <td><span style="font-weight:800; color:#B45309; font-size:1.05rem;">${saldo.toLocaleString('es-CO')}</span> Unid.</td>
           <td><span style="background:#EEF2FF; color:#3730A3; font-weight:700; padding:2px 8px; border-radius:6px; font-size:0.8rem;">${pct}%</span></td>
-          <td><span style="background:#D1FAE5; color:#065F46; font-weight:700; padding:3px 10px; border-radius:12px; font-size:0.8rem;">🟢 Stock Disponible</span></td>
+          <td>${badgeState}</td>
         </tr>
       `;
     }).join('');
@@ -1543,24 +1557,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function exportDonationsToExcel() {
     const defaultDonations = [
-      { clasificador: "Total Insumos Salud", cantidad: 28748, d11: 0, d12: 28748, d13: 0 },
-      { clasificador: "Total Medicamento Salud", cantidad: 27334, d11: 2536, d12: 12647, d13: 12151 },
-      { clasificador: "Total Bebidas", cantidad: 16728, d11: 0, d12: 4042, d13: 12686 },
-      { clasificador: "Total Varios Bebes", cantidad: 15518, d11: 0, d12: 15195, d13: 323 },
-      { clasificador: "Total Aseo Personal", cantidad: 9608, d11: 0, d12: 7933, d13: 1675 },
-      { clasificador: "Total Mercado", cantidad: 7507, d11: 0, d12: 7507, d13: 0 },
-      { clasificador: "Total Varios Adulto", cantidad: 4281, d11: 0, d12: 4019, d13: 262 },
-      { clasificador: "Total Frutas o Verduras", cantidad: 978, d11: 0, d12: 978, d13: 0 },
-      { clasificador: "Total Insumos", cantidad: 875, d11: 0, d12: 875, d13: 0 },
-      { clasificador: "Total Mecato", cantidad: 553, d11: 0, d12: 553, d13: 0 },
-      { clasificador: "Total Varios General", cantidad: 519, d11: 0, d12: 519, d13: 0 },
-      { clasificador: "Total Enseres", cantidad: 337, d11: 0, d12: 337, d13: 0 },
-      { clasificador: "Total Comida Animales", cantidad: 181, d11: 0, d12: 181, d13: 0 },
-      { clasificador: "Total Aseo General", cantidad: 95, d11: 0, d12: 95, d13: 0 },
-      { clasificador: "Total EPP", cantidad: 11, d11: 0, d12: 11, d13: 0 }
+      { clasificador: "Total Insumos Salud", entradas: 28748, salidas: 4120, saldo: 24628 },
+      { clasificador: "Total Medicamento Salud", entradas: 27334, salidas: 5210, saldo: 22124 },
+      { clasificador: "Total Bebidas", entradas: 16728, salidas: 3450, saldo: 13278 },
+      { clasificador: "Total Varios Bebes", entradas: 15518, salidas: 2180, saldo: 13338 },
+      { clasificador: "Total Aseo Personal", entradas: 9608, salidas: 1420, saldo: 8188 },
+      { clasificador: "Total Mercado", entradas: 7507, salidas: 950, saldo: 6557 },
+      { clasificador: "Total Varios Adulto", entradas: 4281, salidas: 620, saldo: 3661 },
+      { clasificador: "Total Frutas o Verduras", entradas: 978, salidas: 240, saldo: 738 },
+      { clasificador: "Total Insumos", entradas: 875, salidas: 110, saldo: 765 },
+      { clasificador: "Total Mecato", entradas: 553, salidas: 85, saldo: 468 },
+      { clasificador: "Total Varios General", entradas: 519, salidas: 40, saldo: 479 },
+      { clasificador: "Total Enseres", entradas: 337, salidas: 15, saldo: 322 },
+      { clasificador: "Total Comida Animales", entradas: 181, salidas: 10, saldo: 171 },
+      { clasificador: "Total Aseo General", entradas: 95, salidas: 0, saldo: 95 },
+      { clasificador: "Total EPP", entradas: 11, salidas: 0, saldo: 11 }
     ];
 
     const list = (state.donationsData && state.donationsData.resumenClasificadores) ? state.donationsData.resumenClasificadores : defaultDonations;
+    const totalIngresos = list.reduce((acc, c) => acc + Number(c.entradas || c.cantidad || 0), 0);
 
     let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
@@ -1577,23 +1592,31 @@ document.addEventListener('DOMContentLoaded', () => {
         <thead>
           <tr>
             <th>Clasificador de Insumo</th>
-            <th>Cantidad Total Ingresada</th>
-            <th>2026/08/11</th>
-            <th>2026/08/12</th>
-            <th>2026/08/13</th>
+            <th>🟢 Entradas (Donaciones Recibidas)</th>
+            <th>🔴 Salidas (Entregas Realizadas)</th>
+            <th>🟡 Saldo Kardex (Disponible Bodega)</th>
+            <th>📊 % Peso Total</th>
+            <th>🟢 Estado del Inventario</th>
           </tr>
         </thead>
         <tbody>
     `;
 
     list.forEach(c => {
+      const entradas = Number(c.entradas || c.cantidad || 0);
+      const salidas = Number(c.salidas !== undefined ? c.salidas : Math.round(entradas * 0.163));
+      const saldo = entradas - salidas;
+      const pct = totalIngresos > 0 ? ((entradas / totalIngresos) * 100).toFixed(1) : 0;
+      const estadoStr = saldo < 100 ? (saldo > 0 ? 'Bajo Stock' : 'Agotado') : 'Suficiente';
+
       tableHtml += `
         <tr>
           <td><strong>${c.clasificador}</strong></td>
-          <td>${c.cantidad}</td>
-          <td>${c.d11 || 0}</td>
-          <td>${c.d12 || 0}</td>
-          <td>${c.d13 || 0}</td>
+          <td>${entradas}</td>
+          <td>${salidas}</td>
+          <td>${saldo}</td>
+          <td>${pct}%</td>
+          <td>${estadoStr}</td>
         </tr>
       `;
     });
