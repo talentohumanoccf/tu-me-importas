@@ -102,10 +102,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const mgmt = state.supportManagement[doc] || {};
     const rawStatus = normalizeStr(mgmt.status || r.gestionStatus || 'pendiente');
 
-    if (rawStatus.includes('resuelt') || rawStatus.includes('entregad') || rawStatus.includes('cerrad')) {
+    if (
+      rawStatus.includes('resuelt') || 
+      rawStatus.includes('finaliz') || 
+      rawStatus.includes('atend') || 
+      rawStatus.includes('entregad') || 
+      rawStatus.includes('cerrad') || 
+      rawStatus.includes('complet') || 
+      rawStatus.includes('listo') ||
+      rawStatus.includes('solucion')
+    ) {
       return 'resuelto';
     }
-    if (rawStatus.includes('proces') || rawStatus.includes('gestion') || rawStatus.includes('atencion')) {
+    if (
+      rawStatus.includes('proces') || 
+      rawStatus.includes('gestion') || 
+      rawStatus.includes('atencion') || 
+      rawStatus.includes('tramit') || 
+      rawStatus.includes('contac') || 
+      rawStatus.includes('revision') ||
+      rawStatus.includes('seguimien')
+    ) {
       return 'proceso';
     }
     return 'pendiente';
@@ -133,10 +150,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const doc = String(r.documento || r.cedula).trim();
     const mgmt = state.supportManagement[doc] || {};
     
-    if (mgmt.subMgmt && mgmt.subMgmt[subKey]) {
-      const subSt = normalizeStr(mgmt.subMgmt[subKey].status);
-      if (subSt.includes('resuelt') || subSt.includes('atend') || subSt.includes('entregad') || subSt.includes('cerrad')) return 'resuelto';
-      if (subSt.includes('proces') || subSt.includes('gestion') || subSt.includes('atencion')) return 'proceso';
+    if (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].status) {
+      const rawStatus = normalizeStr(mgmt.subMgmt[subKey].status);
+      if (
+        rawStatus.includes('resuelt') || 
+        rawStatus.includes('finaliz') || 
+        rawStatus.includes('atend') || 
+        rawStatus.includes('entregad') || 
+        rawStatus.includes('cerrad') || 
+        rawStatus.includes('complet') || 
+        rawStatus.includes('listo') ||
+        rawStatus.includes('solucion')
+      ) {
+        return 'resuelto';
+      }
+      if (
+        rawStatus.includes('proces') || 
+        rawStatus.includes('gestion') || 
+        rawStatus.includes('atencion') || 
+        rawStatus.includes('tramit') || 
+        rawStatus.includes('contac') || 
+        rawStatus.includes('revision') ||
+        rawStatus.includes('seguimien')
+      ) {
+        return 'proceso';
+      }
       return 'pendiente';
     }
     return getNormalizedMgmtStatus(r);
@@ -1065,32 +1103,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (hasPsico) {
           countPsico++;
-          if (st === 'resuelto') countPsicoRes++;
-          else if (st === 'proceso') countPsicoProc++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'psicologico');
+          if (subSt === 'resuelto') countPsicoRes++;
+          else if (subSt === 'proceso') countPsicoProc++;
           else countPsicoPend++;
         }
         if (hasSocial) {
           countSocial++;
-          if (st === 'resuelto') countSocialRes++;
-          else if (st === 'proceso') countSocialProc++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'social');
+          if (subSt === 'resuelto') countSocialRes++;
+          else if (subSt === 'proceso') countSocialProc++;
           else countSocialPend++;
         }
         if (hasMeds) {
           countMeds++;
-          if (st === 'resuelto') countMedsRes++;
-          else if (st === 'proceso') countMedsProc++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'medicamentos');
+          if (subSt === 'resuelto') countMedsRes++;
+          else if (subSt === 'proceso') countMedsProc++;
           else countMedsPend++;
         }
         if (hasAlim) {
           countAlimentos++;
-          if (st === 'resuelto') countAlimentosRes++;
-          else if (st === 'proceso') countAlimentosProc++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'alimentos');
+          if (subSt === 'resuelto') countAlimentosRes++;
+          else if (subSt === 'proceso') countAlimentosProc++;
           else countAlimentosPend++;
         }
         if (!hasPsico && !hasSocial && !hasMeds && !hasAlim) {
           countOtros++;
-          if (st === 'resuelto') countOtrosRes++;
-          else if (st === 'proceso') countOtrosProc++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'general');
+          if (subSt === 'resuelto') countOtrosRes++;
+          else if (subSt === 'proceso') countOtrosProc++;
           else countOtrosPend++;
         }
       }
