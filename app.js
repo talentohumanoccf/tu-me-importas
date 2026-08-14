@@ -708,6 +708,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getConfrontationMetrics(categoryKey) {
+    let solicitados = 0;
+    let intervencionAtendida = 0;
+    let intervencionEnProceso = 0;
+    let pendientes = 0;
+
+    state.reports.forEach(r => {
+      let isMatch = false;
+      if (categoryKey === 'vivienda') {
+        isMatch = (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden')));
+      } else {
+        isMatch = matchesCategory(r, categoryKey);
+      }
+
+      if (isMatch) {
+        solicitados++;
+        const st = getNormalizedMgmtStatus(r);
+
+        if (st === 'resuelto') {
+          intervencionAtendida++;
+        } else if (st === 'proceso') {
+          intervencionEnProceso++;
+        } else {
+          pendientes++;
+        }
+      }
+    });
+
+    const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
+    const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
+    return { solicitados, totalIntervenidos, intervencionAtendida, intervencionEnProceso, pendientes, pct };
+  }
+
   function renderConfrontationInterventions() {
     const grid = document.getElementById('confrontation-interventions-grid');
     if (!grid) return;
@@ -721,40 +754,14 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' }
     ];
 
-    const dataset = state.reports; // Usar universo completo de reportes para métricas ejecutivas
-
     grid.innerHTML = categories.map(cat => {
-      let solicitados = 0;
-      let intervencionAtendida = 0;
-      let intervencionEnProceso = 0;
-      let pendientes = 0;
-
-      dataset.forEach(r => {
-        let isMatch = false;
-        if (cat.key === 'vivienda') {
-          isMatch = (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden')));
-        } else {
-          isMatch = matchesCategory(r, cat.key);
-        }
-
-        if (isMatch) {
-          solicitados++;
-          const doc = String(r.documento || r.cedula || '').trim();
-          const mgmt = state.supportManagement[doc] || {};
-          const st = (r.gestionStatus || mgmt.status || 'pendiente').toLowerCase();
-
-          if (st === 'resuelto' || st === 'atendido' || st === 'contactado' || st === 'finalizado') {
-            intervencionAtendida++;
-          } else if (st === 'proceso' || st === 'en proceso') {
-            intervencionEnProceso++;
-          } else {
-            pendientes++;
-          }
-        }
-      });
-
-      const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
-      const pctCobertura = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
+      const metrics = getConfrontationMetrics(cat.key);
+      const solicitados = metrics.solicitados;
+      const totalIntervenidos = metrics.totalIntervenidos;
+      const intervencionAtendida = metrics.intervencionAtendida;
+      const intervencionEnProceso = metrics.intervencionEnProceso;
+      const pendientes = metrics.pendientes;
+      const pctCobertura = metrics.pct;
 
       return `
         <div class="analytics-card" style="background:#FFF; border:1px solid var(--border); padding:16px; border-radius:14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
@@ -796,42 +803,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const total = dataset.length;
     const salvo = dataset.filter(r => r.criticidad === 'verde').length;
     const leve = dataset.filter(r => r.criticidad === 'amarillo').length;
-
-    // HELPER DE CONFRONTACIÓN EN TIEMPO REAL (DEMANDA VS INTERVENCIONES SST)
-    function getConfrontationMetrics(categoryKey) {
-      let solicitados = 0;
-      let intervencionAtendida = 0;
-      let intervencionEnProceso = 0;
-      let pendientes = 0;
-
-      dataset.forEach(r => {
-        let isMatch = false;
-        if (categoryKey === 'vivienda') {
-          isMatch = (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden')));
-        } else {
-          isMatch = matchesCategory(r, categoryKey);
-        }
-
-        if (isMatch) {
-          solicitados++;
-          const doc = String(r.documento || r.cedula || '').trim();
-          const mgmt = state.supportManagement[doc] || {};
-          const st = (r.gestionStatus || mgmt.status || 'pendiente').toLowerCase();
-
-          if (st === 'resuelto' || st === 'atendido' || st === 'contactado' || st === 'finalizado') {
-            intervencionAtendida++;
-          } else if (st === 'proceso' || st === 'en proceso') {
-            intervencionEnProceso++;
-          } else {
-            pendientes++;
-          }
-        }
-      });
-
-      const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
-      const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
-      return { solicitados, totalIntervenidos, intervencionAtendida, intervencionEnProceso, pendientes, pct };
-    }
 
     const psico = getConfrontationMetrics('psicologico');
     const alimentos = getConfrontationMetrics('alimentos');
