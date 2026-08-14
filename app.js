@@ -1200,20 +1200,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const rowStyle = isTakenByOther ? 'background-color: rgba(224, 242, 254, 0.4);' : '';
 
-      const notesDisplayValue = sanitizeNotes(mgmt.notes || r.gestionNotes);
-
-      return `
-        <tr style="${rowStyle}">
-          <td>
-            <strong>${r.nombre || 'Colaborador'}</strong><br>
-            <small style="color:var(--text-muted)">CC: ${doc}</small>
-          </td>
-          <td>
-            ${phoneHTML}
-          </td>
-          <td>
-            ${addressesHTML}
-          </td>
       const subCats = getReportSubCategories(r);
       const subCardsHTML = subCats.map(cat => {
         const subMgmtObj = (mgmt.subMgmt && mgmt.subMgmt[cat.key]) ? mgmt.subMgmt[cat.key] : {};
