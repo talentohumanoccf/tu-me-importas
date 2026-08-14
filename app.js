@@ -1382,32 +1382,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return `
         <tr style="${rowStyle}">
-          <td>
-            <strong>${r.nombre || 'Colaborador'}</strong><br>
-            <small style="color:var(--text-muted)">CC: ${doc}</small>
-          </td>
-          <td>
-            ${phoneHTML}
-          </td>
-          <td>
-            ${addressesHTML}
-          </td>
-          <td>
-            <strong style="color:var(--primary);">${r.situacionYApoyo || 'Sin novedad'}</strong>
-            ${colAFBadge}
-          </td>
-          <td colspan="2" style="min-width:320px;">
-            ${subCardsHTML}
-            ${lastOperatorHTML}
-            <div style="margin-top:6px;">${concurrencyLockHTML}</div>
-          </td>
-          <td>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-              <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn">💾 Guardar Todo</button>
-              ${releaseBtnHTML}
+          <td style="vertical-align:top; padding:12px; width:28%;">
+            <div style="font-weight:800; color:var(--primary); font-size:0.95rem; margin-bottom:2px;">${r.nombre || 'Colaborador'}</div>
+            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:8px;">💳 <b>CC:</b> ${doc}</div>
+            <div style="margin-bottom:8px; display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+              ${phoneHTML}
               ${whatsappBtn}
               ${callBtn}
             </div>
+            ${addressesHTML}
+          </td>
+          <td style="vertical-align:top; padding:12px; width:22%;">
+            <strong style="color:var(--primary); font-size:0.88rem; display:block; margin-bottom:6px;">${r.situacionYApoyo || 'Sin novedad'}</strong>
+            ${colAFBadge}
+          </td>
+          <td style="vertical-align:top; padding:12px; width:50%;">
+            ${subCardsHTML}
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; background:#EEF2FF; padding:8px 10px; border-radius:8px; border:1px solid #C7D2FE;">
+              ${lastOperatorHTML}
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn" style="padding:5px 12px; font-size:0.8rem; background:#059669;">💾 Guardar Todo</button>
+                ${releaseBtnHTML}
+              </div>
+            </div>
+            <div style="margin-top:6px;">${concurrencyLockHTML}</div>
           </td>
         </tr>
       `;
@@ -1640,30 +1638,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return `
         <tr>
-          <td>
-            <strong>${r.nombre || 'Colaborador'}</strong><br>
-            <small style="color:var(--text-muted)">CC: ${r.documento || r.cedula || 'N/A'}</small>
+          <td style="vertical-align:top; padding:10px;">
+            <strong style="font-size:0.92rem; color:var(--primary);">${r.nombre || 'Colaborador'}</strong><br>
+            <small style="color:var(--text-muted); font-weight:700;">CC: ${r.documento || r.cedula || 'N/A'}</small>
+            <div style="margin-top:6px; font-size:0.8rem; color:#475569;">
+              🏢 <b>${r.sede || 'Sede N/A'}</b><br>
+              💼 <small>${r.proceso || r.cargo || ''}</small>
+            </div>
           </td>
-          <td>
-            ${r.sede || 'Sede N/A'}<br>
-            <small style="color:var(--text-muted)">${r.proceso || r.cargo || ''}</small>
-          </td>
-          <td>
-            ${r.municipio || r.municipioBase || 'Pereira'}<br>
-            <small style="color:var(--text-muted); font-size:0.75rem;">${r.direccionActual || r.direccion || 'Sin dir'}</small>
-          </td>
-          <td><span style="font-weight:800; color:var(--primary);">${r.tipoSangre || 'N/A'}</span></td>
-          <td>${criticidadBadge}</td>
-          <td>
-            <strong>${r.situacionYApoyo || r.estadoSalud || 'Sin novedad'}</strong><br>
-            <small style="color:var(--text-muted)">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'}<br>👨‍角‍👧‍👦 Familia: ${estadoFamiliaText}</small>
-          </td>
-          <td><small>${r.timestamp || 'Reciente'}</small></td>
-          <td>
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          <td style="vertical-align:top; padding:10px;">
+            <div style="font-weight:800; color:var(--primary); font-size:0.88rem;">🌆 ${r.municipio || r.municipioBase || 'Pereira'}</div>
+            <div style="font-size:0.78rem; color:#0284C7; font-weight:700; margin:3px 0 6px 0;">📍 ${r.direccionActual || r.direccion || 'Sin registrar'}</div>
+            <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
               ${whatsappBtn}
               ${callBtn}
             </div>
+          </td>
+          <td style="vertical-align:top; padding:10px;">
+            <div style="margin-bottom:6px;">${criticidadBadge}</div>
+            <strong style="color:var(--primary); font-size:0.86rem; display:block;">${r.situacionYApoyo || r.estadoSalud || 'Sin novedad'}</strong>
+            <small style="color:var(--text-muted); display:block; margin-top:3px; font-size:0.76rem;">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'}<br>👨‍👩‍👧‍👦 Fam: ${estadoFamiliaText}</small>
+          </td>
+          <td style="vertical-align:top; padding:10px;">
+            <small style="color:var(--text-muted); font-weight:700;">🕒 ${r.timestamp || 'Reciente'}</small>
           </td>
         </tr>
       `;
