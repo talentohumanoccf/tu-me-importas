@@ -1210,13 +1210,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
     }
 
-    if (elGruposAF) elGruposAF.textContent = uniqueAFCount.toLocaleString('es-CO');
-    if (elGruposAFSubtext) elGruposAFSubtext.textContent = `${afCount.toLocaleString('es-CO')} registros clasificados en Col. AF`;
-
     const elTopGruposValue = document.getElementById('top-grupos-af-value');
     const elTopGruposSubtext = document.getElementById('top-grupos-af-subtext');
-    if (elTopGruposValue) elTopGruposValue.textContent = `${uniqueAFCount} Grupos / Procesos`;
-    if (elTopGruposSubtext) elTopGruposSubtext.textContent = `(${afCount.toLocaleString('es-CO')} personas clasificadas en Col. AF)`;
+    if (elTopGruposValue) {
+      const uniqueAFSet = new Set(dataset.map(r => getReportColumnAFValue(r)));
+      elTopGruposValue.textContent = `${uniqueAFSet.size} Grupos / Procesos`;
+    }
+    if (elTopGruposSubtext) {
+      elTopGruposSubtext.textContent = `(${formatNumber(total)} personas clasificadas en Col. AF)`;
+    }
 
     // 1. CONFRONTACIÓN EN TARJETA APOYO PSICOLÓGICO
     const elPsicoDirecto = document.getElementById('kpi-psico-directo');
