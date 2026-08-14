@@ -240,14 +240,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!statusEl || !notesEl) return;
 
-    const newStatus = statusEl.value;
+    let newStatus = statusEl.value;
     const newNotes = sanitizeNotes(notesEl.value);
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
+    // GARANTÍA TOTAL: Si el usuario guardó notas o gestión pero el selector estaba en "Pendiente",
+    // se auto-promueve a "proceso" (En Gestión) para asegurar que se registre y asigne formalmente en Google Sheets
+    if (newStatus === 'pendiente') {
+      newStatus = 'proceso';
+      if (statusEl) statusEl.value = 'proceso';
+    }
+
     const existing = state.supportManagement[doc];
-    if (existing && existing.operator && existing.operator !== currentOperator && existing.status === 'proceso') {
-      const confirmOverwrite = confirm(`⚠️ Este caso estaba registrado por [${existing.operator}]. ¿Confirmas guardar la actualización a nombre de [${currentOperator}]?`);
+    if (existing && existing.operator && existing.operator !== currentOperator && existing.status === 'proceso' && existing.operator !== 'Sin asignar') {
+      const confirmOverwrite = confirm(`⚠️ Este caso estaba asignado a [${existing.operator}]. ¿Confirmas guardar la actualización a tu nombre (${currentOperator})?`);
       if (!confirmOverwrite) return;
     }
 
@@ -264,11 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard(true);
 
     if (newStatus === 'resuelto') {
-      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado en el histórico.`);
-    } else if (newStatus === 'proceso') {
-      alert(`🔵 Caso en GESTIÓN asignado a [${currentOperator}] para Cédula ${doc}.`);
+      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado exitosamente en Google Sheets.`);
     } else {
-      alert(`✅ Caso actualizado por [${currentOperator}] para Cédula ${doc}: Estado [${newStatus.toUpperCase()}]`);
+      alert(`🔵 Caso ASIGNADO Y GUARDADO a nombre de [${currentOperator}] para Cédula ${doc} en Google Sheets.`);
     }
   };
 
