@@ -844,6 +844,34 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters(true);
   }
 
+  window.cleanGestionDuplicates = async function() {
+    if (!confirm('¿Deseas ejecutar la desduplicación global en la hoja GESTION_SST de Google Sheets?\n\nEsta acción conservará únicamente la gestión más reciente de cada colaborador y eliminará las filas duplicadas sobrantes.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${state.googleSheetsUrl}?action=deduplicate&_t=${Date.now()}`);
+      if (response.ok) {
+        const res = await response.json();
+        alert(`🧹 Resultado de Desduplicación:\n\n${res.message || 'Proceso completado exitosamente.'}`);
+        if (window.fetchLiveReportsFromSheets) window.fetchLiveReportsFromSheets(true);
+        return;
+      }
+    } catch(err) {
+      console.log('ℹ️ Ejecutando desduplicación vía fallback JSONP...');
+    }
+
+    const callbackName = 'onDeduplicationComplete';
+    window[callbackName] = function(res) {
+      alert(`🧹 Resultado de Desduplicación:\n\n${res.message || 'Proceso completado exitosamente.'}`);
+      if (window.fetchLiveReportsFromSheets) window.fetchLiveReportsFromSheets(true);
+    };
+
+    const script = document.createElement('script');
+    script.src = `${state.googleSheetsUrl}?action=deduplicate&callback=${callbackName}&_t=${Date.now()}`;
+    document.body.appendChild(script);
+  };
+
   window.homologateWithGestionSST = function(showAlert = true) {
     let homologatedCount = 0;
 
@@ -1133,45 +1161,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elSalvo) elSalvo.textContent = formatNumber(salvo);
     if (elLeve) elLeve.textContent = formatNumber(leve);
 
-    let countActivos = 0;
-    const otrasMap = {};
-
-    dataset.forEach(r => {
-      const val = getReportColumnAFValue(r);
-      const normVal = normalizeStr(val);
-      if (normVal.includes('activo')) {
-        countActivos++;
-      } else {
-        otrasMap[val] = (otrasMap[val] || 0) + 1;
-      }
-    });
-
-    const countOtras = Object.values(otrasMap).reduce((a, b) => a + b, 0);
-
-    const elTotalAfBreakdown = document.getElementById('kpi-total-af-breakdown');
-    if (elTotalAfBreakdown) {
-      const pctActivos = Math.round((countActivos / Math.max(total, 1)) * 100);
-      const pctOtras = Math.round((countOtras / Math.max(total, 1)) * 100);
-
-      const otrasEntries = Object.entries(otrasMap).sort((a, b) => b[1] - a[1]);
-      const otrasItemsHTML = otrasEntries.map(([name, qty]) => {
-        return `<div style="font-size:0.72rem; color:#475569; margin-top:2px;">• <b>${name}:</b> ${formatNumber(qty)}</div>`;
-      }).join('');
-
-      elTotalAfBreakdown.innerHTML = `
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
-          <span style="font-size:0.76rem;">🏢 <b>Activos Comfamiliar:</b></span>
-          <b style="color:var(--primary); font-size:0.9rem;">${formatNumber(countActivos)} <small style="font-weight:700; color:#0284C7;">(${pctActivos}%)</small></b>
-        </div>
-        <div style="display:flex; justify-content:space-between; color:var(--text-muted); align-items:center; border-top:1px dashed #CBD5E1; padding-top:4px; margin-top:3px;">
-          <span style="font-size:0.76rem;">👥 <b>Otras Vinculaciones:</b></span>
-          <b style="color:#475569; font-size:0.9rem;">${formatNumber(countOtras)} <small style="font-weight:700; color:#64748B;">(${pctOtras}%)</small></b>
-        </div>
-        <div style="margin-top:4px; background:rgba(241,245,249,0.7); padding:4px 6px; border-radius:6px; border:1px solid #E2E8F0;">
-          ${otrasItemsHTML}
-        </div>
-      `;
-    }
+    const elTotalSubtext = document.getElementById('kpi-total-subtext');
+    if (elTotalSubtext) elTotalSubtext.textContent = 'Formularios recibidos';
 
     const afBreakdownContainer = document.getElementById('kpi-af-breakdown-container');
     const afTotalBadge = document.getElementById('kpi-af-total-badge');

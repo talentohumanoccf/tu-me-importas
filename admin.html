@@ -171,16 +171,7 @@
           <div class="kpi-card kpi-primary">
             <div class="kpi-header">Total Registrados</div>
             <div class="kpi-value" id="kpi-total">0</div>
-            <div id="kpi-total-af-breakdown" style="margin-top:6px; font-size:0.78rem; line-height:1.3; background:rgba(0,51,102,0.05); padding:6px 8px; border-radius:8px; border:1px solid rgba(0,51,102,0.1);">
-              <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                <span>🏢 <b>Activos Comfamiliar:</b></span>
-                <b style="color:var(--primary);">0 (0%)</b>
-              </div>
-              <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
-                <span>👥 <b>Otras Vinculaciones:</b></span>
-                <b>0 (0%)</b>
-              </div>
-            </div>
+            <div class="kpi-subtext" id="kpi-total-subtext">Formularios recibidos</div>
           </div>
           <!-- TARJETA DESTACADA DE PARTICIPACIÓN POR ESTADO (COLUMNA AF: ACTIVOS COMFAMILIAR Y OTRAS) -->
           <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); border-left: 5px solid #10B981; grid-column: span 2;">
@@ -440,6 +431,9 @@
             </p>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button onclick="window.cleanGestionDuplicates && window.cleanGestionDuplicates()" class="btn-search" style="background:#D97706; color:#FFF; font-weight:800; font-size:0.88rem; border:none; box-shadow:0 4px 12px rgba(217,119,6,0.25);" title="Haz clic para eliminar filas duplicadas en la hoja GESTION_SST de Google Sheets y dejar un solo registro único por persona">
+              🧹 Desduplicar GESTION_SST
+            </button>
             <button onclick="window.homologateWithGestionSST && window.homologateWithGestionSST(true)" class="btn-search" style="background:#0284C7; color:#FFF; font-weight:800; font-size:0.88rem; border:none; box-shadow:0 4px 12px rgba(2,132,199,0.25);" title="Haz clic para forzar la homologación 100% concordante con los datos maestros de la hoja GESTION_SST">
               🔄 Homologar con GESTION_SST
             </button>
@@ -686,6 +680,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260814_138_REFERENCE_ERROR_FIXED"></script>
+  <script src="app.js?v=20260814_141_LATEST_STATUS_PRIORITY_ACTIVE"></script>
 </body>
 </html>
