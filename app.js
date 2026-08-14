@@ -759,23 +759,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const localMgmt = state.supportManagement[doc];
       const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
 
-      if (r.gestionStatus) {
+      if (r.gestionStatus && !state.isTypingActive) {
         state.supportManagement[doc] = {
-          status: localMgmt && localMgmt.status ? localMgmt.status : (r.gestionStatus || 'pendiente'),
-          notes: localMgmt && localMgmt.notes !== undefined && state.isTypingActive ? localMgmt.notes : sanitizeNotes(r.gestionNotes || (localMgmt ? localMgmt.notes : '')),
-          updatedAt: r.gestionUpdatedAt || (localMgmt ? localMgmt.updatedAt : ''),
-          operator: localMgmt && localMgmt.operator ? localMgmt.operator : (r.gestionOperator || 'Operador SST'),
-          subMgmt: localMgmt && localMgmt.subMgmt ? localMgmt.subMgmt : (parsedSub || {})
+          status: r.gestionStatus,
+          notes: sanitizeNotes(r.gestionNotes || ''),
+          updatedAt: r.gestionUpdatedAt || '',
+          operator: r.gestionOperator || 'Operador SST',
+          subMgmt: parsedSub || (localMgmt ? localMgmt.subMgmt : {}) || {}
         };
       } else if (!state.supportManagement[doc]) {
         state.supportManagement[doc] = {
-          status: 'pendiente',
-          notes: '',
-          updatedAt: '',
-          operator: 'Operador SST',
+          status: r.gestionStatus || 'pendiente',
+          notes: sanitizeNotes(r.gestionNotes || ''),
+          updatedAt: r.gestionUpdatedAt || '',
+          operator: r.gestionOperator || 'Operador SST',
           subMgmt: parsedSub || {}
         };
-      } else if (parsedSub && (!localMgmt.subMgmt || Object.keys(localMgmt.subMgmt).length === 0)) {
+      } else if (parsedSub) {
         state.supportManagement[doc].subMgmt = parsedSub;
       }
 

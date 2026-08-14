@@ -163,8 +163,8 @@ function limpiarCacheReportes() {
 }
 
 // =========================================================================
-// MÓDULO DE LECTURA DE HOJAS DE DONACIONES Y KARDEX (VERSIÓN V9 OFICIAL)
-// Prioriza la agrupación y visualización por CLASIFICADOR
+// MÓDULO DE LECTURA DE HOJAS DE DONACIONES Y KARDEX (VERSIÓN V13 OFICIAL)
+// Esquema Kardex: Col A (Articulo), Col B (Clasificador), Col C (Entradas), Col D (Salidas), Col E (Stock)
 // =========================================================================
 function obtenerDatosDonacionesYKardex(ss) {
   var defaultList = [
@@ -198,26 +198,22 @@ function obtenerDatosDonacionesYKardex(ss) {
       var dataK = shKardex.getDataRange().getValues();
       var headersK = dataK[0].map(function(h) { return String(h).toLowerCase().trim(); });
       
-      // PRIORIZAR CLASIFICADOR SOBRE ARTICULO
-      var idxClas = headersK.indexOf("clasificador") >= 0 
-        ? headersK.indexOf("clasificador") 
-        : (headersK.indexOf("articulo general") >= 0 
-            ? headersK.indexOf("articulo general") 
-            : (headersK.indexOf("articulo") >= 0 ? headersK.indexOf("articulo") : 0));
-            
-      var idxEnt = headersK.indexOf("entradas") >= 0 ? headersK.indexOf("entradas") : 1;
-      var idxSal = headersK.indexOf("salidas") >= 0 ? headersK.indexOf("salidas") : 2;
-      var idxStk = headersK.indexOf("stock") >= 0 ? headersK.indexOf("stock") : 3;
+      // ESQUEMA OFICIAL DE 5 COLUMNAS DE KARDEX:
+      // Col A (0): Articulo | Col B (1): Clasificador | Col C (2): Entradas | Col D (3): Salidas | Col E (4): Stock
+      var idxClas = headersK.indexOf("clasificador") >= 0 ? headersK.indexOf("clasificador") : 1;
+      var idxEnt  = headersK.indexOf("entradas") >= 0 ? headersK.indexOf("entradas") : 2;
+      var idxSal  = headersK.indexOf("salidas") >= 0 ? headersK.indexOf("salidas") : 3;
+      var idxStk  = headersK.indexOf("stock") >= 0 ? headersK.indexOf("stock") : 4;
 
       var mapKardexClas = {};
 
       for (var i = 1; i < dataK.length; i++) {
         var row = dataK[i];
-        var clasName = String(row[idxClas] || "").trim();
-        if (!clasName) continue;
+        var rawColB = String(row[idxClas] !== undefined ? row[idxClas] : "").trim();
+        rawColB = rawColB.replace(/^total\s+/i, '').trim();
 
-        // Limpiar prefijos de Total si existen
-        clasName = clasName.replace(/^total\s+/i, '').trim();
+        // REGLA ESTRICTA: Tomar única y exclusivamente la Columna B. Si está vacía, usar "Sin Clasificar"
+        var clasName = rawColB ? rawColB : "Sin Clasificar";
 
         var ent = Number(row[idxEnt]) || 0;
         var sal = Number(row[idxSal]) || 0;
