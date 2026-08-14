@@ -250,13 +250,16 @@ document.addEventListener('DOMContentLoaded', () => {
       updatedAt: nowStr
     };
 
-    const subEntries = Object.entries(state.supportManagement[doc].subMgmt);
-    const allResolved = subEntries.length > 0 && subEntries.every(([k, v]) => v.status === 'resuelto');
-    const anyInProcess = subEntries.some(([k, v]) => v.status === 'proceso' || v.status === 'resuelto');
+    const rTarget = state.reports.find(item => String(item.documento || item.cedula).trim() === String(doc).trim()) || {};
+    const reqSubCats = getReportSubCategories(rTarget);
+    const statuses = reqSubCats.map(cat => getNormalizedSubMgmtStatus(rTarget, cat.key));
+
+    const allResolved = statuses.length > 0 && statuses.every(st => st === 'resuelto');
+    const anyInProcessOrResolved = statuses.some(st => st === 'proceso' || st === 'resuelto');
 
     let globalStatus = 'pendiente';
     if (allResolved) globalStatus = 'resuelto';
-    else if (anyInProcess) globalStatus = 'proceso';
+    else if (anyInProcessOrResolved) globalStatus = 'proceso';
 
     state.supportManagement[doc].status = globalStatus;
     state.supportManagement[doc].operator = currentOperator;
