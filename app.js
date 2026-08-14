@@ -105,6 +105,120 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'pendiente';
   }
 
+  function getReportSubCategories(r) {
+    const categories = [];
+    if (matchesCategory(r, 'psicologico')) categories.push({ key: 'psicologico', name: 'Apoyo Psicológico', icon: '🧠', color: '#003366' });
+    if (matchesCategory(r, 'alimentos')) categories.push({ key: 'alimentos', name: 'Kits de Alimentos / Mercado', icon: '📦', color: '#00A88F' });
+    if (matchesCategory(r, 'medicamentos')) categories.push({ key: 'medicamentos', name: 'Medicamentos / Salud', icon: '💊', color: '#E63946' });
+    if (matchesCategory(r, 'social')) categories.push({ key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' });
+    if (matchesCategory(r, 'juridico')) categories.push({ key: 'juridico', name: 'Apoyo Jurídico', icon: '⚖️', color: '#8B5CF6' });
+    if (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden'))) {
+      categories.push({ key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' });
+    }
+
+    if (categories.length === 0) {
+      categories.push({ key: 'general', name: 'Seguimiento General SST', icon: '📋', color: '#64748B' });
+    }
+
+    return categories;
+  }
+
+  function getNormalizedSubMgmtStatus(r, subKey) {
+    const doc = String(r.documento || r.cedula).trim();
+    const mgmt = state.supportManagement[doc] || {};
+    
+    if (mgmt.subMgmt && mgmt.subMgmt[subKey]) {
+      const subSt = normalizeStr(mgmt.subMgmt[subKey].status);
+      if (subSt.includes('resuelt') || subSt.includes('atend') || subSt.includes('entregad') || subSt.includes('cerrad')) return 'resuelto';
+      if (subSt.includes('proces') || subSt.includes('gestion') || subSt.includes('atencion')) return 'proceso';
+      return 'pendiente';
+    }
+    return getNormalizedMgmtStatus(r);
+  }
+
+  function parseCombinedNotesToSubMgmt(notesStr) {
+    if (!notesStr || typeof notesStr !== 'string' || !notesStr.includes('[')) return null;
+    const subMgmt = {};
+    const parts = notesStr.split('||');
+    parts.forEach(p => {
+      const match = p.match(/\[([A-Z0-9_]+):\s*([A-Z0-9_]+)\]\s*(.*?)(?:\s*\((.*?)\))?$/i);
+      if (match) {
+        const rawKey = match[1].toLowerCase().trim();
+        let key = rawKey;
+        if (rawKey.includes('psico')) key = 'psicologico';
+        else if (rawKey.includes('alim') || rawKey.includes('merc')) key = 'alimentos';
+        else if (rawKey.includes('med')) key = 'medicamentos';
+        else if (rawKey.includes('soc')) key = 'social';
+        else if (rawKey.includes('juri')) key = 'juridico';
+        else if (rawKey.includes('viv')) key = 'vivienda';
+
+        const status = match[2].toLowerCase().trim();
+        const notes = match[3] ? match[3].trim() : '';
+        const operator = match[4] ? match[4].trim() : 'Operador SST';
+        subMgmt[key] = { status, notes, operator };
+      }
+    });
+    return Object.keys(subMgmt).length > 0 ? subMgmt : null;
+  }
+
+  window.saveSubSupportCase = function(doc, subKey) {
+    state.isTypingActive = false;
+    const selectEl = document.getElementById(`mgmt-sub-select-${doc}-${subKey}`);
+    const notesEl = document.getElementById(`mgmt-sub-notes-${doc}-${subKey}`);
+    if (!selectEl || !notesEl) return;
+
+    let subStatus = selectEl.value;
+    const subNotes = sanitizeNotes(notesEl.value);
+    const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
+    const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
+
+    if (subStatus === 'pendiente' && subNotes.length > 0) {
+      subStatus = 'proceso';
+      selectEl.value = 'proceso';
+    }
+
+    if (!state.supportManagement[doc]) {
+      state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: nowStr, subMgmt: {} };
+    }
+
+    if (!state.supportManagement[doc].subMgmt) {
+      state.supportManagement[doc].subMgmt = {};
+    }
+
+    state.supportManagement[doc].subMgmt[subKey] = {
+      status: subStatus,
+      notes: subNotes,
+      operator: currentOperator,
+      updatedAt: nowStr
+    };
+
+    const subEntries = Object.entries(state.supportManagement[doc].subMgmt);
+    const allResolved = subEntries.length > 0 && subEntries.every(([k, v]) => v.status === 'resuelto');
+    const anyInProcess = subEntries.some(([k, v]) => v.status === 'proceso' || v.status === 'resuelto');
+
+    let globalStatus = 'pendiente';
+    if (allResolved) globalStatus = 'resuelto';
+    else if (anyInProcess) globalStatus = 'proceso';
+
+    state.supportManagement[doc].status = globalStatus;
+    state.supportManagement[doc].operator = currentOperator;
+    state.supportManagement[doc].updatedAt = nowStr;
+
+    const combinedNotesStr = Object.entries(state.supportManagement[doc].subMgmt)
+      .map(([k, v]) => `[${k.toUpperCase()}: ${v.status.toUpperCase()}] ${v.notes} (${v.operator})`)
+      .join(' || ');
+
+    state.supportManagement[doc].notes = combinedNotesStr;
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+
+    if (state.googleSheetsUrl && navigator.onLine) {
+      sendManagementToSheets(doc, globalStatus, combinedNotesStr, currentOperator);
+    }
+
+    renderDashboard(true);
+    alert(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente a nombre de [${currentOperator}].`);
+  };
+
   function matchesCategory(r, category) {
     const ap = getApoyoText(r);
     const cat = normalizeStr(category);
@@ -543,24 +657,27 @@ document.addEventListener('DOMContentLoaded', () => {
       r._nMuni = normalizeStr(r.municipio);
 
       const doc = String(r.documento || r.cedula).trim();
-
-      // PRESERVAR NOTAS LOCALE MIENTRAS EL USUARIO ESCRIBE O TIENE CAMBIOS NO GUARDADOS
       const localMgmt = state.supportManagement[doc];
+      const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
 
       if (r.gestionStatus) {
         state.supportManagement[doc] = {
           status: localMgmt && localMgmt.status ? localMgmt.status : (r.gestionStatus || 'pendiente'),
           notes: localMgmt && localMgmt.notes !== undefined && state.isTypingActive ? localMgmt.notes : sanitizeNotes(r.gestionNotes || (localMgmt ? localMgmt.notes : '')),
           updatedAt: r.gestionUpdatedAt || (localMgmt ? localMgmt.updatedAt : ''),
-          operator: localMgmt && localMgmt.operator ? localMgmt.operator : (r.gestionOperator || 'Operador SST')
+          operator: localMgmt && localMgmt.operator ? localMgmt.operator : (r.gestionOperator || 'Operador SST'),
+          subMgmt: localMgmt && localMgmt.subMgmt ? localMgmt.subMgmt : (parsedSub || {})
         };
       } else if (!state.supportManagement[doc]) {
         state.supportManagement[doc] = {
           status: 'pendiente',
           notes: '',
           updatedAt: '',
-          operator: 'Operador SST'
+          operator: 'Operador SST',
+          subMgmt: parsedSub || {}
         };
+      } else if (parsedSub && (!localMgmt.subMgmt || Object.keys(localMgmt.subMgmt).length === 0)) {
+        state.supportManagement[doc].subMgmt = parsedSub;
       }
 
       return r;
@@ -1097,25 +1214,58 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>
             ${addressesHTML}
           </td>
+      const subCats = getReportSubCategories(r);
+      const subCardsHTML = subCats.map(cat => {
+        const subMgmtObj = (mgmt.subMgmt && mgmt.subMgmt[cat.key]) ? mgmt.subMgmt[cat.key] : {};
+        const subSt = getNormalizedSubMgmtStatus(r, cat.key);
+        const subNotes = sanitizeNotes(subMgmtObj.notes || '');
+        const subOp = subMgmtObj.operator || 'Sin asignar';
+
+        return `
+          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:4px;">
+              <strong style="color:var(--primary); font-size:0.84rem; display:flex; align-items:center; gap:4px;">
+                <span>${cat.icon}</span> ${cat.name}
+              </strong>
+              <select id="mgmt-sub-select-${doc}-${cat.key}" class="mgmt-status-select ${subSt}" style="padding:3px 8px; font-size:0.78rem; width:auto; border-radius:6px;">
+                <option value="pendiente" ${subSt === 'pendiente' ? 'selected' : ''}>🟡 Pendiente</option>
+                <option value="proceso" ${subSt === 'proceso' ? 'selected' : ''}>🔵 En Gestión</option>
+                <option value="resuelto" ${subSt === 'resuelto' ? 'selected' : ''}>🟢 Atendido / Resuelto</option>
+              </select>
+            </div>
+            <textarea id="mgmt-sub-notes-${doc}-${cat.key}" class="mgmt-notes-textarea" rows="2" style="font-size:0.82rem; padding:6px; width:100%; box-sizing:border-box;" placeholder="Observaciones específicas para ${cat.name}...">${subNotes}</textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+              <small style="color:var(--text-muted); font-size:0.72rem;">👤 <b>${subOp}</b></small>
+              <button onclick="window.saveSubSupportCase('${doc}', '${cat.key}')" class="mgmt-save-btn" style="padding:4px 10px; font-size:0.76rem; background:var(--primary);">💾 Guardar ${cat.name}</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <tr style="${rowStyle}">
+          <td>
+            <strong>${r.nombre || 'Colaborador'}</strong><br>
+            <small style="color:var(--text-muted)">CC: ${doc}</small>
+          </td>
+          <td>
+            ${phoneHTML}
+          </td>
+          <td>
+            ${addressesHTML}
+          </td>
           <td>
             <strong style="color:var(--primary);">${r.situacionYApoyo || 'Sin novedad'}</strong>
             ${colAFBadge}
           </td>
-          <td>
-            <select id="mgmt-select-${doc}" class="mgmt-status-select ${st}">
-              <option value="pendiente" ${st === 'pendiente' ? 'selected' : ''}>🟡 Pendiente por Contactar</option>
-              <option value="proceso" ${st === 'proceso' ? 'selected' : ''}>🔵 En Gestión / En Proceso</option>
-              <option value="resuelto" ${st === 'resuelto' ? 'selected' : ''}>🟢 Apoyo Entregado / Resuelto</option>
-            </select>
-          </td>
-          <td>
-            <textarea id="mgmt-notes-${doc}" class="mgmt-notes-textarea" rows="2" placeholder="Escribe observaciones, acuerdos y notas detalladas del caso...">${notesDisplayValue}</textarea>
+          <td colspan="2" style="min-width:320px;">
+            ${subCardsHTML}
             ${lastOperatorHTML}
             <div style="margin-top:6px;">${concurrencyLockHTML}</div>
           </td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-              <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn">💾 Guardar</button>
+              <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn">💾 Guardar Todo</button>
               ${releaseBtnHTML}
               ${whatsappBtn}
               ${callBtn}
