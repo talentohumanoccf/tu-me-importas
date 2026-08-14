@@ -252,6 +252,26 @@
           </div>
         </div>
 
+        <!-- CONTROLES DE PAGINACIÓN INTELIGENTE TABLERO 1 -->
+        <div class="pagination-bar no-print" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin: 16px 0 10px 0; background:rgba(0,51,102,0.03); padding:10px 14px; border-radius:10px; border:1px solid rgba(0,51,102,0.08); font-size:0.85rem; font-weight:700;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span>📄 Filas por página:</span>
+            <select id="main-page-size" onchange="window.changePageSize('main', this.value)" class="form-control" style="width:auto; padding:2px 8px; font-weight:700;">
+              <option value="15">15 filas</option>
+              <option value="25" selected>25 filas</option>
+              <option value="50">50 filas</option>
+              <option value="100">100 filas</option>
+              <option value="all">Todas</option>
+            </select>
+          </div>
+          <div id="main-pagination-info" style="color:var(--primary);">Mostrando 1 - 25 de 224 registros</div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button id="btn-main-prev" onclick="window.changePage('main', -1)" class="action-btn-sm" style="background:#FFF; border:1px solid #CBD5E1; color:var(--primary); font-weight:700; padding:4px 12px; border-radius:6px; cursor:pointer;">⏮️ Anterior</button>
+            <span id="main-page-num" style="padding:4px 10px; background:#FFF; border:1px solid #CBD5E1; border-radius:6px; font-size:0.82rem; color:var(--primary);">Pág. 1 / 9</span>
+            <button id="btn-main-next" onclick="window.changePage('main', 1)" class="action-btn-sm" style="background:#FFF; border:1px solid #CBD5E1; color:var(--primary); font-weight:700; padding:4px 12px; border-radius:6px; cursor:pointer;">Siguiente ⏭️</button>
+          </div>
+        </div>
+
         <!-- TABLA DE DETALLE INDIVIDUAL DE TRABAJADORES -->
         <div class="reports-table-container no-print">
           <table class="reports-table">
@@ -461,6 +481,26 @@
           </div>
         </div>
 
+        <!-- CONTROLES DE PAGINACIÓN INTELIGENTE TABLERO 3 -->
+        <div class="pagination-bar no-print" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin: 16px 0 10px 0; background:rgba(0,51,102,0.03); padding:10px 14px; border-radius:10px; border:1px solid rgba(0,51,102,0.08); font-size:0.85rem; font-weight:700;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span>📄 Filas por página:</span>
+            <select id="mgmt-page-size" onchange="window.changePageSize('mgmt', this.value)" class="form-control" style="width:auto; padding:2px 8px; font-weight:700;">
+              <option value="15">15 filas</option>
+              <option value="25" selected>25 filas</option>
+              <option value="50">50 filas</option>
+              <option value="100">100 filas</option>
+              <option value="all">Todas</option>
+            </select>
+          </div>
+          <div id="mgmt-pagination-info" style="color:var(--primary);">Mostrando 1 - 25 de 224 registros</div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button id="btn-mgmt-prev" onclick="window.changePage('mgmt', -1)" class="action-btn-sm" style="background:#FFF; border:1px solid #CBD5E1; color:var(--primary); font-weight:700; padding:4px 12px; border-radius:6px; cursor:pointer;">⏮️ Anterior</button>
+            <span id="mgmt-page-num" style="padding:4px 10px; background:#FFF; border:1px solid #CBD5E1; border-radius:6px; font-size:0.82rem; color:var(--primary);">Pág. 1 / 9</span>
+            <button id="btn-mgmt-next" onclick="window.changePage('mgmt', 1)" class="action-btn-sm" style="background:#FFF; border:1px solid #CBD5E1; color:var(--primary); font-weight:700; padding:4px 12px; border-radius:6px; cursor:pointer;">Siguiente ⏭️</button>
+          </div>
+        </div>
+
         <!-- TABLA INTERACTIVA DE GESTIÓN SST -->
         <div class="reports-table-container no-print">
           <table class="reports-table">
@@ -614,6 +654,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260814_120_FIX_SYNTAX_ERROR"></script>
+  <script src="app.js?v=20260814_121_SMART_PAGINATION_ACTIVE"></script>
 </body>
 </html>

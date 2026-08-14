@@ -21,7 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
     isTypingActive: false,
     typingTimer: null,
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
-    donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null
+    donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null,
+    pagination: {
+      mainPage: 1,
+      mainPageSize: 25,
+      mgmtPage: 1,
+      mgmtPageSize: 25
+    }
   };
 
   const loginScreen = document.getElementById('admin-login-screen');
@@ -160,6 +166,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     return Object.keys(subMgmt).length > 0 ? subMgmt : null;
   }
+
+  function updatePaginationUI(type, start, end, total, currentPage, totalPages) {
+    const infoEl = document.getElementById(`${type}-pagination-info`);
+    const pageNumEl = document.getElementById(`${type}-page-num`);
+    const prevBtn = document.getElementById(`btn-${type}-prev`);
+    const nextBtn = document.getElementById(`btn-${type}-next`);
+
+    if (infoEl) {
+      if (total === 0) infoEl.textContent = 'Sin registros';
+      else infoEl.textContent = `Mostrando ${start} - ${end} de ${total.toLocaleString('es-CO')} registros`;
+    }
+    if (pageNumEl) pageNumEl.textContent = `Pág. ${currentPage} / ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  window.changePage = function(type, delta) {
+    if (type === 'main') {
+      const totalItems = state.filteredReports.length;
+      const pageSizeVal = state.pagination.mainPageSize;
+      const pageSize = pageSizeVal === 'all' ? totalItems : Number(pageSizeVal || 25);
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      let newPage = state.pagination.mainPage + delta;
+      if (newPage < 1) newPage = 1;
+      if (newPage > totalPages) newPage = totalPages;
+      state.pagination.mainPage = newPage;
+      renderTable();
+    } else if (type === 'mgmt') {
+      const supportReports = state.reports.filter(r => isNeedSupport(r));
+      const totalItems = supportReports.length;
+      const pageSizeVal = state.pagination.mgmtPageSize;
+      const pageSize = pageSizeVal === 'all' ? totalItems : Number(pageSizeVal || 25);
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      let newPage = state.pagination.mgmtPage + delta;
+      if (newPage < 1) newPage = 1;
+      if (newPage > totalPages) newPage = totalPages;
+      state.pagination.mgmtPage = newPage;
+      renderManagementDashboard(true);
+    }
+  };
+
+  window.changePageSize = function(type, newSize) {
+    if (type === 'main') {
+      state.pagination.mainPageSize = newSize === 'all' ? 'all' : Number(newSize);
+      state.pagination.mainPage = 1;
+      renderTable();
+    } else if (type === 'mgmt') {
+      state.pagination.mgmtPageSize = newSize === 'all' ? 'all' : Number(newSize);
+      state.pagination.mgmtPage = 1;
+      renderManagementDashboard(true);
+    }
+  };
 
   window.saveSubSupportCase = function(doc, subKey) {
     state.isTypingActive = false;
@@ -1127,7 +1185,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return matchStatus && matchCat;
     });
 
-    if (supportReports.length === 0) {
+    const totalItems = supportReports.length;
+
+    if (totalItems === 0) {
       let emptyMsg = '';
       if (statusFilter === 'pendiente' || statusFilter === 'activos') {
         emptyMsg = `🎉 ¡Excelente! No hay casos pendientes por tomar en esta categoría. Todos los apoyos están en gestión o resueltos.`;
@@ -1138,10 +1198,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:28px; color:var(--success); font-weight:700; font-size:1rem;">${emptyMsg}</td></tr>`;
+      updatePaginationUI('mgmt', 0, 0, 0, 1, 1);
       return;
     }
 
-    tbody.innerHTML = supportReports.map(r => {
+    const pageSizeVal = state.pagination.mgmtPageSize;
+    const pageSize = pageSizeVal === 'all' ? totalItems : Number(pageSizeVal || 25);
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (state.pagination.mgmtPage > totalPages) state.pagination.mgmtPage = totalPages;
+    const currentPage = state.pagination.mgmtPage;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pageItems = supportReports.slice(startIndex, endIndex);
+
+    updatePaginationUI('mgmt', startIndex + 1, endIndex, totalItems, currentPage, totalPages);
+
+    tbody.innerHTML = pageItems.map(r => {
       const doc = String(r.documento || r.cedula).trim();
       const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', operator: r.gestionOperator || 'Operador SST', updatedAt: r.gestionUpdatedAt || '' };
       const st = getNormalizedMgmtStatus(r);
@@ -1446,12 +1520,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('admin-reports-tbody');
     if (!tbody) return;
 
-    if (state.filteredReports.length === 0) {
+    const dataset = state.filteredReports;
+    const totalItems = dataset.length;
+
+    if (totalItems === 0) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">No se encontraron reportes con los filtros seleccionados.</td></tr>`;
+      updatePaginationUI('main', 0, 0, 0, 1, 1);
       return;
     }
 
-    tbody.innerHTML = state.filteredReports.map(r => {
+    const pageSizeVal = state.pagination.mainPageSize;
+    const pageSize = pageSizeVal === 'all' ? totalItems : Number(pageSizeVal || 25);
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (state.pagination.mainPage > totalPages) state.pagination.mainPage = totalPages;
+    const currentPage = state.pagination.mainPage;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pageItems = dataset.slice(startIndex, endIndex);
+
+    updatePaginationUI('main', startIndex + 1, endIndex, totalItems, currentPage, totalPages);
+
+    tbody.innerHTML = pageItems.map(r => {
       const criticidadBadge = r.criticidad === 'rojo' 
         ? '<span class="badge-status badge-rojo">🔴 URGENTE</span>'
         : r.criticidad === 'amarillo'
@@ -1566,6 +1657,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ap = normalizeStr(elApoyo ? elApoyo.value : 'all');
     const st = normalizeStr(elStatus ? elStatus.value : 'all');
     const mun = normalizeStr(elMuni ? elMuni.value : 'all');
+
+    state.pagination.mainPage = 1;
+    state.pagination.mgmtPage = 1;
 
     state.filteredReports = state.reports.filter(r => {
       const matchSearch = !q || 
