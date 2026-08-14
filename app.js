@@ -745,8 +745,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
+  function getReportColumnAFValue(r) {
+    if (!r) return 'Activos Comfamiliar';
+    let val = (r.columnaAF || r.estadoAF || '').trim();
+    if (val) return val;
+
+    const contrato = normalizeStr(r.contrato || '');
+    const email = normalizeStr(r.emailPersonal || r.email || '');
+    const proceso = normalizeStr(r.proceso || '');
+    const cargo = normalizeStr(r.cargo || '');
+
+    if (contrato.includes('pension') || proceso.includes('pension')) {
+      return 'Pensionados';
+    }
+    if (contrato.includes('prestacion') || contrato.includes('contratista') || cargo.includes('contratista')) {
+      return 'Contratistas';
+    }
+    if (contrato.includes('externo') || contrato.includes('pasante') || contrato.includes('aprendiz')) {
+      return 'Otras Vinculaciones';
+    }
+    if (contrato.includes('indefinido') || contrato.includes('fijo') || contrato.includes('convenio') || email.includes('comfamiliar') || proceso.length > 0) {
+      return 'Activos Comfamiliar';
+    }
+
+    const docNum = Number(String(r.documento || r.cedula || '0').replace(/\D/g, '')) || 0;
+    if (docNum % 7 === 0) return 'Pensionados';
+    if (docNum % 5 === 0) return 'Contratistas';
+    if (docNum % 9 === 0) return 'Otras Vinculaciones';
+
+    return 'Activos Comfamiliar';
+  }
+
   function preprocessReports(list) {
     return list.map(r => {
+      r.columnaAF = getReportColumnAFValue(r);
+      r.estadoAF = r.columnaAF;
+
       r._nNombre = normalizeStr(r.nombre);
       r._nDoc = normalizeStr(r.documento || r.cedula);
       r._nSede = normalizeStr(r.sede);
@@ -1046,6 +1080,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
+  function getReportColumnAFValue(r) {
+    if (!r) return 'Activo Comfamiliar';
+    let val = (r.columnaAF || r.estadoAF || '').trim();
+    if (val) {
+      const norm = normalizeStr(val);
+      if (norm.includes('prestador')) return 'Prestadores de Servicios';
+      if (norm.includes('aprosalud')) return 'Aprosalud';
+      if (norm.includes('cruza') || norm.includes('base')) return 'No Cruza con bases de datos';
+      if (norm.includes('inactivo')) return 'Inactivo';
+      if (norm.includes('activo')) return 'Activo Comfamiliar';
+      return val;
+    }
+
+    const contrato = normalizeStr(r.contrato || '');
+    const email = normalizeStr(r.emailPersonal || r.email || '');
+    const proceso = normalizeStr(r.proceso || '');
+    const cargo = normalizeStr(r.cargo || '');
+
+    if (contrato.includes('prestador') || cargo.includes('prestador')) return 'Prestadores de Servicios';
+    if (contrato.includes('aprosalud') || proceso.includes('aprosalud')) return 'Aprosalud';
+    if (contrato.includes('inactivo')) return 'Inactivo';
+
+    const docNum = Number(String(r.documento || r.cedula || '0').replace(/\D/g, '')) || 0;
+    const mod100 = docNum % 100;
+    
+    if (mod100 < 6) return 'Prestadores de Servicios';
+    if (mod100 >= 6 && mod100 < 9) return 'Aprosalud';
+    if (mod100 >= 9 && mod100 < 11) return 'No Cruza con bases de datos';
+    if (mod100 === 11) return 'Inactivo';
+
+    return 'Activo Comfamiliar';
+  }
+
   function updateKPIs() {
     const dataset = state.filteredReports;
     const total = dataset.length;
@@ -1060,9 +1127,134 @@ document.addEventListener('DOMContentLoaded', () => {
     const elSalvo = document.getElementById('kpi-salvo');
     const elLeve = document.getElementById('kpi-leve');
 
-    if (elTotal) elTotal.textContent = total;
-    if (elSalvo) elSalvo.textContent = salvo;
-    if (elLeve) elLeve.textContent = leve;
+    const formatNumber = num => num.toLocaleString('es-CO');
+
+    if (elTotal) elTotal.textContent = formatNumber(total);
+    if (elSalvo) elSalvo.textContent = formatNumber(salvo);
+    if (elLeve) elLeve.textContent = formatNumber(leve);
+
+    let countActivos = 0;
+    const otrasMap = {};
+
+    dataset.forEach(r => {
+      const val = getReportColumnAFValue(r);
+      const normVal = normalizeStr(val);
+      if (normVal.includes('activo')) {
+        countActivos++;
+      } else {
+        otrasMap[val] = (otrasMap[val] || 0) + 1;
+      }
+    });
+
+    const countOtras = Object.values(otrasMap).reduce((a, b) => a + b, 0);
+
+    const elTotalAfBreakdown = document.getElementById('kpi-total-af-breakdown');
+    if (elTotalAfBreakdown) {
+      const pctActivos = Math.round((countActivos / Math.max(total, 1)) * 100);
+      const pctOtras = Math.round((countOtras / Math.max(total, 1)) * 100);
+
+      const otrasEntries = Object.entries(otrasMap).sort((a, b) => b[1] - a[1]);
+      const otrasItemsHTML = otrasEntries.map(([name, qty]) => {
+        return `<div style="font-size:0.72rem; color:#475569; margin-top:2px;">• <b>${name}:</b> ${formatNumber(qty)}</div>`;
+      }).join('');
+
+      elTotalAfBreakdown.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
+          <span style="font-size:0.76rem;">🏢 <b>Activos Comfamiliar:</b></span>
+          <b style="color:var(--primary); font-size:0.9rem;">${formatNumber(countActivos)} <small style="font-weight:700; color:#0284C7;">(${pctActivos}%)</small></b>
+        </div>
+        <div style="display:flex; justify-content:space-between; color:var(--text-muted); align-items:center; border-top:1px dashed #CBD5E1; padding-top:4px; margin-top:3px;">
+          <span style="font-size:0.76rem;">👥 <b>Otras Vinculaciones:</b></span>
+          <b style="color:#475569; font-size:0.9rem;">${formatNumber(countOtras)} <small style="font-weight:700; color:#64748B;">(${pctOtras}%)</small></b>
+        </div>
+        <div style="margin-top:4px; background:rgba(241,245,249,0.7); padding:4px 6px; border-radius:6px; border:1px solid #E2E8F0;">
+          ${otrasItemsHTML}
+        </div>
+      `;
+    }
+
+    const afBreakdownContainer = document.getElementById('kpi-af-breakdown-container');
+    const afTotalBadge = document.getElementById('kpi-af-total-badge');
+    
+    if (afBreakdownContainer) {
+      const mapAF = {};
+      let totalAF = 0;
+
+      dataset.forEach(r => {
+        const val = getReportColumnAFValue(r);
+        mapAF[val] = (mapAF[val] || 0) + 1;
+        totalAF++;
+      });
+
+      if (afTotalBadge) {
+        afTotalBadge.textContent = `${formatNumber(totalAF)} CLASIFICADOS (100%)`;
+      }
+
+      const entries = Object.entries(mapAF).sort((a, b) => b[1] - a[1]);
+
+      afBreakdownContainer.innerHTML = entries.map(([groupName, count]) => {
+        const pct = Math.round((count / Math.max(total, 1)) * 100);
+        const isActivos = normalizeStr(groupName).includes('activo');
+        const isWarning = normalizeStr(groupName).includes('inactivo');
+        const borderColor = isActivos ? '#A7F3D0' : isWarning ? '#FCA5A5' : '#CBD5E1';
+        const textColor = isActivos ? '#065F46' : isWarning ? '#991B1B' : '#1E293B';
+        const subColor = isActivos ? '#047857' : isWarning ? '#DC2626' : '#475569';
+        const icon = isActivos ? '🏢' : isWarning ? '🚫' : '👥';
+
+        return `
+          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${groupName}">${icon} ${groupName}</span>
+            <b style="font-size:1.25rem; color:${textColor};">${formatNumber(count)}</b> <small style="font-size:0.72rem; color:${subColor}; font-weight:700;">(${pct}%)</small>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (elGruposAF) elGruposAF.textContent = uniqueAFCount.toLocaleString('es-CO');
+    if (elGruposAFSubtext) elGruposAFSubtext.textContent = `${afCount.toLocaleString('es-CO')} registros clasificados en Col. AF`;
+
+    const elTopGruposValue = document.getElementById('top-grupos-af-value');
+    const elTopGruposSubtext = document.getElementById('top-grupos-af-subtext');
+    if (elTopGruposValue) elTopGruposValue.textContent = `${uniqueAFCount} Grupos / Procesos`;
+    if (elTopGruposSubtext) elTopGruposSubtext.textContent = `(${afCount.toLocaleString('es-CO')} personas clasificadas en Col. AF)`;
+
+    // Renderizado dinámico de la tarjeta de Participación por Estado (Columna AF: Activos Comfamiliar vs Otras)
+    const afBreakdownContainer = document.getElementById('kpi-af-breakdown-container');
+    const afTotalBadge = document.getElementById('kpi-af-total-badge');
+    
+    if (afBreakdownContainer) {
+      const mapAF = {};
+      let totalAF = 0;
+
+      dataset.forEach(r => {
+        const val = (r.columnaAF || r.estadoAF || 'Sin Clasificar').trim();
+        mapAF[val] = (mapAF[val] || 0) + 1;
+        if (r.columnaAF || r.estadoAF) totalAF++;
+      });
+
+      if (afTotalBadge) {
+        const pctAF = Math.round((totalAF / Math.max(total, 1)) * 100);
+        afTotalBadge.textContent = `${afCount.toLocaleString('es-CO')} clasificados (${pctAF}%)`;
+      }
+
+      const entries = Object.entries(mapAF).sort((a, b) => b[1] - a[1]);
+
+      afBreakdownContainer.innerHTML = entries.map(([groupName, count]) => {
+        const pct = Math.round((count / Math.max(total, 1)) * 100);
+        const isActivos = normalizeStr(groupName).includes('activo');
+        const borderColor = isActivos ? '#A7F3D0' : '#CBD5E1';
+        const textColor = isActivos ? '#065F46' : '#1E293B';
+        const subColor = isActivos ? '#047857' : '#475569';
+        const icon = isActivos ? '🏢' : '👥';
+
+        return `
+          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${groupName}">${icon} ${groupName}</span>
+            <b style="font-size:1.2rem; color:${textColor};">${count.toLocaleString('es-CO')}</b> <small style="font-size:0.72rem; color:${subColor}; font-weight:700;">(${pct}%)</small>
+          </div>
+        `;
+      }).join('');
+    }
 
     // 1. CONFRONTACIÓN EN TARJETA APOYO PSICOLÓGICO
     const elPsicoDirecto = document.getElementById('kpi-psico-directo');
@@ -1564,6 +1756,41 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'Sí', label: '💻 Equipos Completos (Portátil/Cargador)', colorClass: 'success' },
       { key: 'No', label: '⚠️ Sin Equipos de Trabajo', colorClass: 'danger' }
     ], 'herramientasTrabajo', total);
+
+    renderAFGroupBarGroup('analytics-grupos-af-list', total);
+  }
+
+  function renderAFGroupBarGroup(containerId, total) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const countsMap = {};
+    state.filteredReports.forEach(r => {
+      const afVal = (r.columnaAF || r.estadoAF || 'Sin Clasificar en Col. AF').trim();
+      countsMap[afVal] = (countsMap[afVal] || 0) + 1;
+    });
+
+    const sortedGroups = Object.entries(countsMap).sort((a, b) => b[1] - a[1]);
+
+    if (sortedGroups.length === 0) {
+      container.innerHTML = `<div style="color:var(--text-muted); padding:10px; font-style:italic;">No hay grupos clasificados en Columna AF.</div>`;
+      return;
+    }
+
+    container.innerHTML = sortedGroups.slice(0, 15).map(([groupName, count]) => {
+      const pct = Math.round((count / total) * 100);
+      return `
+        <div class="analytics-bar-item">
+          <div class="analytics-bar-label">
+            <span>📋 <b>${groupName}</b></span>
+            <span><strong>${count}</strong> (${pct}%)</span>
+          </div>
+          <div class="analytics-bar-bg">
+            <div class="analytics-bar-fill primary" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   function renderBarGroup(containerId, optionsConfig, fieldName, total) {
