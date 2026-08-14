@@ -1218,44 +1218,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elTopGruposValue) elTopGruposValue.textContent = `${uniqueAFCount} Grupos / Procesos`;
     if (elTopGruposSubtext) elTopGruposSubtext.textContent = `(${afCount.toLocaleString('es-CO')} personas clasificadas en Col. AF)`;
 
-    // Renderizado dinámico de la tarjeta de Participación por Estado (Columna AF: Activos Comfamiliar vs Otras)
-    const afBreakdownContainer = document.getElementById('kpi-af-breakdown-container');
-    const afTotalBadge = document.getElementById('kpi-af-total-badge');
-    
-    if (afBreakdownContainer) {
-      const mapAF = {};
-      let totalAF = 0;
-
-      dataset.forEach(r => {
-        const val = (r.columnaAF || r.estadoAF || 'Sin Clasificar').trim();
-        mapAF[val] = (mapAF[val] || 0) + 1;
-        if (r.columnaAF || r.estadoAF) totalAF++;
-      });
-
-      if (afTotalBadge) {
-        const pctAF = Math.round((totalAF / Math.max(total, 1)) * 100);
-        afTotalBadge.textContent = `${afCount.toLocaleString('es-CO')} clasificados (${pctAF}%)`;
-      }
-
-      const entries = Object.entries(mapAF).sort((a, b) => b[1] - a[1]);
-
-      afBreakdownContainer.innerHTML = entries.map(([groupName, count]) => {
-        const pct = Math.round((count / Math.max(total, 1)) * 100);
-        const isActivos = normalizeStr(groupName).includes('activo');
-        const borderColor = isActivos ? '#A7F3D0' : '#CBD5E1';
-        const textColor = isActivos ? '#065F46' : '#1E293B';
-        const subColor = isActivos ? '#047857' : '#475569';
-        const icon = isActivos ? '🏢' : '👥';
-
-        return `
-          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
-            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${groupName}">${icon} ${groupName}</span>
-            <b style="font-size:1.2rem; color:${textColor};">${count.toLocaleString('es-CO')}</b> <small style="font-size:0.72rem; color:${subColor}; font-weight:700;">(${pct}%)</small>
-          </div>
-        `;
-      }).join('');
-    }
-
     // 1. CONFRONTACIÓN EN TARJETA APOYO PSICOLÓGICO
     const elPsicoDirecto = document.getElementById('kpi-psico-directo');
     const elPsicoBadge = document.getElementById('kpi-psico-badge');
