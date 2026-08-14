@@ -1354,10 +1354,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const subCats = getReportSubCategories(r);
       const subCardsHTML = subCats.map(cat => {
-        const subMgmtObj = (mgmt.subMgmt && mgmt.subMgmt[cat.key]) ? mgmt.subMgmt[cat.key] : {};
+        const subMgmtObj = (mgmt.subMgmt && mgmt.subMgmt[cat.key]) ? mgmt.subMgmt[cat.key] : null;
         const subSt = getNormalizedSubMgmtStatus(r, cat.key);
-        const subNotes = sanitizeNotes(subMgmtObj.notes || '');
-        const subOp = subMgmtObj.operator || 'Sin asignar';
+        const generalNotes = sanitizeNotes(mgmt.notes || r.gestionNotes || '');
+        const subNotes = sanitizeNotes((subMgmtObj && subMgmtObj.notes) ? subMgmtObj.notes : generalNotes);
+        const subOp = (subMgmtObj && subMgmtObj.operator) ? subMgmtObj.operator : (mgmt.operator || 'Sin asignar');
 
         return `
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
