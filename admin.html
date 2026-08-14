@@ -408,9 +408,14 @@
               Consola de mando con desgloses gráficos porcentuales y seguimiento de todos los trabajadores.
             </p>
           </div>
-          <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
-            📦 Exportar Matriz de Gestión (.xls)
-          </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button onclick="window.homologateWithGestionSST && window.homologateWithGestionSST(true)" class="btn-search" style="background:#0284C7; color:#FFF; font-weight:800; font-size:0.88rem; border:none; box-shadow:0 4px 12px rgba(2,132,199,0.25);" title="Haz clic para forzar la homologación 100% concordante con los datos maestros de la hoja GESTION_SST">
+              🔄 Homologar con GESTION_SST
+            </button>
+            <button id="btn-export-management-excel" onclick="window.triggerManagementExcelExport && window.triggerManagementExcelExport()" class="btn-search" style="background:#107C41; color:#FFF; font-weight:800; font-size:0.9rem; border:none; box-shadow:0 4px 12px rgba(16,124,65,0.25);">
+              📦 Exportar Matriz de Gestión (.xls)
+            </button>
+          </div>
         </div>
 
         <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
@@ -654,6 +659,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260814_124_FORCE_REMOTE_SYNC_71_RECORDS"></script>
+  <script src="app.js?v=20260814_125_HOMOLOGATION_ACTION_ACTIVE"></script>
 </body>
 </html>

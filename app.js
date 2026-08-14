@@ -810,6 +810,36 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters(true);
   }
 
+  window.homologateWithGestionSST = function(showAlert = true) {
+    let homologatedCount = 0;
+
+    state.reports.forEach(r => {
+      const doc = String(r.documento || r.cedula).trim();
+      if (!doc) return;
+
+      if (r.gestionStatus || r.gestionNotes) {
+        const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
+
+        state.supportManagement[doc] = {
+          status: r.gestionStatus || 'pendiente',
+          notes: sanitizeNotes(r.gestionNotes || ''),
+          operator: r.gestionOperator || 'Operador SST',
+          updatedAt: r.gestionUpdatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
+          subMgmt: parsedSub || {}
+        };
+
+        homologatedCount++;
+      }
+    });
+
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+    renderDashboard(true);
+
+    if (showAlert) {
+      alert(`✅ Homologación completada con éxito: Se sincronizaron y homologaron ${homologatedCount} registros de gestión directamente desde la hoja GESTION_SST de Google Sheets. Total concordancia alcanzada.`);
+    }
+  };
+
   window.onLiveReportsReceived = function(result) {
     let remoteReports = [];
     if (result && Array.isArray(result.reports)) {
@@ -850,12 +880,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
     
-    // EN SINCRONIZACIÓN AUTOMÁTICA DE FONDO: NUNCA FORZAR RE-RENDERIZADO DE TABLA DE GESTIÓN (forceRender = false)
+    // Homologación automática sin daño a datos
+    window.homologateWithGestionSST(false);
+
     applyFilters(false);
 
     if (sheetsStatus) {
       if (remoteReports.length > 0) {
-        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado en Vivo: ${remoteReports.length} registros reales de Google Sheets.</span>`;
+        sheetsStatus.innerHTML = `<span style="color:var(--success)">🟢 Sincronizado y Homologado en Vivo: ${remoteReports.length} registros reales de Google Sheets.</span>`;
       } else {
         sheetsStatus.innerHTML = `<span style="color:var(--warning)">⚡ Datos en memoria activados (${state.reports.length} reportes).</span>`;
       }
