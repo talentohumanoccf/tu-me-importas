@@ -1606,7 +1606,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const supportReports = state.reports.filter(r => {
       if (!isNeedSupport(r)) return false;
 
-      const st = getNormalizedMgmtStatus(r);
+      const isSpecificCat = catFilter && catFilter !== 'all';
+      const st = isSpecificCat ? getNormalizedSubMgmtStatus(r, catFilter) : getNormalizedMgmtStatus(r);
       const mgmt = state.supportManagement[String(r.documento || r.cedula).trim()] || {};
 
       let matchStatus = false;
