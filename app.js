@@ -533,6 +533,29 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('comfamiliar_main_map_expanded', 'false');
     }
   };
+
+  window.toggleMainConfrontationPanel = function() {
+    const container = document.getElementById('main-confrontation-collapse-container');
+    const text = document.getElementById('text-toggle-main-confrontation');
+    const arrow = document.getElementById('arrow-toggle-main-confrontation');
+    const btn = document.getElementById('btn-toggle-main-confrontation');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Confrontación de Intervenciones (Demanda vs Gestión)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_main_confrontation_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Confrontación de Intervenciones (Demanda vs Gestión)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_main_confrontation_expanded', 'false');
+    }
+  };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
   window.filterMgmtByStatusCard = function(status) {
@@ -934,6 +957,27 @@ document.addEventListener('DOMContentLoaded', () => {
           mapText.textContent = 'Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)';
           mapArrow.textContent = '▼';
           btnMapToggle.style.background = 'var(--primary)';
+        }
+      }
+
+      // Cargar estado de colapso de confrontación en Tablero 1
+      const isConfrontationExpanded = localStorage.getItem('comfamiliar_main_confrontation_expanded') === 'true';
+      const confContainer = document.getElementById('main-confrontation-collapse-container');
+      const confText = document.getElementById('text-toggle-main-confrontation');
+      const confArrow = document.getElementById('arrow-toggle-main-confrontation');
+      const btnConfToggle = document.getElementById('btn-toggle-main-confrontation');
+
+      if (confContainer && confText && confArrow && btnConfToggle) {
+        if (isConfrontationExpanded) {
+          confContainer.style.display = 'block';
+          confText.textContent = 'Ocultar Confrontación de Intervenciones (Demanda vs Gestión)';
+          confArrow.textContent = '▲';
+          btnConfToggle.style.background = 'var(--secondary)';
+        } else {
+          confContainer.style.display = 'none';
+          confText.textContent = 'Mostrar Confrontación de Intervenciones (Demanda vs Gestión)';
+          confArrow.textContent = '▼';
+          btnConfToggle.style.background = 'var(--primary)';
         }
       }
     } else if (tabName === 'analytics') {
