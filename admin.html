@@ -166,72 +166,84 @@
           <span>📊</span> Indicadores Clave de Riesgo y Priorización (KPIs)
         </h2>
 
-        <!-- KPIS PRINCIPALES DE RIESGO CON CONFRONTACIÓN DE INTERVENCIONES EN TIEMPO REAL -->
-        <div class="kpi-grid">
-          <div class="kpi-card kpi-primary">
-            <div class="kpi-header">Total Registrados</div>
-            <div class="kpi-value" id="kpi-total">0</div>
-            <div class="kpi-subtext" id="kpi-total-subtext">Formularios recibidos</div>
-          </div>
-          <!-- TARJETA DESTACADA DE PARTICIPACIÓN POR ESTADO (COLUMNA AF: ACTIVOS COMFAMILIAR Y OTRAS) -->
-          <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); border-left: 5px solid #10B981; grid-column: span 2;">
-            <div class="kpi-header" style="color:#065F46; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
-              <span>📋 Participación por Estado (Columna AF: Activos vs Otras)</span>
-              <span id="kpi-af-total-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 clasificados</span>
+        <!-- BOTÓN PREMIUM DE CONTROL DE VISUALIZACIÓN DE KPIS TABLERO 1 (COLAPSIBLE) -->
+        <div style="margin-bottom: 20px;">
+          <button id="btn-toggle-main-kpi" onclick="window.toggleMainKpiPanel && window.toggleMainKpiPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              📊 <span id="text-toggle-main-kpi">Mostrar Consola de Indicadores Clave (KPIs)</span>
+            </span>
+            <span id="arrow-toggle-main-kpi" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
+          </button>
+        </div>
+
+        <div id="main-kpi-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
+          <!-- KPIS PRINCIPALES DE RIESGO CON CONFRONTACIÓN DE INTERVENCIONES EN TIEMPO REAL -->
+          <div class="kpi-grid">
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-header">Total Registrados</div>
+              <div class="kpi-value" id="kpi-total">0</div>
+              <div class="kpi-subtext" id="kpi-total-subtext">Formularios recibidos</div>
             </div>
-            <div id="kpi-af-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
-              <!-- Renderizado dinámicamente con Activos Comfamiliar vs Otras por JS -->
-            </div>
-          </div>
-          <div class="kpi-card kpi-success">
-            <div class="kpi-header">A Salvo y Seguro</div>
-            <div class="kpi-value" id="kpi-salvo">0</div>
-            <div class="kpi-subtext">Sin necesidad de apoyos</div>
-          </div>
-          <div class="kpi-card kpi-warning">
-            <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
-            <div class="kpi-value" id="kpi-leve">0</div>
-            <div class="kpi-subtext">Afectación leve / moderada</div>
-          </div>
-          <div class="kpi-card kpi-info">
-            <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-              <div class="kpi-value" id="kpi-psico-directo">0</div>
-              <span id="kpi-psico-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-            </div>
-            <div class="kpi-subtext" id="kpi-psico-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-          </div>
-          <div class="kpi-card kpi-warning">
-            <div class="kpi-header">Solicitaron Kits de Alimentos</div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-              <div class="kpi-value" id="kpi-alimentos-directo">0</div>
-              <span id="kpi-alimentos-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-            </div>
-            <div class="kpi-subtext" id="kpi-alimentos-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-          </div>
-          <div class="kpi-card kpi-danger">
-            <div class="kpi-header">Sin Lugar Seguro / Vivienda</div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-              <div class="kpi-value" id="kpi-vivienda">0</div>
-              <span id="kpi-vivienda-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-            </div>
-            <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-          </div>
-          <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
-          <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
-            <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
-              <span>🏢 Gestión de Pólizas (Siniestros)</span>
-              <span id="kpi-polizas-badge" style="background:#E0F2FE; color:#0369a1; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">Zurich / HDI / Allianz</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
-              <div style="display:flex; align-items:baseline; gap:8px;">
-                <div class="kpi-value" id="kpi-polizas-total" style="color:#0369a1;">0</div>
-                <small style="color:#0284c7; font-weight:800;">Siniestros Reportados</small>
+            <!-- TARJETA DESTACADA DE PARTICIPACIÓN POR ESTADO (COLUMNA AF: ACTIVOS COMFAMILIAR Y OTRAS) -->
+            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); border-left: 5px solid #10B981; grid-column: span 2;">
+              <div class="kpi-header" style="color:#065F46; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <span>📋 Participación por Estado (Columna AF: Activos vs Otras)</span>
+                <span id="kpi-af-total-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 clasificados</span>
               </div>
-              <div class="kpi-subtext" id="kpi-polizas-confronted" style="color:#0369a1; font-weight:700;">🔴 <b>0</b> Grave | 🟡 <b>0</b> Mod | 🟢 <b>0</b> Leve</div>
+              <div id="kpi-af-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                <!-- Renderizado dinámicamente con Activos Comfamiliar vs Otras por JS -->
+              </div>
             </div>
-            <div id="kpi-polizas-breakdown" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; border-top:1px solid #E0F2FE; padding-top:10px;">
-              <!-- Se cargará dinámicamente con los casos reportados por cada línea de póliza -->
+            <div class="kpi-card kpi-success">
+              <div class="kpi-header">A Salvo y Seguro</div>
+              <div class="kpi-value" id="kpi-salvo">0</div>
+              <div class="kpi-subtext">Sin necesidad de apoyos</div>
+            </div>
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
+              <div class="kpi-value" id="kpi-leve">0</div>
+              <div class="kpi-subtext">Afectación leve / moderada</div>
+            </div>
+            <div class="kpi-card kpi-info">
+              <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <div class="kpi-value" id="kpi-psico-directo">0</div>
+                <span id="kpi-psico-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+              </div>
+              <div class="kpi-subtext" id="kpi-psico-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+            </div>
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-header">Solicitaron Kits de Alimentos</div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <div class="kpi-value" id="kpi-alimentos-directo">0</div>
+                <span id="kpi-alimentos-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+              </div>
+              <div class="kpi-subtext" id="kpi-alimentos-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+            </div>
+            <div class="kpi-card kpi-danger">
+              <div class="kpi-header">Sin Lugar Seguro / Vivienda</div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <div class="kpi-value" id="kpi-vivienda">0</div>
+                <span id="kpi-vivienda-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+              </div>
+              <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+            </div>
+            <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
+            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
+              <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
+                <span>🏢 Gestión de Pólizas (Siniestros)</span>
+                <span id="kpi-polizas-badge" style="background:#E0F2FE; color:#0369a1; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">Zurich / HDI / Allianz</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
+                <div style="display:flex; align-items:baseline; gap:8px;">
+                  <div class="kpi-value" id="kpi-polizas-total" style="color:#0369a1;">0</div>
+                  <small style="color:#0284c7; font-weight:800;">Siniestros Reportados</small>
+                </div>
+                <div class="kpi-subtext" id="kpi-polizas-confronted" style="color:#0369a1; font-weight:700;">🔴 <b>0</b> Grave | 🟡 <b>0</b> Mod | 🟢 <b>0</b> Leve</div>
+              </div>
+              <div id="kpi-polizas-breakdown" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; border-top:1px solid #E0F2FE; padding-top:10px;">
+                <!-- Se cargará dinámicamente con los casos reportados por cada línea de póliza -->
+              </div>
             </div>
           </div>
         </div>
@@ -708,6 +720,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260815_1408_COLLAPSIBLE_KPIS"></script>
+  <script src="app.js?v=20260815_1414_ALL_COLLAPSED"></script>
 </body>
 </html>

@@ -481,6 +481,29 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'false');
     }
   };
+
+  window.toggleMainKpiPanel = function() {
+    const container = document.getElementById('main-kpi-collapse-container');
+    const text = document.getElementById('text-toggle-main-kpi');
+    const arrow = document.getElementById('arrow-toggle-main-kpi');
+    const btn = document.getElementById('btn-toggle-main-kpi');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Consola de Indicadores Clave (KPIs)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_main_kpi_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Consola de Indicadores Clave (KPIs)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_main_kpi_expanded', 'false');
+    }
+  };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
   window.filterMgmtByStatusCard = function(status) {
@@ -839,6 +862,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if(btn1) btn1.classList.add('active');
       if(c1) c1.style.display = 'block';
       if (state.map) setTimeout(() => state.map.invalidateSize(), 150);
+
+      // Cargar estado de colapso de KPIs en Tablero 1
+      const isExpanded = localStorage.getItem('comfamiliar_main_kpi_expanded') === 'true';
+      const container = document.getElementById('main-kpi-collapse-container');
+      const text = document.getElementById('text-toggle-main-kpi');
+      const arrow = document.getElementById('arrow-toggle-main-kpi');
+      const btnToggle = document.getElementById('btn-toggle-main-kpi');
+
+      if (container && text && arrow && btnToggle) {
+        if (isExpanded) {
+          container.style.display = 'block';
+          text.textContent = 'Ocultar Consola de Indicadores Clave (KPIs)';
+          arrow.textContent = '▲';
+          btnToggle.style.background = 'var(--secondary)';
+        } else {
+          container.style.display = 'none';
+          text.textContent = 'Mostrar Consola de Indicadores Clave (KPIs)';
+          arrow.textContent = '▼';
+          btnToggle.style.background = 'var(--primary)';
+        }
+      }
     } else if (tabName === 'analytics') {
       if(btn2) btn2.classList.add('active');
       if(c2) c2.style.display = 'block';
