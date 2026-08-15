@@ -328,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .join(' || ');
 
     state.supportManagement[doc].notes = combinedNotesStr;
+    state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
     if (state.googleSheetsUrl && navigator.onLine) {
@@ -386,6 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
             state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '', subMgmt: {} };
           }
           
+          state.supportManagement[doc].isDirty = true; // Marcar como modificado localmente
+
           if (subKey) {
             if (!state.supportManagement[doc].subMgmt) {
               state.supportManagement[doc].subMgmt = {};
@@ -408,6 +411,43 @@ document.addEventListener('DOMContentLoaded', () => {
             state.supportManagement[doc].notes = val;
           }
 
+          localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+        }
+      }
+    });
+
+    mgmtTbody.addEventListener('change', (e) => {
+      if (e.target && e.target.classList.contains('mgmt-status-select')) {
+        const selectId = e.target.id;
+        let doc = '';
+        let subKey = '';
+
+        if (selectId.startsWith('mgmt-sub-select-')) {
+          const match = selectId.match(/^mgmt-sub-select-([^-]+)-(.*)$/);
+          if (match) {
+            doc = match[1];
+            subKey = match[2];
+          }
+        }
+
+        if (doc && subKey) {
+          const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
+          
+          if (!state.supportManagement[doc]) {
+            state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '', subMgmt: {} };
+          }
+          
+          state.supportManagement[doc].isDirty = true; // Marcar como modificado localmente
+
+          if (!state.supportManagement[doc].subMgmt) {
+            state.supportManagement[doc].subMgmt = {};
+          }
+          if (!state.supportManagement[doc].subMgmt[subKey]) {
+            state.supportManagement[doc].subMgmt[subKey] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '' };
+          }
+          
+          state.supportManagement[doc].subMgmt[subKey].status = e.target.value;
+          
           localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
         }
       }
@@ -565,6 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .join(' || ');
 
     state.supportManagement[doc].notes = combinedNotesStr;
+    state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
     if (state.googleSheetsUrl && navigator.onLine) {
@@ -592,7 +633,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notes: sanitizeNotes(notesVal),
       operator: operatorVal || 'Operador SST',
       updatedAt: nowStr,
-      subMgmt: parsedSub || existing.subMgmt || {}
+      subMgmt: parsedSub || existing.subMgmt || {},
+      isDirty: false // Sincronizado / No sucio
     };
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
@@ -908,7 +950,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const isUserEditingThisDoc = (doc === activeDoc);
 
-      if (r.gestionStatus && !state.isTypingActive && !isUserEditingThisDoc) {
+      const isDirty = localMgmt && localMgmt.isDirty;
+      if (r.gestionStatus && !state.isTypingActive && !isUserEditingThisDoc && !isDirty) {
         state.supportManagement[doc] = {
           status: r.gestionStatus,
           notes: sanitizeNotes(r.gestionNotes || ''),
@@ -1006,6 +1049,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!doc) return;
 
       const isUserEditingThisDoc = (doc === activeDoc);
+      const localMgmt = state.supportManagement[doc];
+      const isDirty = localMgmt && localMgmt.isDirty;
+
+      if (isDirty) return; // Proteger si hay cambios locales no guardados
       if (state.isTypingActive && isUserEditingThisDoc) return; // Proteger mientras se escribe
 
       if (r.gestionStatus || r.gestionNotes) {
