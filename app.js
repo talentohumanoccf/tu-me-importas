@@ -364,19 +364,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000); // 5 segundos de inmunidad total tras pulsar la última tecla
 
         const textareaId = e.target.id;
-        const doc = textareaId.replace('mgmt-notes-', '').trim();
+        let doc = '';
+        let subKey = '';
+
+        if (textareaId.startsWith('mgmt-sub-notes-')) {
+          const match = textareaId.match(/^mgmt-sub-notes-([^-]+)-(.*)$/);
+          if (match) {
+            doc = match[1];
+            subKey = match[2];
+          }
+        } else if (textareaId.startsWith('mgmt-notes-')) {
+          doc = textareaId.replace('mgmt-notes-', '').trim();
+        }
+
         const val = e.target.value;
 
         if (doc) {
           const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
-          const existing = state.supportManagement[doc] || {};
-
-          state.supportManagement[doc] = {
-            status: existing.status || 'pendiente',
-            notes: val, // Guardar el valor exacto en tiempo real
-            operator: existing.operator || currentOperator,
-            updatedAt: existing.updatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
-          };
+          
+          if (!state.supportManagement[doc]) {
+            state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '', subMgmt: {} };
+          }
+          
+          if (subKey) {
+            if (!state.supportManagement[doc].subMgmt) {
+              state.supportManagement[doc].subMgmt = {};
+            }
+            state.supportManagement[doc].subMgmt[subKey] = {
+              status: state.supportManagement[doc].subMgmt[subKey]?.status || 'proceso',
+              notes: val,
+              operator: state.supportManagement[doc].subMgmt[subKey]?.operator || currentOperator,
+              updatedAt: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
+            };
+            
+            // Recalcular la nota combinada global de forma instantánea
+            const entries = Object.entries(state.supportManagement[doc].subMgmt);
+            const combinedNotesStr = entries
+              .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+              .join(' || ');
+            
+            state.supportManagement[doc].notes = combinedNotesStr;
+          } else {
+            state.supportManagement[doc].notes = val;
+          }
 
           localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
         }
@@ -866,7 +896,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const reqCategories = getReportSubCategories(r).map(c => c.key);
       const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
 
-      if (r.gestionStatus && !state.isTypingActive) {
+      const activeEl = document.activeElement;
+      let activeDoc = '';
+      if (activeEl && activeEl.id) {
+        if (activeEl.id.startsWith('mgmt-sub-notes-')) {
+          const m = activeEl.id.match(/^mgmt-sub-notes-([^-]+)-/);
+          if (m) activeDoc = m[1];
+        } else if (activeEl.id.startsWith('mgmt-notes-')) {
+          activeDoc = activeEl.id.replace('mgmt-notes-', '').trim();
+        }
+      }
+      const isUserEditingThisDoc = (doc === activeDoc);
+
+      if (r.gestionStatus && !state.isTypingActive && !isUserEditingThisDoc) {
         state.supportManagement[doc] = {
           status: r.gestionStatus,
           notes: sanitizeNotes(r.gestionNotes || ''),
@@ -948,9 +990,23 @@ document.addEventListener('DOMContentLoaded', () => {
   window.homologateWithGestionSST = function(showAlert = true) {
     let homologatedCount = 0;
 
+    const activeEl = document.activeElement;
+    let activeDoc = '';
+    if (activeEl && activeEl.id) {
+      if (activeEl.id.startsWith('mgmt-sub-notes-')) {
+        const m = activeEl.id.match(/^mgmt-sub-notes-([^-]+)-/);
+        if (m) activeDoc = m[1];
+      } else if (activeEl.id.startsWith('mgmt-notes-')) {
+        activeDoc = activeEl.id.replace('mgmt-notes-', '').trim();
+      }
+    }
+
     state.reports.forEach(r => {
       const doc = String(r.documento || r.cedula).trim();
       if (!doc) return;
+
+      const isUserEditingThisDoc = (doc === activeDoc);
+      if (state.isTypingActive && isUserEditingThisDoc) return; // Proteger mientras se escribe
 
       if (r.gestionStatus || r.gestionNotes) {
         const reqCategories = getReportSubCategories(r).map(c => c.key);
