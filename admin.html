@@ -491,7 +491,7 @@
         <div style="margin-bottom: 20px;">
           <button id="btn-toggle-mgmt-kpi" onclick="window.toggleMgmtKpiPanel && window.toggleMgmtKpiPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
             <span style="display: flex; align-items: center; gap: 8px;">
-              📈 <span id="text-toggle-mgmt-kpi">Mostrar Consola de Indicadores y Gráficas (KPIs)</span>
+              📊 <span id="text-toggle-mgmt-kpi">Mostrar Consola de Indicadores Ejecutivos (KPIs)</span>
             </span>
             <span id="arrow-toggle-mgmt-kpi" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
           </button>
@@ -520,7 +520,19 @@
             </div>
 
           </div>
+        </div>
 
+        <!-- BOTÓN PREMIUM PARA GRÁFICAS DE AVANCE (COLAPSIBLE) -->
+        <div style="margin-bottom: 20px;">
+          <button id="btn-toggle-mgmt-charts" onclick="window.toggleMgmtChartsPanel && window.toggleMgmtChartsPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              📈 <span id="text-toggle-mgmt-charts">Mostrar Gráficas de Avance y Estado de Gestión (Consolidado General)</span>
+            </span>
+            <span id="arrow-toggle-mgmt-charts" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
+          </button>
+        </div>
+
+        <div id="mgmt-charts-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
           <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS - SEGUNDA POSICIÓN) -->
           <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
@@ -736,6 +748,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260815_1510_VIVIENDA_PENDIENTES"></script>
+  <script src="app.js?v=20260815_1531_OHS_CHARTS_COLLAPSIBLE"></script>
 </body>
 </html>

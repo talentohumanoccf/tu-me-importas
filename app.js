@@ -469,16 +469,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (container.style.display === 'none') {
       container.style.display = 'block';
-      text.textContent = 'Ocultar Consola de Indicadores y Gráficas (KPIs)';
+      text.textContent = 'Ocultar Consola de Indicadores Ejecutivos (KPIs)';
       arrow.textContent = '▲';
       btn.style.background = 'var(--secondary)';
       localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'true');
     } else {
       container.style.display = 'none';
-      text.textContent = 'Mostrar Consola de Indicadores y Gráficas (KPIs)';
+      text.textContent = 'Mostrar Consola de Indicadores Ejecutivos (KPIs)';
       arrow.textContent = '▼';
       btn.style.background = 'var(--primary)';
       localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'false');
+    }
+  };
+
+  window.toggleMgmtChartsPanel = function() {
+    const container = document.getElementById('mgmt-charts-collapse-container');
+    const text = document.getElementById('text-toggle-mgmt-charts');
+    const arrow = document.getElementById('arrow-toggle-mgmt-charts');
+    const btn = document.getElementById('btn-toggle-mgmt-charts');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_mgmt_charts_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_mgmt_charts_expanded', 'false');
     }
   };
 
@@ -1003,14 +1026,35 @@ document.addEventListener('DOMContentLoaded', () => {
       if (container && text && arrow && btnToggle) {
         if (isExpanded) {
           container.style.display = 'block';
-          text.textContent = 'Ocultar Consola de Indicadores y Gráficas (KPIs)';
+          text.textContent = 'Ocultar Consola de Indicadores Ejecutivos (KPIs)';
           arrow.textContent = '▲';
           btnToggle.style.background = 'var(--secondary)';
         } else {
           container.style.display = 'none';
-          text.textContent = 'Mostrar Consola de Indicadores y Gráficas (KPIs)';
+          text.textContent = 'Mostrar Consola de Indicadores Ejecutivos (KPIs)';
           arrow.textContent = '▼';
           btnToggle.style.background = 'var(--primary)';
+        }
+      }
+
+      // Cargar estado de colapso de gráficas de avance SST
+      const isChartsExpanded = localStorage.getItem('comfamiliar_mgmt_charts_expanded') === 'true';
+      const chartsContainer = document.getElementById('mgmt-charts-collapse-container');
+      const chartsText = document.getElementById('text-toggle-mgmt-charts');
+      const chartsArrow = document.getElementById('arrow-toggle-mgmt-charts');
+      const btnChartsToggle = document.getElementById('btn-toggle-mgmt-charts');
+
+      if (chartsContainer && chartsText && chartsArrow && btnChartsToggle) {
+        if (isChartsExpanded) {
+          chartsContainer.style.display = 'block';
+          chartsText.textContent = 'Ocultar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+          chartsArrow.textContent = '▲';
+          btnChartsToggle.style.background = 'var(--secondary)';
+        } else {
+          chartsContainer.style.display = 'none';
+          chartsText.textContent = 'Mostrar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+          chartsArrow.textContent = '▼';
+          btnChartsToggle.style.background = 'var(--primary)';
         }
       }
 
