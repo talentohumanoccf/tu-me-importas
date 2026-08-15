@@ -458,6 +458,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerGlobalFilter = function() { applyFilters(true); };
   window.triggerMgmtRender = function() { renderManagementDashboard(true); };
+
+  window.toggleMgmtKpiPanel = function() {
+    const container = document.getElementById('mgmt-kpi-collapse-container');
+    const text = document.getElementById('text-toggle-mgmt-kpi');
+    const arrow = document.getElementById('arrow-toggle-mgmt-kpi');
+    const btn = document.getElementById('btn-toggle-mgmt-kpi');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Consola de Indicadores y Gráficas (KPIs)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Consola de Indicadores y Gráficas (KPIs)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'false');
+    }
+  };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
   window.filterMgmtByStatusCard = function(status) {
@@ -829,6 +852,27 @@ document.addEventListener('DOMContentLoaded', () => {
         elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status') || 'pendiente';
       }
  
+      // Cargar estado de colapso de KPIs
+      const isExpanded = localStorage.getItem('comfamiliar_mgmt_kpi_expanded') === 'true';
+      const container = document.getElementById('mgmt-kpi-collapse-container');
+      const text = document.getElementById('text-toggle-mgmt-kpi');
+      const arrow = document.getElementById('arrow-toggle-mgmt-kpi');
+      const btnToggle = document.getElementById('btn-toggle-mgmt-kpi');
+
+      if (container && text && arrow && btnToggle) {
+        if (isExpanded) {
+          container.style.display = 'block';
+          text.textContent = 'Ocultar Consola de Indicadores y Gráficas (KPIs)';
+          arrow.textContent = '▲';
+          btnToggle.style.background = 'var(--secondary)';
+        } else {
+          container.style.display = 'none';
+          text.textContent = 'Mostrar Consola de Indicadores y Gráficas (KPIs)';
+          arrow.textContent = '▼';
+          btnToggle.style.background = 'var(--primary)';
+        }
+      }
+
       renderManagementDashboard(true);
     } else if (tabName === 'donations') {
       if(btn4) btn4.classList.add('active');

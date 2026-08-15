@@ -459,48 +459,59 @@
             </button>
           </div>
         </div>
-
-        <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
-        <div class="kpi-grid" style="margin-bottom:24px;">
-          
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
-            <div class="kpi-header" style="color:#B45309;">🟡 1. Pendientes por Contactar</div>
-            <div class="kpi-value" id="mgmt-global-kpi-pend" style="color:#B45309;">0</div>
-            <div class="kpi-subtext" style="color:#92400E; font-weight:700;">Requieren primer contacto del equipo SST</div>
-          </div>
-
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('proceso')" title="Haz clic para filtrar casos EN ATENCIÓN / PROCESO" style="border-left: 5px solid #0284C7; background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%);">
-            <div class="kpi-header" style="color:#0369A1;">🔵 2. En Atención / Gestión</div>
-            <div class="kpi-value" id="mgmt-global-kpi-proc" style="color:#0369A1;">0</div>
-            <div class="kpi-subtext" style="color:#075985; font-weight:700;">En seguimiento activo por profesional SST</div>
-          </div>
-
-          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('resuelto')" title="Haz clic para consultar HISTÓRICO DE CASOS CERRADOS" style="border-left: 5px solid #107C41; background: linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 100%);">
-            <div class="kpi-header" style="color:#065F46;">🟢 3. Apoyos Entregados / Resueltos</div>
-            <div class="kpi-value" id="mgmt-global-kpi-res" style="color:#065F46;">0</div>
-            <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
-          </div>
-
+        <!-- BOTÓN PREMIUM DE CONTROL DE VISUALIZACIÓN DE KPIS (COLAPSIBLE) -->
+        <div style="margin-bottom: 20px;">
+          <button id="btn-toggle-mgmt-kpi" onclick="window.toggleMgmtKpiPanel && window.toggleMgmtKpiPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              📈 <span id="text-toggle-mgmt-kpi">Mostrar Consola de Indicadores y Gráficas (KPIs)</span>
+            </span>
+            <span id="arrow-toggle-mgmt-kpi" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
+          </button>
         </div>
 
-        <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS - SEGUNDA POSICIÓN) -->
-        <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-            <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
-              📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
-            </h3>
-            <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
-              <span class="badge-kpi-pend">🟡 Pendientes</span>
-              <span class="badge-kpi-proc">🔵 En Gestión</span>
-              <span class="badge-kpi-res">🟢 Resueltos</span>
+        <div id="mgmt-kpi-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
+          <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
+          <div class="kpi-grid" style="margin-bottom:24px;">
+            
+            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
+              <div class="kpi-header" style="color:#B45309;">🟡 1. Pendientes por Contactar</div>
+              <div class="kpi-value" id="mgmt-global-kpi-pend" style="color:#B45309;">0</div>
+              <div class="kpi-subtext" style="color:#92400E; font-weight:700;">Requieren primer contacto del equipo SST</div>
             </div>
-          </div>
-          <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
-            Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
-          </p>
 
-          <div class="analytics-grid" id="mgmt-visual-charts-container">
-            <!-- Se llena dinámicamente por JS -->
+            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('proceso')" title="Haz clic para filtrar casos EN ATENCIÓN / PROCESO" style="border-left: 5px solid #0284C7; background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%);">
+              <div class="kpi-header" style="color:#0369A1;">🔵 2. En Atención / Gestión</div>
+              <div class="kpi-value" id="mgmt-global-kpi-proc" style="color:#0369A1;">0</div>
+              <div class="kpi-subtext" style="color:#075985; font-weight:700;">En seguimiento activo por profesional SST</div>
+            </div>
+
+            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('resuelto')" title="Haz clic para consultar HISTÓRICO DE CASOS CERRADOS" style="border-left: 5px solid #107C41; background: linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 100%);">
+              <div class="kpi-header" style="color:#065F46;">🟢 3. Apoyos Entregados / Resueltos</div>
+              <div class="kpi-value" id="mgmt-global-kpi-res" style="color:#065F46;">0</div>
+              <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
+            </div>
+
+          </div>
+
+          <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS - SEGUNDA POSICIÓN) -->
+          <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+                📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
+              </h3>
+              <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
+                <span class="badge-kpi-pend">🟡 Pendientes</span>
+                <span class="badge-kpi-proc">🔵 En Gestión</span>
+                <span class="badge-kpi-res">🟢 Resueltos</span>
+              </div>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
+              Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
+            </p>
+
+            <div class="analytics-grid" id="mgmt-visual-charts-container">
+              <!-- Se llena dinámicamente por JS -->
+            </div>
           </div>
         </div>
 
@@ -697,6 +708,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260815_1402_TOAST_SESSION"></script>
+  <script src="app.js?v=20260815_1408_COLLAPSIBLE_KPIS"></script>
 </body>
 </html>
