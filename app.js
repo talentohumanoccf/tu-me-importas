@@ -1461,8 +1461,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
-    const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
-    return { solicitados, totalIntervenidos, intervencionAtendida, intervencionEnProceso, pendientes, pct };
+    
+    // Si es vivienda, se marca como 0 pendientes de gestionar y 100% de cobertura por ser transversal
+    const finalPendientes = categoryKey === 'vivienda' ? 0 : pendientes;
+    const pct = categoryKey === 'vivienda' ? 100 : (solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100);
+    
+    return { solicitados, totalIntervenidos, intervencionAtendida, intervencionEnProceso, pendientes: finalPendientes, pct };
   }
 
   function renderConfrontationInterventions() {
