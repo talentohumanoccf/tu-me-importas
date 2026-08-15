@@ -166,116 +166,71 @@
           <span>📊</span> Indicadores Clave de Riesgo y Priorización (KPIs)
         </h2>
 
-        <!-- BOTÓN PREMIUM DE CONTROL DE VISUALIZACIÓN DE KPIS TABLERO 1 (COLAPSIBLE) -->
-        <div style="margin-bottom: 20px;">
-          <button id="btn-toggle-main-kpi" onclick="window.toggleMainKpiPanel && window.toggleMainKpiPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              📊 <span id="text-toggle-main-kpi">Mostrar Consola de Indicadores Clave (KPIs)</span>
-            </span>
-            <span id="arrow-toggle-main-kpi" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
-
-        <div id="main-kpi-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <!-- KPIS PRINCIPALES DE RIESGO CON CONFRONTACIÓN DE INTERVENCIONES EN TIEMPO REAL -->
-          <div class="kpi-grid">
-            <div class="kpi-card kpi-primary">
-              <div class="kpi-header">Total Registrados</div>
-              <div class="kpi-value" id="kpi-total">0</div>
-              <div class="kpi-subtext" id="kpi-total-subtext">Formularios recibidos</div>
+        <!-- KPIS PRINCIPALES DE RIESGO CON CONFRONTACIÓN DE INTERVENCIONES EN TIEMPO REAL -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-primary">
+            <div class="kpi-header">Total Registrados</div>
+            <div class="kpi-value" id="kpi-total">0</div>
+            <div class="kpi-subtext" id="kpi-total-subtext">Formularios recibidos</div>
+          </div>
+          <!-- TARJETA DESTACADA DE PARTICIPACIÓN POR ESTADO (COLUMNA AF: ACTIVOS COMFAMILIAR Y OTRAS) -->
+          <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); border-left: 5px solid #10B981; grid-column: span 2;">
+            <div class="kpi-header" style="color:#065F46; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+              <span>📋 Participación por Estado (Columna AF: Activos vs Otras)</span>
+              <span id="kpi-af-total-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 clasificados</span>
             </div>
-            <!-- TARJETA DESTACADA DE PARTICIPACIÓN POR ESTADO (COLUMNA AF: ACTIVOS COMFAMILIAR Y OTRAS) -->
-            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); border-left: 5px solid #10B981; grid-column: span 2;">
-              <div class="kpi-header" style="color:#065F46; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
-                <span>📋 Participación por Tipo de Vinculación</span>
-                <span id="kpi-af-total-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 clasificados</span>
-              </div>
-              <div id="kpi-af-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
-                <!-- Renderizado dinámicamente con Activos Comfamiliar vs Otras por JS -->
-              </div>
+            <div id="kpi-af-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+              <!-- Renderizado dinámicamente con Activos Comfamiliar vs Otras por JS -->
             </div>
-            <div class="kpi-card kpi-success">
-              <div class="kpi-header">A Salvo y Seguro</div>
-              <div class="kpi-value" id="kpi-salvo">0</div>
-              <div class="kpi-subtext">Sin necesidad de apoyos</div>
+          </div>
+          <div class="kpi-card kpi-success">
+            <div class="kpi-header">A Salvo y Seguro</div>
+            <div class="kpi-value" id="kpi-salvo">0</div>
+            <div class="kpi-subtext">Sin necesidad de apoyos</div>
+          </div>
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
+            <div class="kpi-value" id="kpi-leve">0</div>
+            <div class="kpi-subtext">Afectación leve / moderada</div>
+          </div>
+          <div class="kpi-card kpi-info">
+            <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div class="kpi-value" id="kpi-psico-directo">0</div>
+              <span id="kpi-psico-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
             </div>
-            <div class="kpi-card kpi-warning">
-              <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
-              <div class="kpi-value" id="kpi-leve">0</div>
-              <div class="kpi-subtext">Afectación leve / moderada</div>
+            <div class="kpi-subtext" id="kpi-psico-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+          </div>
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-header">Solicitaron Kits de Alimentos</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div class="kpi-value" id="kpi-alimentos-directo">0</div>
+              <span id="kpi-alimentos-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
             </div>
-            <div class="kpi-card kpi-info">
-              <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-psico-directo">0</div>
-                <span id="kpi-psico-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-psico-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+            <div class="kpi-subtext" id="kpi-alimentos-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+          </div>
+          <div class="kpi-card kpi-danger">
+            <div class="kpi-header">Sin Lugar Seguro / Vivienda</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div class="kpi-value" id="kpi-vivienda">0</div>
+              <span id="kpi-vivienda-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
             </div>
-            <div class="kpi-card kpi-warning">
-              <div class="kpi-header">Solicitaron Kits de Alimentos</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-alimentos-directo">0</div>
-                <span id="kpi-alimentos-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-alimentos-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
-            <div class="kpi-card kpi-danger">
-              <div class="kpi-header">Sin Lugar Seguro / Vivienda</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-vivienda">0</div>
-                <span id="kpi-vivienda-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
-            <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
-            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
-              <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
-                <span>🏢 Gestión de Pólizas (Siniestros)</span>
-                <span id="kpi-polizas-badge" style="background:#E0F2FE; color:#0369a1; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">Zurich / HDI / Allianz</span>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
-                <div style="display:flex; align-items:baseline; gap:8px;">
-                  <div class="kpi-value" id="kpi-polizas-total" style="color:#0369a1;">0</div>
-                  <small style="color:#0284c7; font-weight:800;">Siniestros Reportados</small>
-                </div>
-                <div class="kpi-subtext" id="kpi-polizas-confronted" style="color:#0369a1; font-weight:700;">🔴 <b>0</b> Grave | 🟡 <b>0</b> Mod | 🟢 <b>0</b> Leve</div>
-              </div>
-              <div id="kpi-polizas-breakdown" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; border-top:1px solid #E0F2FE; padding-top:10px;">
-                <!-- Se cargará dinámicamente con los casos reportados por cada línea de póliza -->
-              </div>
-            </div>
+            <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
           </div>
         </div>
 
-        <!-- MAPA DE EMERGENCIA COLAPSIBLE -->
-        <div style="margin: 20px 0 10px 0;">
-          <button id="btn-toggle-main-map" onclick="window.toggleMainMapPanel && window.toggleMainMapPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              🗺️ <span id="text-toggle-main-map">Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)</span>
-            </span>
-            <span id="arrow-toggle-main-map" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
+        <!-- MAPA DE EMERGENCIA -->
+        <h3 class="no-print" style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
+          🗺️ Ubicación Satelital de Trabajadores Registrados
+        </h3>
+        <div id="emergency-map" class="no-print"></div>
 
-        <div id="main-map-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <div id="emergency-map" class="no-print"></div>
-        </div>
-
-        <!-- CONFRONTACIÓN EJECUTIVA COLAPSIBLE -->
-        <div style="margin: 20px 0 10px 0;">
-          <button id="btn-toggle-main-confrontation" onclick="window.toggleMainConfrontationPanel && window.toggleMainConfrontationPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              ⚖️ <span id="text-toggle-main-confrontation">Mostrar Confrontación de Intervenciones (Demanda vs Gestión)</span>
-            </span>
-            <span id="arrow-toggle-main-confrontation" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
-
-        <div id="main-confrontation-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <div id="confrontation-interventions-grid" class="no-print" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom: 24px;">
-            <!-- Renderizado dinámicamente desde app.js -->
-          </div>
+        <!-- CONFRONTACIÓN EJECUTIVA: DEMANDA DE APOYOS VS INTERVENCIONES EJECUTADAS -->
+        <h3 class="no-print" style="font-size: 1.15rem; color: var(--primary); margin: 24px 0 12px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
+          <span>⚖️</span> Confrontación de Intervenciones: Demanda de Apoyos vs Gestión Realizada SST
+        </h3>
+        <div id="confrontation-interventions-grid" class="no-print" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom: 24px;">
+          <!-- Renderizado dinámicamente desde app.js -->
         </div>
 
         <!-- BARRA DE FILTROS AVANZADOS -->
@@ -487,71 +442,48 @@
             </button>
           </div>
         </div>
-        <!-- BOTÓN PREMIUM DE CONTROL DE VISUALIZACIÓN DE KPIS (COLAPSIBLE) -->
-        <div style="margin-bottom: 20px;">
-          <button id="btn-toggle-mgmt-kpi" onclick="window.toggleMgmtKpiPanel && window.toggleMgmtKpiPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              📊 <span id="text-toggle-mgmt-kpi">Mostrar Consola de Indicadores Ejecutivos (KPIs)</span>
-            </span>
-            <span id="arrow-toggle-mgmt-kpi" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
 
-        <div id="mgmt-kpi-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
-          <div class="kpi-grid" style="margin-bottom:24px;">
-            
-            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
-              <div class="kpi-header" style="color:#B45309;">🟡 1. Pendientes por Contactar</div>
-              <div class="kpi-value" id="mgmt-global-kpi-pend" style="color:#B45309;">0</div>
-              <div class="kpi-subtext" style="color:#92400E; font-weight:700;">Requieren primer contacto del equipo SST</div>
-            </div>
-
-            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('proceso')" title="Haz clic para filtrar casos EN ATENCIÓN / PROCESO" style="border-left: 5px solid #0284C7; background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%);">
-              <div class="kpi-header" style="color:#0369A1;">🔵 2. En Atención / Gestión</div>
-              <div class="kpi-value" id="mgmt-global-kpi-proc" style="color:#0369A1;">0</div>
-              <div class="kpi-subtext" style="color:#075985; font-weight:700;">En seguimiento activo por profesional SST</div>
-            </div>
-
-            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('resuelto')" title="Haz clic para consultar HISTÓRICO DE CASOS CERRADOS" style="border-left: 5px solid #107C41; background: linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 100%);">
-              <div class="kpi-header" style="color:#065F46;">🟢 3. Apoyos Entregados / Resueltos</div>
-              <div class="kpi-value" id="mgmt-global-kpi-res" style="color:#065F46;">0</div>
-              <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
-            </div>
-
+        <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
+        <div class="kpi-grid" style="margin-bottom:24px;">
+          
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
+            <div class="kpi-header" style="color:#B45309;">🟡 1. Pendientes por Contactar</div>
+            <div class="kpi-value" id="mgmt-global-kpi-pend" style="color:#B45309;">0</div>
+            <div class="kpi-subtext" style="color:#92400E; font-weight:700;">Requieren primer contacto del equipo SST</div>
           </div>
+
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('proceso')" title="Haz clic para filtrar casos EN ATENCIÓN / PROCESO" style="border-left: 5px solid #0284C7; background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%);">
+            <div class="kpi-header" style="color:#0369A1;">🔵 2. En Atención / Gestión</div>
+            <div class="kpi-value" id="mgmt-global-kpi-proc" style="color:#0369A1;">0</div>
+            <div class="kpi-subtext" style="color:#075985; font-weight:700;">En seguimiento activo por profesional SST</div>
+          </div>
+
+          <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('resuelto')" title="Haz clic para consultar HISTÓRICO DE CASOS CERRADOS" style="border-left: 5px solid #107C41; background: linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 100%);">
+            <div class="kpi-header" style="color:#065F46;">🟢 3. Apoyos Entregados / Resueltos</div>
+            <div class="kpi-value" id="mgmt-global-kpi-res" style="color:#065F46;">0</div>
+            <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
+          </div>
+
         </div>
 
-        <!-- BOTÓN PREMIUM PARA GRÁFICAS DE AVANCE (COLAPSIBLE) -->
-        <div style="margin-bottom: 20px;">
-          <button id="btn-toggle-mgmt-charts" onclick="window.toggleMgmtChartsPanel && window.toggleMgmtChartsPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              📈 <span id="text-toggle-mgmt-charts">Mostrar Gráficas de Avance y Estado de Gestión (Consolidado General)</span>
-            </span>
-            <span id="arrow-toggle-mgmt-charts" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
-
-        <div id="mgmt-charts-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS - SEGUNDA POSICIÓN) -->
-          <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-              <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
-                📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
-              </h3>
-              <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
-                <span class="badge-kpi-pend">🟡 Pendientes</span>
-                <span class="badge-kpi-proc">🔵 En Gestión</span>
-                <span class="badge-kpi-res">🟢 Resueltos</span>
-              </div>
+        <!-- CONSOLA GRÁFICA DE AVANCE DE GESTIÓN SST (BARRAS PORCENTUALES ACUMULADAS - SEGUNDA POSICIÓN) -->
+        <div style="background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h3 style="color:var(--primary); font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+              📈 Gráficas de Avance y Estado de Gestión (Consolidado General)
+            </h3>
+            <div style="display:flex; gap:8px; font-size:0.75rem; font-weight:800;">
+              <span class="badge-kpi-pend">🟡 Pendientes</span>
+              <span class="badge-kpi-proc">🔵 En Gestión</span>
+              <span class="badge-kpi-res">🟢 Resueltos</span>
             </div>
-            <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
-              Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
-            </p>
+          </div>
+          <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:14px;">
+            Distribución porcentual gráfica por cada categoría sobre la totalidad de los reportes del personal.
+          </p>
 
-            <div class="analytics-grid" id="mgmt-visual-charts-container">
-              <!-- Se llena dinámicamente por JS -->
-            </div>
+          <div class="analytics-grid" id="mgmt-visual-charts-container">
+            <!-- Se llena dinámicamente por JS -->
           </div>
         </div>
 
@@ -748,6 +680,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260815_1531_OHS_CHARTS_COLLAPSIBLE"></script>
+  <script src="app.js?v=20260814_143_PURE_CLEAN_NOTES_NO_REDUNDANCY"></script>
 </body>
 </html>
