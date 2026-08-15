@@ -1275,6 +1275,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
     const elPolizasTotal = document.getElementById('kpi-polizas-total');
     const elPolizasConfronted = document.getElementById('kpi-polizas-confronted');
+    const elPolizasBreakdown = document.getElementById('kpi-polizas-breakdown');
+
     if (elPolizasTotal && state.polizasData) {
       elPolizasTotal.textContent = formatNumber(state.polizasData.totalSiniestros || 0);
     }
@@ -1283,6 +1285,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const mod = state.polizasData.moderado || 0;
       const leve = state.polizasData.leve || 0;
       elPolizasConfronted.innerHTML = `🔴 <b>${grave}</b> Grave${grave === 1 ? '' : 's'} | 🟡 <b>${mod}</b> Moderado${mod === 1 ? '' : 's'} | 🟢 <b>${leve}</b> Leve${leve === 1 ? '' : 's'}`;
+    }
+    if (elPolizasBreakdown && state.polizasData && state.polizasData.porHoja) {
+      const entries = Object.entries(state.polizasData.porHoja);
+      if (entries.length === 0) {
+        elPolizasBreakdown.innerHTML = '<span style="font-size:0.75rem; color:#64748b; font-weight:600; grid-column:1/-1; text-align:center;">No hay siniestros detallados reportados aún.</span>';
+      } else {
+        elPolizasBreakdown.innerHTML = entries.map(([sheetName, count]) => {
+          const friendlyName = sheetName.replace(/_/g, ' ');
+          const icon = friendlyName.toLowerCase().includes('vehiculo') ? '🚗' : '🏠';
+          return `
+            <div style="background:#FFF; padding:6px 10px; border-radius:8px; border:1px solid #BDE0FE; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; flex-direction:column; justify-content:center;">
+              <span style="font-size:0.72rem; color:#64748b; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${friendlyName}">${icon} ${friendlyName}</span>
+              <div style="margin-top:2px;">
+                <b style="font-size:1.15rem; color:#0284c7;">${formatNumber(count)}</b> 
+                <small style="font-size:0.7rem; color:#64748b; font-weight:700;">caso${count === 1 ? '' : 's'}</small>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
   }
 
