@@ -181,11 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function parseCombinedNotesToSubMgmt(notesStr) {
-    if (!notesStr || typeof notesStr !== 'string' || !notesStr.includes('[')) return null;
+    if (!notesStr || typeof notesStr !== 'string') return null;
     const subMgmt = {};
     const parts = notesStr.split('||');
     parts.forEach(p => {
-      const match = p.match(/\[([A-Z0-9_]+):\s*([A-Z0-9_]+)\]\s*(.*?)(?:\s*\((.*?)\))?$/i);
+      const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?\]\s*(.*?)(?:\s*\((.*?)\))?$/i);
       if (match) {
         const rawKey = match[1].toLowerCase().trim();
         let key = rawKey;
@@ -196,8 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (rawKey.includes('juri')) key = 'juridico';
         else if (rawKey.includes('viv')) key = 'vivienda';
 
-        const status = match[2].toLowerCase().trim();
-        const notes = match[3] ? match[3].trim() : '';
+        const status = match[2] ? match[2].toLowerCase().trim() : 'proceso';
+        const notes = match[3] ? match[3].trim() : p.trim();
         const operator = match[4] ? match[4].trim() : 'Operador SST';
         subMgmt[key] = { status, notes, operator };
       }
@@ -303,9 +303,15 @@ document.addEventListener('DOMContentLoaded', () => {
     state.supportManagement[doc].operator = currentOperator;
     state.supportManagement[doc].updatedAt = nowStr;
 
-    const combinedNotesStr = Object.entries(state.supportManagement[doc].subMgmt)
-      .map(([k, v]) => `[${k.toUpperCase()}: ${v.status.toUpperCase()}] ${v.notes} (${v.operator})`)
-      .join(' || ');
+    const entries = Object.entries(state.supportManagement[doc].subMgmt);
+    let combinedNotesStr = '';
+    if (entries.length === 1) {
+      combinedNotesStr = entries[0][1].notes;
+    } else {
+      combinedNotesStr = entries
+        .map(([k, v]) => `[${k.toUpperCase()}] ${v.notes}`)
+        .join(' || ');
+    }
 
     state.supportManagement[doc].notes = combinedNotesStr;
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
@@ -743,6 +749,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       window.print();
     }, 200);
+  }
+
+  function stripBracketPrefix(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/^\[[A-Z_áéíóúñÁÉÍÓÚÑ]+:\s*[A-Z_áéíóúñÁÉÍÓÚÑ]+\]\s*/gi, '')
+      .trim();
   }
 
   function getReportColumnAFValue(r) {
@@ -1505,6 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const subSt = getNormalizedSubMgmtStatus(r, cat.key);
         const generalNotes = sanitizeNotes(mgmt.notes || r.gestionNotes || '');
         const subNotes = sanitizeNotes((subMgmtObj && subMgmtObj.notes) ? subMgmtObj.notes : generalNotes);
+        const displayNotes = stripBracketPrefix(subNotes);
         const subOp = (subMgmtObj && subMgmtObj.operator) ? subMgmtObj.operator : (mgmt.operator || 'Sin asignar');
 
         return `
@@ -1519,7 +1533,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <option value="resuelto" ${subSt === 'resuelto' ? 'selected' : ''}>🟢 Atendido / Resuelto</option>
               </select>
             </div>
-            <textarea id="mgmt-sub-notes-${doc}-${cat.key}" class="mgmt-notes-textarea" rows="2" style="font-size:0.82rem; padding:6px; width:100%; box-sizing:border-box;" placeholder="Observaciones específicas para ${cat.name}...">${subNotes}</textarea>
+            <textarea id="mgmt-sub-notes-${doc}-${cat.key}" class="mgmt-notes-textarea" rows="2" style="font-size:0.82rem; padding:6px; width:100%; box-sizing:border-box;" placeholder="Observaciones específicas para ${cat.name}...">${displayNotes}</textarea>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
               <small style="color:var(--text-muted); font-size:0.72rem;">👤 <b>${subOp}</b></small>
               <button onclick="window.saveSubSupportCase('${doc}', '${cat.key}')" class="mgmt-save-btn" style="padding:4px 10px; font-size:0.76rem; background:var(--primary);">💾 Guardar ${cat.name}</button>
