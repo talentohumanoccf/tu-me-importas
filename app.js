@@ -17,16 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
     markers: [],
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     refreshInterval: null,
-    activeTab: 'main',
+    activeTab: sessionStorage.getItem('comfamiliar_active_tab') || 'main',
     isTypingActive: false,
     typingTimer: null,
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
     donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null,
     polizasData: JSON.parse(localStorage.getItem('comfamiliar_polizas_data')) || null,
     pagination: {
-      mainPage: 1,
+      mainPage: Number(sessionStorage.getItem('comfamiliar_main_page')) || 1,
       mainPageSize: 25,
-      mgmtPage: 1,
+      mgmtPage: Number(sessionStorage.getItem('comfamiliar_mgmt_page')) || 1,
       mgmtPageSize: 25
     }
   };
@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (newPage < 1) newPage = 1;
       if (newPage > totalPages) newPage = totalPages;
       state.pagination.mainPage = newPage;
+      sessionStorage.setItem('comfamiliar_main_page', newPage);
       renderTable();
     } else if (type === 'mgmt') {
       const supportReports = state.reports.filter(r => isNeedSupport(r));
@@ -260,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (newPage < 1) newPage = 1;
       if (newPage > totalPages) newPage = totalPages;
       state.pagination.mgmtPage = newPage;
+      sessionStorage.setItem('comfamiliar_mgmt_page', newPage);
       renderManagementDashboard(true);
     }
   };
@@ -336,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDashboard(true);
-    alert(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente a nombre de [${currentOperator}].`);
+    showToast(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente.`, 'success');
   };
 
   function matchesCategory(r, category) {
@@ -500,8 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDashboard(true);
-
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso se ha movido automáticamente a tu bandeja de 'Mis Casos Asignados'.`);
+    showToast(`✋ Caso asignado exitosamente a [${currentOperator}].`, 'info');
   };
 
   window.releaseCase = function(doc) {
@@ -615,9 +616,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard(true);
 
     if (globalStatus === 'resuelto') {
-      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado exitosamente en Google Sheets.`);
+      showToast(`🎉 Caso RESUELTO para Cédula ${doc}.`, 'success');
     } else {
-      alert(`🔵 Caso ASIGNADO Y GUARDADO a nombre de [${currentOperator}] para Cédula ${doc} en Google Sheets.`);
+      showToast(`🔵 Caso asignado y guardado a nombre de [${currentOperator}].`, 'info');
     }
   };
 
@@ -737,34 +738,80 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function showToast(message, type = 'success') {
+    let toast = document.getElementById('comfamiliar-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'comfamiliar-toast';
+      toast.style.position = 'fixed';
+      toast.style.bottom = '24px';
+      toast.style.right = '24px';
+      toast.style.zIndex = '9999';
+      toast.style.padding = '12px 24px';
+      toast.style.borderRadius = '8px';
+      toast.style.color = '#FFF';
+      toast.style.fontWeight = '700';
+      toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      toast.style.transition = 'all 0.3s ease';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      document.body.appendChild(toast);
+    }
+    
+    if (type === 'success') {
+      toast.style.background = '#059669';
+    } else if (type === 'info') {
+      toast.style.background = '#0284C7';
+    } else {
+      toast.style.background = '#DC2626';
+    }
+    
+    toast.textContent = message;
+    toast.style.display = 'block';
+    
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    }, 50);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 300);
+    }, 3000);
+  }
+
   function setupTabsNavigation() {
     const btn1 = document.getElementById('tab-btn-main');
     const btn2 = document.getElementById('tab-btn-analytics');
     const btn3 = document.getElementById('tab-btn-management');
     const btn4 = document.getElementById('tab-btn-donations');
-
+ 
     if (btn1) btn1.addEventListener('click', () => switchTab('main'));
     if (btn2) btn2.addEventListener('click', () => switchTab('analytics'));
     if (btn3) btn3.addEventListener('click', () => switchTab('management'));
     if (btn4) btn4.addEventListener('click', () => switchTab('donations'));
   }
-
+ 
   function switchTab(tabName) {
     state.activeTab = tabName;
+    sessionStorage.setItem('comfamiliar_active_tab', tabName);
     
     const btn1 = document.getElementById('tab-btn-main');
     const btn2 = document.getElementById('tab-btn-analytics');
     const btn3 = document.getElementById('tab-btn-management');
     const btn4 = document.getElementById('tab-btn-donations');
-
+ 
     const c1 = document.getElementById('tab-content-main');
     const c2 = document.getElementById('tab-content-analytics');
     const c3 = document.getElementById('tab-content-management');
     const c4 = document.getElementById('tab-content-donations');
-
+ 
     [btn1, btn2, btn3, btn4].forEach(btn => { if(btn) btn.classList.remove('active'); });
     [c1, c2, c3, c4].forEach(content => { if(content) content.style.display = 'none'; });
-
+ 
     if (tabName === 'main') {
       if(btn1) btn1.classList.add('active');
       if(c1) c1.style.display = 'block';
@@ -776,12 +823,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (tabName === 'management') {
       if(btn3) btn3.classList.add('active');
       if(c3) c3.style.display = 'block';
-
+ 
       const elStatus = document.getElementById('mgmt-filter-status');
       if (elStatus && !elStatus.dataset.manualOverride) {
-        elStatus.value = 'pendiente';
+        elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status') || 'pendiente';
       }
-
+ 
       renderManagementDashboard(true);
     } else if (tabName === 'donations') {
       if(btn4) btn4.classList.add('active');
@@ -805,10 +852,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initDashboard() {
     if (sheetsUrlInput) sheetsUrlInput.value = state.googleSheetsUrl;
-
+ 
     loadMockAndLocalReports();
     initLeafletMap();
-    renderDashboard(true);
+    switchTab(state.activeTab);
 
     fetchLiveReportsFromSheets(true);
 
@@ -1598,6 +1645,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
+
+    // Cargar filtros guardados de la sesión al renderizar
+    if (elStatus && sessionStorage.getItem('comfamiliar_mgmt_filter_status') && !elStatus.dataset.manualOverride) {
+      elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status');
+    }
+    if (elCat && sessionStorage.getItem('comfamiliar_mgmt_filter_category')) {
+      elCat.value = sessionStorage.getItem('comfamiliar_mgmt_filter_category');
+    }
+
+    // Guardar los filtros actuales en la sesión
+    if (elStatus) sessionStorage.setItem('comfamiliar_mgmt_filter_status', elStatus.value);
+    if (elCat) sessionStorage.setItem('comfamiliar_mgmt_filter_category', elCat.value);
 
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const statusFilter = elStatus ? (elStatus.value || 'pendiente') : 'pendiente';
