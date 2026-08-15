@@ -17,15 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
     markers: [],
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
     refreshInterval: null,
-    activeTab: 'main',
+    activeTab: sessionStorage.getItem('comfamiliar_active_tab') || 'main',
     isTypingActive: false,
     typingTimer: null,
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
     donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null,
+    polizasData: JSON.parse(localStorage.getItem('comfamiliar_polizas_data')) || null,
     pagination: {
-      mainPage: 1,
+      mainPage: Number(sessionStorage.getItem('comfamiliar_main_page')) || 1,
       mainPageSize: 25,
-      mgmtPage: 1,
+      mgmtPage: Number(sessionStorage.getItem('comfamiliar_mgmt_page')) || 1,
       mgmtPageSize: 25
     }
   };
@@ -135,9 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (matchesCategory(r, 'medicamentos')) categories.push({ key: 'medicamentos', name: 'Medicamentos / Salud', icon: '💊', color: '#E63946' });
     if (matchesCategory(r, 'social')) categories.push({ key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' });
     if (matchesCategory(r, 'juridico')) categories.push({ key: 'juridico', name: 'Apoyo Jurídico', icon: '⚖️', color: '#8B5CF6' });
-    if (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden'))) {
-      categories.push({ key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' });
-    }
+    // Removido de gestión SST por solicitud (se maneja fuera del flujo operacional de tarjetas)
+    // if (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden'))) {
+    //   categories.push({ key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' });
+    // }
 
     if (categories.length === 0) {
       categories.push({ key: 'general', name: 'Seguimiento General SST', icon: '📋', color: '#64748B' });
@@ -180,13 +182,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return getNormalizedMgmtStatus(r);
   }
 
-  function parseCombinedNotesToSubMgmt(notesStr) {
+  function parseCombinedNotesToSubMgmt(notesStr, reqCategories = null) {
     if (!notesStr || typeof notesStr !== 'string') return null;
     const subMgmt = {};
     const parts = notesStr.split('||');
+    let hasAnyBrackets = false;
+
     parts.forEach(p => {
       const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?\]\s*(.*?)(?:\s*\((.*?)\))?$/i);
       if (match) {
+        hasAnyBrackets = true;
         const rawKey = match[1].toLowerCase().trim();
         let key = rawKey;
         if (rawKey.includes('psico')) key = 'psicologico';
@@ -202,6 +207,20 @@ document.addEventListener('DOMContentLoaded', () => {
         subMgmt[key] = { status, notes, operator };
       }
     });
+
+    // Smart fallback for legacy unbracketed combined notes (e.g. "Prueba2 || Prueba10")
+    if (!hasAnyBrackets && parts.length > 1 && reqCategories && reqCategories.length > 0) {
+      const limit = Math.min(parts.length, reqCategories.length);
+      for (let i = 0; i < limit; i++) {
+        const key = reqCategories[i];
+        subMgmt[key] = {
+          status: 'proceso',
+          notes: parts[i].trim(),
+          operator: 'Operador SST'
+        };
+      }
+    }
+
     return Object.keys(subMgmt).length > 0 ? subMgmt : null;
   }
 
@@ -230,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (newPage < 1) newPage = 1;
       if (newPage > totalPages) newPage = totalPages;
       state.pagination.mainPage = newPage;
+      sessionStorage.setItem('comfamiliar_main_page', newPage);
       renderTable();
     } else if (type === 'mgmt') {
       const supportReports = state.reports.filter(r => isNeedSupport(r));
@@ -241,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (newPage < 1) newPage = 1;
       if (newPage > totalPages) newPage = totalPages;
       state.pagination.mgmtPage = newPage;
+      sessionStorage.setItem('comfamiliar_mgmt_page', newPage);
       renderManagementDashboard(true);
     }
   };
@@ -304,16 +325,12 @@ document.addEventListener('DOMContentLoaded', () => {
     state.supportManagement[doc].updatedAt = nowStr;
 
     const entries = Object.entries(state.supportManagement[doc].subMgmt);
-    let combinedNotesStr = '';
-    if (entries.length === 1) {
-      combinedNotesStr = entries[0][1].notes;
-    } else {
-      combinedNotesStr = entries
-        .map(([k, v]) => `[${k.toUpperCase()}] ${v.notes}`)
-        .join(' || ');
-    }
+    const combinedNotesStr = entries
+      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+      .join(' || ');
 
     state.supportManagement[doc].notes = combinedNotesStr;
+    state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
     if (state.googleSheetsUrl && navigator.onLine) {
@@ -321,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDashboard(true);
-    alert(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente a nombre de [${currentOperator}].`);
+    showToast(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente.`, 'success');
   };
 
   function matchesCategory(r, category) {
@@ -350,20 +367,89 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000); // 5 segundos de inmunidad total tras pulsar la última tecla
 
         const textareaId = e.target.id;
-        const doc = textareaId.replace('mgmt-notes-', '').trim();
+        let doc = '';
+        let subKey = '';
+
+        if (textareaId.startsWith('mgmt-sub-notes-')) {
+          const match = textareaId.match(/^mgmt-sub-notes-([^-]+)-(.*)$/);
+          if (match) {
+            doc = match[1];
+            subKey = match[2];
+          }
+        } else if (textareaId.startsWith('mgmt-notes-')) {
+          doc = textareaId.replace('mgmt-notes-', '').trim();
+        }
+
         const val = e.target.value;
 
         if (doc) {
           const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
-          const existing = state.supportManagement[doc] || {};
+          
+          if (!state.supportManagement[doc]) {
+            state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '', subMgmt: {} };
+          }
+          
+          state.supportManagement[doc].isDirty = true; // Marcar como modificado localmente
 
-          state.supportManagement[doc] = {
-            status: existing.status || 'pendiente',
-            notes: val, // Guardar el valor exacto en tiempo real
-            operator: existing.operator || currentOperator,
-            updatedAt: existing.updatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
-          };
+          if (subKey) {
+            if (!state.supportManagement[doc].subMgmt) {
+              state.supportManagement[doc].subMgmt = {};
+            }
+            state.supportManagement[doc].subMgmt[subKey] = {
+              status: state.supportManagement[doc].subMgmt[subKey]?.status || 'proceso',
+              notes: val,
+              operator: state.supportManagement[doc].subMgmt[subKey]?.operator || currentOperator,
+              updatedAt: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
+            };
+            
+            // Recalcular la nota combinada global de forma instantánea
+            const entries = Object.entries(state.supportManagement[doc].subMgmt);
+            const combinedNotesStr = entries
+              .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+              .join(' || ');
+            
+            state.supportManagement[doc].notes = combinedNotesStr;
+          } else {
+            state.supportManagement[doc].notes = val;
+          }
 
+          localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+        }
+      }
+    });
+
+    mgmtTbody.addEventListener('change', (e) => {
+      if (e.target && e.target.classList.contains('mgmt-status-select')) {
+        const selectId = e.target.id;
+        let doc = '';
+        let subKey = '';
+
+        if (selectId.startsWith('mgmt-sub-select-')) {
+          const match = selectId.match(/^mgmt-sub-select-([^-]+)-(.*)$/);
+          if (match) {
+            doc = match[1];
+            subKey = match[2];
+          }
+        }
+
+        if (doc && subKey) {
+          const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
+          
+          if (!state.supportManagement[doc]) {
+            state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '', subMgmt: {} };
+          }
+          
+          state.supportManagement[doc].isDirty = true; // Marcar como modificado localmente
+
+          if (!state.supportManagement[doc].subMgmt) {
+            state.supportManagement[doc].subMgmt = {};
+          }
+          if (!state.supportManagement[doc].subMgmt[subKey]) {
+            state.supportManagement[doc].subMgmt[subKey] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '' };
+          }
+          
+          state.supportManagement[doc].subMgmt[subKey].status = e.target.value;
+          
           localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
         }
       }
@@ -372,6 +458,127 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerGlobalFilter = function() { applyFilters(true); };
   window.triggerMgmtRender = function() { renderManagementDashboard(true); };
+
+  window.toggleMgmtKpiPanel = function() {
+    const container = document.getElementById('mgmt-kpi-collapse-container');
+    const text = document.getElementById('text-toggle-mgmt-kpi');
+    const arrow = document.getElementById('arrow-toggle-mgmt-kpi');
+    const btn = document.getElementById('btn-toggle-mgmt-kpi');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Consola de Indicadores Ejecutivos (KPIs)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Consola de Indicadores Ejecutivos (KPIs)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'false');
+    }
+  };
+
+  window.toggleMgmtChartsPanel = function() {
+    const container = document.getElementById('mgmt-charts-collapse-container');
+    const text = document.getElementById('text-toggle-mgmt-charts');
+    const arrow = document.getElementById('arrow-toggle-mgmt-charts');
+    const btn = document.getElementById('btn-toggle-mgmt-charts');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_mgmt_charts_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_mgmt_charts_expanded', 'false');
+    }
+  };
+
+  window.toggleMainKpiPanel = function() {
+    const container = document.getElementById('main-kpi-collapse-container');
+    const text = document.getElementById('text-toggle-main-kpi');
+    const arrow = document.getElementById('arrow-toggle-main-kpi');
+    const btn = document.getElementById('btn-toggle-main-kpi');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Consola de Indicadores Clave (KPIs)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_main_kpi_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Consola de Indicadores Clave (KPIs)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_main_kpi_expanded', 'false');
+    }
+  };
+
+  window.toggleMainMapPanel = function() {
+    const container = document.getElementById('main-map-collapse-container');
+    const text = document.getElementById('text-toggle-main-map');
+    const arrow = document.getElementById('arrow-toggle-main-map');
+    const btn = document.getElementById('btn-toggle-main-map');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_main_map_expanded', 'true');
+      
+      if (state.map) {
+        setTimeout(() => {
+          state.map.invalidateSize();
+        }, 150);
+      }
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_main_map_expanded', 'false');
+    }
+  };
+
+  window.toggleMainConfrontationPanel = function() {
+    const container = document.getElementById('main-confrontation-collapse-container');
+    const text = document.getElementById('text-toggle-main-confrontation');
+    const arrow = document.getElementById('arrow-toggle-main-confrontation');
+    const btn = document.getElementById('btn-toggle-main-confrontation');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Confrontación de Intervenciones (Demanda vs Gestión)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_main_confrontation_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Confrontación de Intervenciones (Demanda vs Gestión)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_main_confrontation_expanded', 'false');
+    }
+  };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
   window.filterMgmtByStatusCard = function(status) {
@@ -416,8 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDashboard(true);
-
-    alert(`✋ Caso Cédula ${doc} ASIGNADO EXITOSAMENTE a [${currentOperator}].\n\n✨ El caso se ha movido automáticamente a tu bandeja de 'Mis Casos Asignados'.`);
+    showToast(`✋ Caso asignado exitosamente a [${currentOperator}].`, 'info');
   };
 
   window.releaseCase = function(doc) {
@@ -454,56 +660,103 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.saveSupportCase = function(doc) {
     state.isTypingActive = false;
-    const statusEl = document.getElementById(`mgmt-select-${doc}`);
-    const notesEl = document.getElementById(`mgmt-notes-${doc}`);
     
-    if (!statusEl || !notesEl) return;
-
-    let newStatus = statusEl.value;
-    const newNotes = sanitizeNotes(notesEl.value);
+    const rTarget = state.reports.find(item => String(item.documento || item.cedula).trim() === String(doc).trim()) || {};
+    const reqSubCats = getReportSubCategories(rTarget);
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
-    // GARANTÍA TOTAL: Si el usuario guardó notas o gestión pero el selector estaba en "Pendiente",
-    // se auto-promueve a "proceso" (En Gestión) para asegurar que se registre y asigne formalmente en Google Sheets
-    if (newStatus === 'pendiente') {
-      newStatus = 'proceso';
-      if (statusEl) statusEl.value = 'proceso';
-    }
-
     const existing = state.supportManagement[doc];
     if (existing && existing.operator && existing.operator !== currentOperator && existing.status === 'proceso' && existing.operator !== 'Sin asignar') {
-      const confirmOverwrite = confirm(`⚠️ Este caso estaba asignado a [${existing.operator}]. ¿Confirmas guardar la actualización a tu nombre (${currentOperator})?`);
+      const confirmOverwrite = confirm(`⚠️ Este caso estaba asignado a [${existing.operator}]. ¿Confirmas guardar la actualización de todas las atenciones a tu nombre (${currentOperator})?`);
       if (!confirmOverwrite) return;
     }
+
+    if (!state.supportManagement[doc]) {
+      state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: nowStr, subMgmt: {} };
+    }
+    if (!state.supportManagement[doc].subMgmt) {
+      state.supportManagement[doc].subMgmt = {};
+    }
+
+    let anyChanges = false;
+    reqSubCats.forEach(cat => {
+      const selectEl = document.getElementById(`mgmt-sub-select-${doc}-${cat.key}`);
+      const notesEl = document.getElementById(`mgmt-sub-notes-${doc}-${cat.key}`);
+      if (selectEl && notesEl) {
+        let subStatus = selectEl.value;
+        const subNotes = sanitizeNotes(notesEl.value);
+
+        if (subStatus === 'pendiente' && subNotes.length > 0) {
+          subStatus = 'proceso';
+          selectEl.value = 'proceso';
+        }
+
+        state.supportManagement[doc].subMgmt[cat.key] = {
+          status: subStatus,
+          notes: subNotes,
+          operator: currentOperator,
+          updatedAt: nowStr
+        };
+        anyChanges = true;
+      }
+    });
+
+    if (!anyChanges) return;
 
     if (document.activeElement && document.activeElement.blur) {
       document.activeElement.blur();
     }
 
-    updateLocalManagementState(doc, newStatus, newNotes, currentOperator, nowStr);
+    // Recalcular estado global y notas combinadas
+    const statuses = reqSubCats.map(cat => getNormalizedSubMgmtStatus(rTarget, cat.key));
+    const allResolved = statuses.length > 0 && statuses.every(st => st === 'resuelto');
+    const anyInProcessOrResolved = statuses.some(st => st === 'proceso' || st === 'resuelto');
+
+    let globalStatus = 'pendiente';
+    if (allResolved) globalStatus = 'resuelto';
+    else if (anyInProcessOrResolved) globalStatus = 'proceso';
+
+    state.supportManagement[doc].status = globalStatus;
+    state.supportManagement[doc].operator = currentOperator;
+    state.supportManagement[doc].updatedAt = nowStr;
+
+    const entries = Object.entries(state.supportManagement[doc].subMgmt);
+    const combinedNotesStr = entries
+      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+      .join(' || ');
+
+    state.supportManagement[doc].notes = combinedNotesStr;
+    state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
     if (state.googleSheetsUrl && navigator.onLine) {
-      sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
+      sendManagementToSheets(doc, globalStatus, combinedNotesStr, currentOperator);
     }
     
     renderDashboard(true);
 
-    if (newStatus === 'resuelto') {
-      alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado exitosamente en Google Sheets.`);
+    if (globalStatus === 'resuelto') {
+      showToast(`🎉 Caso RESUELTO para Cédula ${doc}.`, 'success');
     } else {
-      alert(`🔵 Caso ASIGNADO Y GUARDADO a nombre de [${currentOperator}] para Cédula ${doc} en Google Sheets.`);
+      showToast(`🔵 Caso asignado y guardado a nombre de [${currentOperator}].`, 'info');
     }
   };
 
   function updateLocalManagementState(doc, statusVal, notesVal, operatorVal, nowStr) {
     const docStr = String(doc).trim();
+    const existing = state.supportManagement[docStr] || {};
+    const rTarget = state.reports.find(item => String(item.documento || item.cedula).trim() === docStr) || {};
+    const reqCategories = getReportSubCategories(rTarget).map(c => c.key);
+    const parsedSub = parseCombinedNotesToSubMgmt(notesVal, reqCategories);
 
     state.supportManagement[docStr] = {
       status: statusVal,
       notes: sanitizeNotes(notesVal),
       operator: operatorVal || 'Operador SST',
-      updatedAt: nowStr
+      updatedAt: nowStr,
+      subMgmt: parsedSub || existing.subMgmt || {},
+      isDirty: false // Sincronizado / No sucio
     };
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
@@ -606,38 +859,150 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function showToast(message, type = 'success') {
+    let toast = document.getElementById('comfamiliar-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'comfamiliar-toast';
+      toast.style.position = 'fixed';
+      toast.style.bottom = '24px';
+      toast.style.right = '24px';
+      toast.style.zIndex = '9999';
+      toast.style.padding = '12px 24px';
+      toast.style.borderRadius = '8px';
+      toast.style.color = '#FFF';
+      toast.style.fontWeight = '700';
+      toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      toast.style.transition = 'all 0.3s ease';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      document.body.appendChild(toast);
+    }
+    
+    if (type === 'success') {
+      toast.style.background = '#059669';
+    } else if (type === 'info') {
+      toast.style.background = '#0284C7';
+    } else {
+      toast.style.background = '#DC2626';
+    }
+    
+    toast.textContent = message;
+    toast.style.display = 'block';
+    
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    }, 50);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 300);
+    }, 3000);
+  }
+
   function setupTabsNavigation() {
     const btn1 = document.getElementById('tab-btn-main');
     const btn2 = document.getElementById('tab-btn-analytics');
     const btn3 = document.getElementById('tab-btn-management');
     const btn4 = document.getElementById('tab-btn-donations');
-
+ 
     if (btn1) btn1.addEventListener('click', () => switchTab('main'));
     if (btn2) btn2.addEventListener('click', () => switchTab('analytics'));
     if (btn3) btn3.addEventListener('click', () => switchTab('management'));
     if (btn4) btn4.addEventListener('click', () => switchTab('donations'));
   }
-
+ 
   function switchTab(tabName) {
     state.activeTab = tabName;
+    sessionStorage.setItem('comfamiliar_active_tab', tabName);
     
     const btn1 = document.getElementById('tab-btn-main');
     const btn2 = document.getElementById('tab-btn-analytics');
     const btn3 = document.getElementById('tab-btn-management');
     const btn4 = document.getElementById('tab-btn-donations');
-
+ 
     const c1 = document.getElementById('tab-content-main');
     const c2 = document.getElementById('tab-content-analytics');
     const c3 = document.getElementById('tab-content-management');
     const c4 = document.getElementById('tab-content-donations');
-
+ 
     [btn1, btn2, btn3, btn4].forEach(btn => { if(btn) btn.classList.remove('active'); });
     [c1, c2, c3, c4].forEach(content => { if(content) content.style.display = 'none'; });
-
+ 
     if (tabName === 'main') {
       if(btn1) btn1.classList.add('active');
       if(c1) c1.style.display = 'block';
       if (state.map) setTimeout(() => state.map.invalidateSize(), 150);
+
+      // Cargar estado de colapso de KPIs en Tablero 1
+      const isExpanded = localStorage.getItem('comfamiliar_main_kpi_expanded') === 'true';
+      const container = document.getElementById('main-kpi-collapse-container');
+      const text = document.getElementById('text-toggle-main-kpi');
+      const arrow = document.getElementById('arrow-toggle-main-kpi');
+      const btnToggle = document.getElementById('btn-toggle-main-kpi');
+
+      if (container && text && arrow && btnToggle) {
+        if (isExpanded) {
+          container.style.display = 'block';
+          text.textContent = 'Ocultar Consola de Indicadores Clave (KPIs)';
+          arrow.textContent = '▲';
+          btnToggle.style.background = 'var(--secondary)';
+        } else {
+          container.style.display = 'none';
+          text.textContent = 'Mostrar Consola de Indicadores Clave (KPIs)';
+          arrow.textContent = '▼';
+          btnToggle.style.background = 'var(--primary)';
+        }
+      }
+
+      // Cargar estado de colapso del mapa en Tablero 1
+      const isMapExpanded = localStorage.getItem('comfamiliar_main_map_expanded') === 'true';
+      const mapContainer = document.getElementById('main-map-collapse-container');
+      const mapText = document.getElementById('text-toggle-main-map');
+      const mapArrow = document.getElementById('arrow-toggle-main-map');
+      const btnMapToggle = document.getElementById('btn-toggle-main-map');
+
+      if (mapContainer && mapText && mapArrow && btnMapToggle) {
+        if (isMapExpanded) {
+          mapContainer.style.display = 'block';
+          mapText.textContent = 'Ocultar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+          mapArrow.textContent = '▲';
+          btnMapToggle.style.background = 'var(--secondary)';
+          if (state.map) {
+            setTimeout(() => state.map.invalidateSize(), 150);
+          }
+        } else {
+          mapContainer.style.display = 'none';
+          mapText.textContent = 'Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+          mapArrow.textContent = '▼';
+          btnMapToggle.style.background = 'var(--primary)';
+        }
+      }
+
+      // Cargar estado de colapso de confrontación en Tablero 1
+      const isConfrontationExpanded = localStorage.getItem('comfamiliar_main_confrontation_expanded') === 'true';
+      const confContainer = document.getElementById('main-confrontation-collapse-container');
+      const confText = document.getElementById('text-toggle-main-confrontation');
+      const confArrow = document.getElementById('arrow-toggle-main-confrontation');
+      const btnConfToggle = document.getElementById('btn-toggle-main-confrontation');
+
+      if (confContainer && confText && confArrow && btnConfToggle) {
+        if (isConfrontationExpanded) {
+          confContainer.style.display = 'block';
+          confText.textContent = 'Ocultar Confrontación de Intervenciones (Demanda vs Gestión)';
+          confArrow.textContent = '▲';
+          btnConfToggle.style.background = 'var(--secondary)';
+        } else {
+          confContainer.style.display = 'none';
+          confText.textContent = 'Mostrar Confrontación de Intervenciones (Demanda vs Gestión)';
+          confArrow.textContent = '▼';
+          btnConfToggle.style.background = 'var(--primary)';
+        }
+      }
     } else if (tabName === 'analytics') {
       if(btn2) btn2.classList.add('active');
       if(c2) c2.style.display = 'block';
@@ -645,10 +1010,52 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (tabName === 'management') {
       if(btn3) btn3.classList.add('active');
       if(c3) c3.style.display = 'block';
-
+ 
       const elStatus = document.getElementById('mgmt-filter-status');
       if (elStatus && !elStatus.dataset.manualOverride) {
-        elStatus.value = 'pendiente';
+        elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status') || 'pendiente';
+      }
+ 
+      // Cargar estado de colapso de KPIs
+      const isExpanded = localStorage.getItem('comfamiliar_mgmt_kpi_expanded') === 'true';
+      const container = document.getElementById('mgmt-kpi-collapse-container');
+      const text = document.getElementById('text-toggle-mgmt-kpi');
+      const arrow = document.getElementById('arrow-toggle-mgmt-kpi');
+      const btnToggle = document.getElementById('btn-toggle-mgmt-kpi');
+
+      if (container && text && arrow && btnToggle) {
+        if (isExpanded) {
+          container.style.display = 'block';
+          text.textContent = 'Ocultar Consola de Indicadores Ejecutivos (KPIs)';
+          arrow.textContent = '▲';
+          btnToggle.style.background = 'var(--secondary)';
+        } else {
+          container.style.display = 'none';
+          text.textContent = 'Mostrar Consola de Indicadores Ejecutivos (KPIs)';
+          arrow.textContent = '▼';
+          btnToggle.style.background = 'var(--primary)';
+        }
+      }
+
+      // Cargar estado de colapso de gráficas de avance SST
+      const isChartsExpanded = localStorage.getItem('comfamiliar_mgmt_charts_expanded') === 'true';
+      const chartsContainer = document.getElementById('mgmt-charts-collapse-container');
+      const chartsText = document.getElementById('text-toggle-mgmt-charts');
+      const chartsArrow = document.getElementById('arrow-toggle-mgmt-charts');
+      const btnChartsToggle = document.getElementById('btn-toggle-mgmt-charts');
+
+      if (chartsContainer && chartsText && chartsArrow && btnChartsToggle) {
+        if (isChartsExpanded) {
+          chartsContainer.style.display = 'block';
+          chartsText.textContent = 'Ocultar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+          chartsArrow.textContent = '▲';
+          btnChartsToggle.style.background = 'var(--secondary)';
+        } else {
+          chartsContainer.style.display = 'none';
+          chartsText.textContent = 'Mostrar Gráficas de Avance y Estado de Gestión (Consolidado General)';
+          chartsArrow.textContent = '▼';
+          btnChartsToggle.style.background = 'var(--primary)';
+        }
       }
 
       renderManagementDashboard(true);
@@ -674,10 +1081,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initDashboard() {
     if (sheetsUrlInput) sheetsUrlInput.value = state.googleSheetsUrl;
-
+ 
     loadMockAndLocalReports();
     initLeafletMap();
-    renderDashboard(true);
+    switchTab(state.activeTab);
 
     fetchLiveReportsFromSheets(true);
 
@@ -754,7 +1161,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function stripBracketPrefix(str) {
     if (!str) return '';
     return String(str)
-      .replace(/^\[[A-Z_áéíóúñÁÉÍÓÚÑ]+:\s*[A-Z_áéíóúñÁÉÍÓÚÑ]+\]\s*/gi, '')
+      .replace(/^\[[A-Z0-9_íóáéúñ]+(?::\s*[A-Z0-9_íóáéúñ]+)?\]\s*/gi, '')
       .trim();
   }
 
@@ -804,9 +1211,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const doc = String(r.documento || r.cedula).trim();
       const localMgmt = state.supportManagement[doc];
-      const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
+      const reqCategories = getReportSubCategories(r).map(c => c.key);
+      const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
 
-      if (r.gestionStatus && !state.isTypingActive) {
+      const activeEl = document.activeElement;
+      let activeDoc = '';
+      if (activeEl && activeEl.id) {
+        if (activeEl.id.startsWith('mgmt-sub-notes-')) {
+          const m = activeEl.id.match(/^mgmt-sub-notes-([^-]+)-/);
+          if (m) activeDoc = m[1];
+        } else if (activeEl.id.startsWith('mgmt-notes-')) {
+          activeDoc = activeEl.id.replace('mgmt-notes-', '').trim();
+        }
+      }
+      const isUserEditingThisDoc = (doc === activeDoc);
+
+      const isDirty = localMgmt && localMgmt.isDirty;
+      if (r.gestionStatus && !state.isTypingActive && !isUserEditingThisDoc && !isDirty) {
         state.supportManagement[doc] = {
           status: r.gestionStatus,
           notes: sanitizeNotes(r.gestionNotes || ''),
@@ -888,12 +1309,31 @@ document.addEventListener('DOMContentLoaded', () => {
   window.homologateWithGestionSST = function(showAlert = true) {
     let homologatedCount = 0;
 
+    const activeEl = document.activeElement;
+    let activeDoc = '';
+    if (activeEl && activeEl.id) {
+      if (activeEl.id.startsWith('mgmt-sub-notes-')) {
+        const m = activeEl.id.match(/^mgmt-sub-notes-([^-]+)-/);
+        if (m) activeDoc = m[1];
+      } else if (activeEl.id.startsWith('mgmt-notes-')) {
+        activeDoc = activeEl.id.replace('mgmt-notes-', '').trim();
+      }
+    }
+
     state.reports.forEach(r => {
       const doc = String(r.documento || r.cedula).trim();
       if (!doc) return;
 
+      const isUserEditingThisDoc = (doc === activeDoc);
+      const localMgmt = state.supportManagement[doc];
+      const isDirty = localMgmt && localMgmt.isDirty;
+
+      if (isDirty) return; // Proteger si hay cambios locales no guardados
+      if (state.isTypingActive && isUserEditingThisDoc) return; // Proteger mientras se escribe
+
       if (r.gestionStatus || r.gestionNotes) {
-        const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
+        const reqCategories = getReportSubCategories(r).map(c => c.key);
+        const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
 
         state.supportManagement[doc] = {
           status: r.gestionStatus || 'pendiente',
@@ -951,6 +1391,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.activeTab === 'donations') {
         renderDonationsDashboard();
       }
+    }
+
+    if (result && result.polizas) {
+      state.polizasData = result.polizas;
+      localStorage.setItem('comfamiliar_polizas_data', JSON.stringify(result.polizas));
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
@@ -1060,8 +1505,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
-    const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
-    return { solicitados, totalIntervenidos, intervencionAtendida, intervencionEnProceso, pendientes, pct };
+    
+    // Si es vivienda, se marca como 0 intervenidas y todos quedan como pendientes por intervenir
+    const finalIntervenidos = categoryKey === 'vivienda' ? 0 : totalIntervenidos;
+    const finalPendientes = categoryKey === 'vivienda' ? solicitados : pendientes;
+    const finalAtendidas = categoryKey === 'vivienda' ? 0 : intervencionAtendida;
+    const finalEnProceso = categoryKey === 'vivienda' ? 0 : intervencionEnProceso;
+    const pct = categoryKey === 'vivienda' ? 0 : (solicitados > 0 ? Math.round((finalIntervenidos / solicitados) * 100) : 100);
+    
+    return { 
+      solicitados, 
+      totalIntervenidos: finalIntervenidos, 
+      intervencionAtendida: finalAtendidas, 
+      intervencionEnProceso: finalEnProceso, 
+      pendientes: finalPendientes, 
+      pct 
+    };
   }
 
   function renderConfrontationInterventions() {
@@ -1265,6 +1724,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elViviendaConfronted) {
       elViviendaConfronted.innerHTML = `✅ <b style="color:#059669;">${vivienda.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${vivienda.pendientes}</b> pendientes)`;
     }
+
+    // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
+    const elPolizasTotal = document.getElementById('kpi-polizas-total');
+    const elPolizasConfronted = document.getElementById('kpi-polizas-confronted');
+    const elPolizasBreakdown = document.getElementById('kpi-polizas-breakdown');
+
+    if (elPolizasTotal && state.polizasData) {
+      elPolizasTotal.textContent = formatNumber(state.polizasData.totalSiniestros || 0);
+    }
+    if (elPolizasConfronted && state.polizasData) {
+      const grave = state.polizasData.grave || 0;
+      const mod = state.polizasData.moderado || 0;
+      const leve = state.polizasData.leve || 0;
+      elPolizasConfronted.innerHTML = `🔴 <b>${grave}</b> Grave${grave === 1 ? '' : 's'} | 🟡 <b>${mod}</b> Moderado${mod === 1 ? '' : 's'} | 🟢 <b>${leve}</b> Leve${leve === 1 ? '' : 's'}`;
+    }
+    if (elPolizasBreakdown && state.polizasData && state.polizasData.porHoja) {
+      const entries = Object.entries(state.polizasData.porHoja);
+      if (entries.length === 0) {
+        elPolizasBreakdown.innerHTML = '<span style="font-size:0.75rem; color:#64748b; font-weight:600; grid-column:1/-1; text-align:center;">No hay siniestros detallados reportados aún.</span>';
+      } else {
+        elPolizasBreakdown.innerHTML = entries.map(([sheetName, count]) => {
+          const friendlyName = sheetName.replace(/_/g, ' ');
+          const icon = friendlyName.toLowerCase().includes('vehiculo') ? '🚗' : '🏠';
+          return `
+            <div style="background:#FFF; padding:6px 10px; border-radius:8px; border:1px solid #BDE0FE; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; flex-direction:column; justify-content:center;">
+              <span style="font-size:0.72rem; color:#64748b; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${friendlyName}">${icon} ${friendlyName}</span>
+              <div style="margin-top:2px;">
+                <b style="font-size:1.15rem; color:#0284c7;">${formatNumber(count)}</b> 
+                <small style="font-size:0.7rem; color:#64748b; font-weight:700;">caso${count === 1 ? '' : 's'}</small>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
   }
 
   function getBestPhoneNumber(r) {
@@ -1395,6 +1889,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
+    // Cargar filtros guardados de la sesión al renderizar
+    if (elStatus && sessionStorage.getItem('comfamiliar_mgmt_filter_status') && !elStatus.dataset.manualOverride) {
+      elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status');
+    }
+    if (elCat && sessionStorage.getItem('comfamiliar_mgmt_filter_category')) {
+      elCat.value = sessionStorage.getItem('comfamiliar_mgmt_filter_category');
+    }
+
+    // Guardar los filtros actuales en la sesión
+    if (elStatus) sessionStorage.setItem('comfamiliar_mgmt_filter_status', elStatus.value);
+    if (elCat) sessionStorage.setItem('comfamiliar_mgmt_filter_category', elCat.value);
+
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const statusFilter = elStatus ? (elStatus.value || 'pendiente') : 'pendiente';
     const catFilter = normalizeStr(elCat ? elCat.value : 'all');
@@ -1402,7 +1908,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const supportReports = state.reports.filter(r => {
       if (!isNeedSupport(r)) return false;
 
-      const st = getNormalizedMgmtStatus(r);
+      const isSpecificCat = catFilter && catFilter !== 'all';
+      const st = isSpecificCat ? getNormalizedSubMgmtStatus(r, catFilter) : getNormalizedMgmtStatus(r);
       const mgmt = state.supportManagement[String(r.documento || r.cedula).trim()] || {};
 
       let matchStatus = false;
@@ -1517,7 +2024,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const subMgmtObj = (mgmt.subMgmt && mgmt.subMgmt[cat.key]) ? mgmt.subMgmt[cat.key] : null;
         const subSt = getNormalizedSubMgmtStatus(r, cat.key);
         const generalNotes = sanitizeNotes(mgmt.notes || r.gestionNotes || '');
-        const subNotes = sanitizeNotes((subMgmtObj && subMgmtObj.notes) ? subMgmtObj.notes : generalNotes);
+        
+        // Si hay gestión estructurada por categorías, no heredamos notas de otra categoría a las vacías
+        const hasStructuredMgmt = mgmt.subMgmt && Object.keys(mgmt.subMgmt).length > 0;
+        const subNotes = sanitizeNotes(
+          subMgmtObj && subMgmtObj.notes !== undefined
+            ? subMgmtObj.notes 
+            : (hasStructuredMgmt ? '' : generalNotes)
+        );
         const displayNotes = stripBracketPrefix(subNotes);
         const subOp = (subMgmtObj && subMgmtObj.operator) ? subMgmtObj.operator : (mgmt.operator || 'Sin asignar');
 
