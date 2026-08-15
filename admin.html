@@ -217,6 +217,23 @@
             </div>
             <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
           </div>
+          <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
+          <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
+            <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
+              <span>🏢 Gestión de Pólizas (Siniestros)</span>
+              <span id="kpi-polizas-badge" style="background:#E0F2FE; color:#0369a1; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">Zurich / HDI / Allianz</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <div class="kpi-value" id="kpi-polizas-total" style="color:#0369a1;">0</div>
+                <small style="color:#0284c7; font-weight:800;">Siniestros Reportados</small>
+              </div>
+              <div class="kpi-subtext" id="kpi-polizas-confronted" style="color:#0369a1; font-weight:700;">🔴 <b>0</b> Grave | 🟡 <b>0</b> Mod | 🟢 <b>0</b> Leve</div>
+            </div>
+            <div id="kpi-polizas-breakdown" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; border-top:1px solid #E0F2FE; padding-top:10px;">
+              <!-- Se cargará dinámicamente con los casos reportados por cada línea de póliza -->
+            </div>
+          </div>
         </div>
 
         <!-- MAPA DE EMERGENCIA -->
@@ -680,6 +697,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260814_143_PURE_CLEAN_NOTES_NO_REDUNDANCY"></script>
+  <script src="app.js?v=20260815_1210_NO_VIVIENDA"></script>
 </body>
 </html>

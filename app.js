@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     typingTimer: null,
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
     donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null,
+    polizasData: JSON.parse(localStorage.getItem('comfamiliar_polizas_data')) || null,
     pagination: {
       mainPage: 1,
       mainPageSize: 25,
@@ -135,9 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (matchesCategory(r, 'medicamentos')) categories.push({ key: 'medicamentos', name: 'Medicamentos / Salud', icon: '💊', color: '#E63946' });
     if (matchesCategory(r, 'social')) categories.push({ key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' });
     if (matchesCategory(r, 'juridico')) categories.push({ key: 'juridico', name: 'Apoyo Jurídico', icon: '⚖️', color: '#8B5CF6' });
-    if (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden'))) {
-      categories.push({ key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' });
-    }
+    // Removido de gestión SST por solicitud (se maneja fuera del flujo operacional de tarjetas)
+    // if (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden'))) {
+    //   categories.push({ key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' });
+    // }
 
     if (categories.length === 0) {
       categories.push({ key: 'general', name: 'Seguimiento General SST', icon: '📋', color: '#64748B' });
@@ -180,13 +182,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return getNormalizedMgmtStatus(r);
   }
 
-  function parseCombinedNotesToSubMgmt(notesStr) {
+  function parseCombinedNotesToSubMgmt(notesStr, reqCategories = null) {
     if (!notesStr || typeof notesStr !== 'string') return null;
     const subMgmt = {};
     const parts = notesStr.split('||');
+    let hasAnyBrackets = false;
+
     parts.forEach(p => {
       const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?\]\s*(.*?)(?:\s*\((.*?)\))?$/i);
       if (match) {
+        hasAnyBrackets = true;
         const rawKey = match[1].toLowerCase().trim();
         let key = rawKey;
         if (rawKey.includes('psico')) key = 'psicologico';
@@ -202,6 +207,20 @@ document.addEventListener('DOMContentLoaded', () => {
         subMgmt[key] = { status, notes, operator };
       }
     });
+
+    // Smart fallback for legacy unbracketed combined notes (e.g. "Prueba2 || Prueba10")
+    if (!hasAnyBrackets && parts.length > 1 && reqCategories && reqCategories.length > 0) {
+      const limit = Math.min(parts.length, reqCategories.length);
+      for (let i = 0; i < limit; i++) {
+        const key = reqCategories[i];
+        subMgmt[key] = {
+          status: 'proceso',
+          notes: parts[i].trim(),
+          operator: 'Operador SST'
+        };
+      }
+    }
+
     return Object.keys(subMgmt).length > 0 ? subMgmt : null;
   }
 
@@ -304,14 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
     state.supportManagement[doc].updatedAt = nowStr;
 
     const entries = Object.entries(state.supportManagement[doc].subMgmt);
-    let combinedNotesStr = '';
-    if (entries.length === 1) {
-      combinedNotesStr = entries[0][1].notes;
-    } else {
-      combinedNotesStr = entries
-        .map(([k, v]) => `[${k.toUpperCase()}] ${v.notes}`)
-        .join(' || ');
-    }
+    const combinedNotesStr = entries
+      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+      .join(' || ');
 
     state.supportManagement[doc].notes = combinedNotesStr;
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
@@ -454,42 +468,82 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.saveSupportCase = function(doc) {
     state.isTypingActive = false;
-    const statusEl = document.getElementById(`mgmt-select-${doc}`);
-    const notesEl = document.getElementById(`mgmt-notes-${doc}`);
     
-    if (!statusEl || !notesEl) return;
-
-    let newStatus = statusEl.value;
-    const newNotes = sanitizeNotes(notesEl.value);
+    const rTarget = state.reports.find(item => String(item.documento || item.cedula).trim() === String(doc).trim()) || {};
+    const reqSubCats = getReportSubCategories(rTarget);
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
 
-    // GARANTÍA TOTAL: Si el usuario guardó notas o gestión pero el selector estaba en "Pendiente",
-    // se auto-promueve a "proceso" (En Gestión) para asegurar que se registre y asigne formalmente en Google Sheets
-    if (newStatus === 'pendiente') {
-      newStatus = 'proceso';
-      if (statusEl) statusEl.value = 'proceso';
-    }
-
     const existing = state.supportManagement[doc];
     if (existing && existing.operator && existing.operator !== currentOperator && existing.status === 'proceso' && existing.operator !== 'Sin asignar') {
-      const confirmOverwrite = confirm(`⚠️ Este caso estaba asignado a [${existing.operator}]. ¿Confirmas guardar la actualización a tu nombre (${currentOperator})?`);
+      const confirmOverwrite = confirm(`⚠️ Este caso estaba asignado a [${existing.operator}]. ¿Confirmas guardar la actualización de todas las atenciones a tu nombre (${currentOperator})?`);
       if (!confirmOverwrite) return;
     }
+
+    if (!state.supportManagement[doc]) {
+      state.supportManagement[doc] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: nowStr, subMgmt: {} };
+    }
+    if (!state.supportManagement[doc].subMgmt) {
+      state.supportManagement[doc].subMgmt = {};
+    }
+
+    let anyChanges = false;
+    reqSubCats.forEach(cat => {
+      const selectEl = document.getElementById(`mgmt-sub-select-${doc}-${cat.key}`);
+      const notesEl = document.getElementById(`mgmt-sub-notes-${doc}-${cat.key}`);
+      if (selectEl && notesEl) {
+        let subStatus = selectEl.value;
+        const subNotes = sanitizeNotes(notesEl.value);
+
+        if (subStatus === 'pendiente' && subNotes.length > 0) {
+          subStatus = 'proceso';
+          selectEl.value = 'proceso';
+        }
+
+        state.supportManagement[doc].subMgmt[cat.key] = {
+          status: subStatus,
+          notes: subNotes,
+          operator: currentOperator,
+          updatedAt: nowStr
+        };
+        anyChanges = true;
+      }
+    });
+
+    if (!anyChanges) return;
 
     if (document.activeElement && document.activeElement.blur) {
       document.activeElement.blur();
     }
 
-    updateLocalManagementState(doc, newStatus, newNotes, currentOperator, nowStr);
+    // Recalcular estado global y notas combinadas
+    const statuses = reqSubCats.map(cat => getNormalizedSubMgmtStatus(rTarget, cat.key));
+    const allResolved = statuses.length > 0 && statuses.every(st => st === 'resuelto');
+    const anyInProcessOrResolved = statuses.some(st => st === 'proceso' || st === 'resuelto');
+
+    let globalStatus = 'pendiente';
+    if (allResolved) globalStatus = 'resuelto';
+    else if (anyInProcessOrResolved) globalStatus = 'proceso';
+
+    state.supportManagement[doc].status = globalStatus;
+    state.supportManagement[doc].operator = currentOperator;
+    state.supportManagement[doc].updatedAt = nowStr;
+
+    const entries = Object.entries(state.supportManagement[doc].subMgmt);
+    const combinedNotesStr = entries
+      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+      .join(' || ');
+
+    state.supportManagement[doc].notes = combinedNotesStr;
+    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
     if (state.googleSheetsUrl && navigator.onLine) {
-      sendManagementToSheets(doc, newStatus, newNotes, currentOperator);
+      sendManagementToSheets(doc, globalStatus, combinedNotesStr, currentOperator);
     }
     
     renderDashboard(true);
 
-    if (newStatus === 'resuelto') {
+    if (globalStatus === 'resuelto') {
       alert(`🎉 Caso RESUELTO por [${currentOperator}] para Cédula ${doc}. Guardado exitosamente en Google Sheets.`);
     } else {
       alert(`🔵 Caso ASIGNADO Y GUARDADO a nombre de [${currentOperator}] para Cédula ${doc} en Google Sheets.`);
@@ -498,12 +552,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateLocalManagementState(doc, statusVal, notesVal, operatorVal, nowStr) {
     const docStr = String(doc).trim();
+    const existing = state.supportManagement[docStr] || {};
+    const rTarget = state.reports.find(item => String(item.documento || item.cedula).trim() === docStr) || {};
+    const reqCategories = getReportSubCategories(rTarget).map(c => c.key);
+    const parsedSub = parseCombinedNotesToSubMgmt(notesVal, reqCategories);
 
     state.supportManagement[docStr] = {
       status: statusVal,
       notes: sanitizeNotes(notesVal),
       operator: operatorVal || 'Operador SST',
-      updatedAt: nowStr
+      updatedAt: nowStr,
+      subMgmt: parsedSub || existing.subMgmt || {}
     };
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
@@ -754,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function stripBracketPrefix(str) {
     if (!str) return '';
     return String(str)
-      .replace(/^\[[A-Z_áéíóúñÁÉÍÓÚÑ]+:\s*[A-Z_áéíóúñÁÉÍÓÚÑ]+\]\s*/gi, '')
+      .replace(/^\[[A-Z0-9_íóáéúñ]+(?::\s*[A-Z0-9_íóáéúñ]+)?\]\s*/gi, '')
       .trim();
   }
 
@@ -804,7 +863,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const doc = String(r.documento || r.cedula).trim();
       const localMgmt = state.supportManagement[doc];
-      const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
+      const reqCategories = getReportSubCategories(r).map(c => c.key);
+      const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
 
       if (r.gestionStatus && !state.isTypingActive) {
         state.supportManagement[doc] = {
@@ -893,7 +953,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!doc) return;
 
       if (r.gestionStatus || r.gestionNotes) {
-        const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes);
+        const reqCategories = getReportSubCategories(r).map(c => c.key);
+        const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
 
         state.supportManagement[doc] = {
           status: r.gestionStatus || 'pendiente',
@@ -951,6 +1012,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.activeTab === 'donations') {
         renderDonationsDashboard();
       }
+    }
+
+    if (result && result.polizas) {
+      state.polizasData = result.polizas;
+      localStorage.setItem('comfamiliar_polizas_data', JSON.stringify(result.polizas));
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
@@ -1265,6 +1331,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elViviendaConfronted) {
       elViviendaConfronted.innerHTML = `✅ <b style="color:#059669;">${vivienda.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${vivienda.pendientes}</b> pendientes)`;
     }
+
+    // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
+    const elPolizasTotal = document.getElementById('kpi-polizas-total');
+    const elPolizasConfronted = document.getElementById('kpi-polizas-confronted');
+    const elPolizasBreakdown = document.getElementById('kpi-polizas-breakdown');
+
+    if (elPolizasTotal && state.polizasData) {
+      elPolizasTotal.textContent = formatNumber(state.polizasData.totalSiniestros || 0);
+    }
+    if (elPolizasConfronted && state.polizasData) {
+      const grave = state.polizasData.grave || 0;
+      const mod = state.polizasData.moderado || 0;
+      const leve = state.polizasData.leve || 0;
+      elPolizasConfronted.innerHTML = `🔴 <b>${grave}</b> Grave${grave === 1 ? '' : 's'} | 🟡 <b>${mod}</b> Moderado${mod === 1 ? '' : 's'} | 🟢 <b>${leve}</b> Leve${leve === 1 ? '' : 's'}`;
+    }
+    if (elPolizasBreakdown && state.polizasData && state.polizasData.porHoja) {
+      const entries = Object.entries(state.polizasData.porHoja);
+      if (entries.length === 0) {
+        elPolizasBreakdown.innerHTML = '<span style="font-size:0.75rem; color:#64748b; font-weight:600; grid-column:1/-1; text-align:center;">No hay siniestros detallados reportados aún.</span>';
+      } else {
+        elPolizasBreakdown.innerHTML = entries.map(([sheetName, count]) => {
+          const friendlyName = sheetName.replace(/_/g, ' ');
+          const icon = friendlyName.toLowerCase().includes('vehiculo') ? '🚗' : '🏠';
+          return `
+            <div style="background:#FFF; padding:6px 10px; border-radius:8px; border:1px solid #BDE0FE; box-shadow:0 2px 4px rgba(0,0,0,0.02); display:flex; flex-direction:column; justify-content:center;">
+              <span style="font-size:0.72rem; color:#64748b; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${friendlyName}">${icon} ${friendlyName}</span>
+              <div style="margin-top:2px;">
+                <b style="font-size:1.15rem; color:#0284c7;">${formatNumber(count)}</b> 
+                <small style="font-size:0.7rem; color:#64748b; font-weight:700;">caso${count === 1 ? '' : 's'}</small>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
   }
 
   function getBestPhoneNumber(r) {
@@ -1517,7 +1618,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const subMgmtObj = (mgmt.subMgmt && mgmt.subMgmt[cat.key]) ? mgmt.subMgmt[cat.key] : null;
         const subSt = getNormalizedSubMgmtStatus(r, cat.key);
         const generalNotes = sanitizeNotes(mgmt.notes || r.gestionNotes || '');
-        const subNotes = sanitizeNotes((subMgmtObj && subMgmtObj.notes) ? subMgmtObj.notes : generalNotes);
+        
+        // Si hay gestión estructurada por categorías, no heredamos notas de otra categoría a las vacías
+        const hasStructuredMgmt = mgmt.subMgmt && Object.keys(mgmt.subMgmt).length > 0;
+        const subNotes = sanitizeNotes(
+          subMgmtObj && subMgmtObj.notes !== undefined
+            ? subMgmtObj.notes 
+            : (hasStructuredMgmt ? '' : generalNotes)
+        );
         const displayNotes = stripBracketPrefix(subNotes);
         const subOp = (subMgmtObj && subMgmtObj.operator) ? subMgmtObj.operator : (mgmt.operator || 'Sin asignar');
 
