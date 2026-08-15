@@ -504,6 +504,35 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('comfamiliar_main_kpi_expanded', 'false');
     }
   };
+
+  window.toggleMainMapPanel = function() {
+    const container = document.getElementById('main-map-collapse-container');
+    const text = document.getElementById('text-toggle-main-map');
+    const arrow = document.getElementById('arrow-toggle-main-map');
+    const btn = document.getElementById('btn-toggle-main-map');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_main_map_expanded', 'true');
+      
+      if (state.map) {
+        setTimeout(() => {
+          state.map.invalidateSize();
+        }, 150);
+      }
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_main_map_expanded', 'false');
+    }
+  };
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
   window.filterMgmtByStatusCard = function(status) {
@@ -881,6 +910,30 @@ document.addEventListener('DOMContentLoaded', () => {
           text.textContent = 'Mostrar Consola de Indicadores Clave (KPIs)';
           arrow.textContent = '▼';
           btnToggle.style.background = 'var(--primary)';
+        }
+      }
+
+      // Cargar estado de colapso del mapa en Tablero 1
+      const isMapExpanded = localStorage.getItem('comfamiliar_main_map_expanded') === 'true';
+      const mapContainer = document.getElementById('main-map-collapse-container');
+      const mapText = document.getElementById('text-toggle-main-map');
+      const mapArrow = document.getElementById('arrow-toggle-main-map');
+      const btnMapToggle = document.getElementById('btn-toggle-main-map');
+
+      if (mapContainer && mapText && mapArrow && btnMapToggle) {
+        if (isMapExpanded) {
+          mapContainer.style.display = 'block';
+          mapText.textContent = 'Ocultar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+          mapArrow.textContent = '▲';
+          btnMapToggle.style.background = 'var(--secondary)';
+          if (state.map) {
+            setTimeout(() => state.map.invalidateSize(), 150);
+          }
+        } else {
+          mapContainer.style.display = 'none';
+          mapText.textContent = 'Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)';
+          mapArrow.textContent = '▼';
+          btnMapToggle.style.background = 'var(--primary)';
         }
       }
     } else if (tabName === 'analytics') {

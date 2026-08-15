@@ -38,6 +38,16 @@ function doGet(e) {
       return guardarGestionExclusivaEnHoja(ss, sheetReportes, sheetGestion, docParam, statusVal, notesVal, operatorVal, callback);
     }
 
+    // 2.5 ACCIÓN: DESDUPLICAR HOJA GESTION_SST
+    if (action === "deduplicate" || action === "cleanDuplicates") {
+      var dedupMsg = JSON.stringify({ status: "success", message: desduplicarHojaGestionSST() });
+      if (callback) {
+        return ContentService.createTextOutput(callback + "(" + dedupMsg + ")")
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      return ContentService.createTextOutput(dedupMsg).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3. ACCIÓN: RECIBIR Y GUARDAR NUEVA ENCUESTA DESDE EL FORMULARIO DE TRABAJADORES (GET / JSONP)
     if (action === "submitReport" || action === "saveReport" || action === "addReport" || (params.situacionYApoyo && docParam)) {
       return procesarYGuardarReporte(sheetReportes, params, callback);
@@ -134,6 +144,17 @@ function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) 
 
   var reportsArray = obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion);
   var donationsData = obtenerDatosDonacionesYKardex(ss);
+  
+  // Lectura segura del módulo externo de pólizas
+  var polizasData = { status: "error", totalSiniestros: 0, grave: 0, moderado: 0, leve: 0 };
+  try {
+    var pData = obtenerEstadisticasPolizasExternas();
+    if (pData) {
+      polizasData = pData;
+    }
+  } catch (pErr) {
+    console.log("Error al cargar estadísticas de pólizas en live stream: " + pErr.toString());
+  }
 
   var payload = JSON.stringify({
     status: "success",
@@ -141,7 +162,8 @@ function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) 
     total: reportsArray.length,
     reports: reportsArray,
     data: reportsArray,
-    donations: donationsData
+    donations: donationsData,
+    polizas: polizasData
   });
 
   try {
@@ -552,21 +574,27 @@ function buscarInfoReportePorDoc(sheetReportes, targetDoc) {
   return {};
 }
 
-function buscarFilaEnGestion(sheetGestion, targetDoc) {
-  if (!sheetGestion || !targetDoc) return -1;
+function buscarFilasEnGestion(sheetGestion, targetDoc) {
+  if (!sheetGestion || !targetDoc) return [];
   var lastRow = sheetGestion.getLastRow();
-  if (lastRow < 2) return -1;
+  if (lastRow < 2) return [];
 
   var docCol = sheetGestion.getRange(1, 2, lastRow, 1).getValues();
   var target = String(targetDoc).trim();
+  var matchingRows = [];
 
-  for (var i = 0; i < docCol.length; i++) {
+  for (var i = 1; i < docCol.length; i++) {
     var cellDoc = String(docCol[i][0] || "").trim();
     if (cellDoc === target) {
-      return i + 2;
+      matchingRows.push(i + 1);
     }
   }
-  return -1;
+  return matchingRows;
+}
+
+function buscarFilaEnGestion(sheetGestion, targetDoc) {
+  var rows = buscarFilasEnGestion(sheetGestion, targetDoc);
+  return rows.length > 0 ? rows[0] : -1;
 }
 
 function buscarFilaPorDocumento(sheet, documentoTarget) {
@@ -586,6 +614,35 @@ function buscarFilaPorDocumento(sheet, documentoTarget) {
   return -1;
 }
 
+function combinarNotasDeFilas(filas) {
+  var notasSet = [];
+  var operadoresSet = [];
+  
+  var ultimaFila = filas[filas.length - 1];
+  var latestStatus = String(ultimaFila[8] || "pendiente").trim();
+  var latestTimestamp = String(ultimaFila[0] || "").trim();
+
+  for (var i = 0; i < filas.length; i++) {
+    var r = filas[i];
+    var nt = String(r[9] || "").trim();
+    var op = String(r[11] || "").trim();
+
+    if (nt && notasSet.indexOf(nt) === -1) {
+      notasSet.push(nt);
+    }
+    if (op && op !== "Operador SST" && operadoresSet.indexOf(op) === -1) {
+      operadoresSet.push(op);
+    }
+  }
+
+  return {
+    combinedNotes: notasSet.join(" || "),
+    combinedStatus: latestStatus,
+    latestTimestamp: latestTimestamp,
+    combinedOperator: operadoresSet.length > 0 ? operadoresSet.join(" / ") : "Operador SST"
+  };
+}
+
 function guardarGestionExclusivaEnHoja(ss, sheetReportes, sheetGestion, documento, status, notes, operator, callback) {
   try {
     var docStr = String(documento || "").trim();
@@ -596,7 +653,7 @@ function guardarGestionExclusivaEnHoja(ss, sheetReportes, sheetGestion, document
     var nowStr = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
     var infoR = buscarInfoReportePorDoc(sheetReportes, docStr);
 
-    var existingRowG = buscarFilaEnGestion(sheetGestion, docStr);
+    var matchingRows = buscarFilasEnGestion(sheetGestion, docStr);
     var rowValuesG = [
       nowStr,
       docStr,
@@ -612,8 +669,38 @@ function guardarGestionExclusivaEnHoja(ss, sheetReportes, sheetGestion, document
       operator || "Operador SST"
     ];
 
-    if (existingRowG > 0) {
-      sheetGestion.getRange(existingRowG, 1, 1, rowValuesG.length).setValues([rowValuesG]);
+    if (matchingRows.length > 0) {
+      var existingData = [];
+      for (var m = 0; m < matchingRows.length; m++) {
+        var rData = sheetGestion.getRange(matchingRows[m], 1, 1, 12).getValues()[0];
+        existingData.push(rData);
+      }
+
+      var merged = combinarNotasDeFilas(existingData);
+      var finalNotes = notes || "";
+
+      if (merged.combinedNotes && merged.combinedNotes !== finalNotes) {
+        if (finalNotes) {
+          if (finalNotes.indexOf(merged.combinedNotes) === -1 && merged.combinedNotes.indexOf(finalNotes) === -1) {
+            finalNotes = merged.combinedNotes + " || " + finalNotes;
+          }
+        } else {
+          finalNotes = merged.combinedNotes;
+        }
+      }
+
+      rowValuesG[8] = status || merged.combinedStatus;
+      rowValuesG[9] = finalNotes;
+      rowValuesG[11] = (operator && operator !== "Operador SST") ? operator : merged.combinedOperator;
+
+      var targetRow = matchingRows[0];
+      sheetGestion.getRange(targetRow, 1, 1, rowValuesG.length).setValues([rowValuesG]);
+
+      if (matchingRows.length > 1) {
+        for (var d = matchingRows.length - 1; d >= 1; d--) {
+          sheetGestion.deleteRow(matchingRows[d]);
+        }
+      }
     } else {
       sheetGestion.appendRow(rowValuesG);
     }
@@ -682,4 +769,139 @@ function obtenerOCrearHojaGestion(ss) {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+/**
+ * FUNCIÓN DE CONSOLIDACIÓN Y DESDUPLICACIÓN GLOBAL DE LA HOJA GESTION_SST
+ * Consolida todas las notas registradas por Psicología, Alimentos, Medicamentos y Trabajo Social
+ * en una sola fila maestra por colaborador SIN BORRAR NINGUNA OBSERVACIÓN.
+ */
+function desduplicarHojaGestionSST() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetGestion = ss.getSheetByName("GESTION_SST");
+  if (!sheetGestion) return "No existe la hoja GESTION_SST";
+
+  var lastRow = sheetGestion.getLastRow();
+  if (lastRow < 3) return "No hay suficientes filas para consolidar";
+
+  var data = sheetGestion.getRange(2, 1, lastRow - 1, sheetGestion.getLastColumn()).getValues();
+  var mapByDoc = {};
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var doc = String(row[1] || "").trim();
+    if (doc) {
+      if (!mapByDoc[doc]) {
+        mapByDoc[doc] = { rows: [], indices: [] };
+      }
+      mapByDoc[doc].rows.push(row);
+      mapByDoc[doc].indices.push(i + 2);
+    }
+  }
+
+  var countMerged = 0;
+  var rowsToDelete = [];
+
+  var docs = Object.keys(mapByDoc);
+  for (var d = 0; d < docs.length; d++) {
+    var docKey = docs[d];
+    var item = mapByDoc[docKey];
+
+    if (item.indices.length > 1) {
+      var merged = combinarNotasDeFilas(item.rows);
+      var masterRowIndex = item.indices[0];
+
+      var masterRowValues = item.rows[0];
+      masterRowValues[8] = merged.combinedStatus;
+      masterRowValues[9] = merged.combinedNotes;
+      masterRowValues[11] = merged.combinedOperator;
+
+      sheetGestion.getRange(masterRowIndex, 1, 1, masterRowValues.length).setValues([masterRowValues]);
+
+      for (var k = 1; k < item.indices.length; k++) {
+        rowsToDelete.push(item.indices[k]);
+      }
+      countMerged++;
+    }
+  }
+
+  rowsToDelete.sort(function(a, b) { return b - a; });
+  for (var r = 0; r < rowsToDelete.length; r++) {
+    sheetGestion.deleteRow(rowsToDelete[r]);
+  }
+
+  limpiarCacheReportes();
+
+  return "Se unieron las notas de Psicología, Alimentos y Trabajo Social para " + countMerged + " colaboradores. 100% de las observaciones fueron preservadas en su fila maestra. Filas sobrantes eliminadas: " + rowsToDelete.length;
+}
+
+/**
+ * =========================================================================
+ * MÓDULO INTEGRADO: LECTURA EXTERNA DE POLIZAS Y ESTADÍSTICAS DE SINIESTROS
+ * =========================================================================
+ */
+function obtenerEstadisticasPolizasExternas() {
+  try {
+    var ssPolizas = SpreadsheetApp.openById("1-uwcpJM34PYCdozczlwF37uQlf0YSQDvqqCHu1p4qB8");
+    if (!ssPolizas) return null;
+
+    var sheets = ssPolizas.getSheets();
+    var totalSiniestros = 0;
+    var grave = 0;
+    var moderado = 0;
+    var leve = 0;
+    var porHoja = {};
+
+    for (var s = 0; s < sheets.length; s++) {
+      var sheet = sheets[s];
+      var sheetName = sheet.getName();
+      if (sheet.getLastRow() < 2 || sheet.getLastColumn() === 0) continue;
+
+      var range = sheet.getDataRange();
+      var data = range.getValues();
+      if (!data || data.length < 2) continue;
+
+      if (!porHoja[sheetName]) porHoja[sheetName] = 0;
+
+      var headers = data[0];
+      var idxRad = headers.indexOf("Radicado_Aseguradora");
+      var idxNivel = headers.indexOf("Nivel_Afectacion_Terremoto");
+      var idxObs = headers.indexOf("Observaciones_Siniestro");
+
+      for (var i = 1; i < data.length; i++) {
+        var rad = idxRad !== -1 ? data[i][idxRad] : null;
+        var nivel = idxNivel !== -1 ? data[i][idxNivel] : null;
+        var obs = idxObs !== -1 ? data[i][idxObs] : null;
+
+        var hasRad = rad && String(rad).trim() !== '';
+        var hasObs = obs && String(obs).trim() !== '';
+        var hasNivel = nivel && String(nivel).trim() !== '' && String(nivel).toLowerCase().indexOf('sin especificar') === -1;
+
+        if (hasRad || hasObs || hasNivel) {
+          totalSiniestros++;
+          porHoja[sheetName]++;
+          var nivelStr = String(nivel || '').toLowerCase();
+          if (nivelStr.indexOf('grave') !== -1) {
+            grave++;
+          } else if (nivelStr.indexOf('moderado') !== -1) {
+            moderado++;
+          } else {
+            leve++;
+          }
+        }
+      }
+    }
+
+    return {
+      status: "success",
+      totalSiniestros: totalSiniestros,
+      grave: grave,
+      moderado: moderado,
+      leve: leve,
+      porHoja: porHoja
+    };
+  } catch (err) {
+    console.log("Error en obtenerEstadisticasPolizasExternas: " + err.toString());
+    return { status: "error", message: err.toString(), totalSiniestros: 0, grave: 0, moderado: 0, leve: 0, porHoja: {} };
+  }
 }

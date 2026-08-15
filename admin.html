@@ -248,11 +248,19 @@
           </div>
         </div>
 
-        <!-- MAPA DE EMERGENCIA -->
-        <h3 class="no-print" style="font-size: 1.1rem; color: var(--primary); margin: 20px 0 10px 0;">
-          🗺️ Ubicación Satelital de Trabajadores Registrados
-        </h3>
-        <div id="emergency-map" class="no-print"></div>
+        <!-- MAPA DE EMERGENCIA COLAPSIBLE -->
+        <div style="margin: 20px 0 10px 0;">
+          <button id="btn-toggle-main-map" onclick="window.toggleMainMapPanel && window.toggleMainMapPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              🗺️ <span id="text-toggle-main-map">Mostrar Ubicación Satelital de Trabajadores Registrados (Mapa)</span>
+            </span>
+            <span id="arrow-toggle-main-map" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
+          </button>
+        </div>
+
+        <div id="main-map-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
+          <div id="emergency-map" class="no-print"></div>
+        </div>
 
         <!-- CONFRONTACIÓN EJECUTIVA: DEMANDA DE APOYOS VS INTERVENCIONES EJECUTADAS -->
         <h3 class="no-print" style="font-size: 1.15rem; color: var(--primary); margin: 24px 0 12px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
@@ -720,6 +728,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260815_1414_ALL_COLLAPSED"></script>
+  <script src="app.js?v=20260815_1437_MAP_COLLAPSIBLE"></script>
 </body>
 </html>
