@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     typingTimer: null,
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
     donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null,
+    polizasData: JSON.parse(localStorage.getItem('comfamiliar_polizas_data')) || null,
     pagination: {
       mainPage: 1,
       mainPageSize: 25,
@@ -953,6 +954,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    if (result && result.polizas) {
+      state.polizasData = result.polizas;
+      localStorage.setItem('comfamiliar_polizas_data', JSON.stringify(result.polizas));
+    }
+
     state.reports = preprocessReports(Array.from(mapReports.values()));
     
     // Homologación automática sin daño a datos
@@ -1264,6 +1270,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (elViviendaConfronted) {
       elViviendaConfronted.innerHTML = `✅ <b style="color:#059669;">${vivienda.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${vivienda.pendientes}</b> pendientes)`;
+    }
+
+    // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
+    const elPolizasTotal = document.getElementById('kpi-polizas-total');
+    const elPolizasConfronted = document.getElementById('kpi-polizas-confronted');
+    if (elPolizasTotal && state.polizasData) {
+      elPolizasTotal.textContent = formatNumber(state.polizasData.totalSiniestros || 0);
+    }
+    if (elPolizasConfronted && state.polizasData) {
+      const grave = state.polizasData.grave || 0;
+      const mod = state.polizasData.moderado || 0;
+      const leve = state.polizasData.leve || 0;
+      elPolizasConfronted.innerHTML = `🔴 <b>${grave}</b> Grave${grave === 1 ? '' : 's'} | 🟡 <b>${mod}</b> Moderado${mod === 1 ? '' : 's'} | 🟢 <b>${leve}</b> Leve${leve === 1 ? '' : 's'}`;
     }
   }
 
