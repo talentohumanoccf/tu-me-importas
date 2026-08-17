@@ -1492,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isMatch) {
         solicitados++;
-        const st = getNormalizedMgmtStatus(r);
+        const st = getNormalizedSubMgmtStatus(r, categoryKey);
 
         if (st === 'resuelto') {
           intervencionAtendida++;
@@ -1622,6 +1622,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const psico = getConfrontationMetrics('psicologico');
     const alimentos = getConfrontationMetrics('alimentos');
     const vivienda = getConfrontationMetrics('vivienda');
+    const social = getConfrontationMetrics('social');
+    const medicamentos = getConfrontationMetrics('medicamentos');
 
     const elTotal = document.getElementById('kpi-total');
     const elSalvo = document.getElementById('kpi-salvo');
@@ -1723,6 +1725,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (elViviendaConfronted) {
       elViviendaConfronted.innerHTML = `✅ <b style="color:#059669;">${vivienda.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${vivienda.pendientes}</b> pendientes)`;
+    }
+
+    // 3.1 CONFRONTACIÓN EN TARJETA TRABAJO SOCIAL
+    const elSocialDirecto = document.getElementById('kpi-social-directo');
+    const elSocialBadge = document.getElementById('kpi-social-badge');
+    const elSocialConfronted = document.getElementById('kpi-social-confronted');
+    if (elSocialDirecto) elSocialDirecto.textContent = social.solicitados;
+    if (elSocialBadge) {
+      elSocialBadge.textContent = `${social.pct}% Cobertura`;
+      elSocialBadge.style.background = social.pct >= 80 ? '#D1FAE5' : social.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
+      elSocialBadge.style.color = social.pct >= 80 ? '#065F46' : social.pct >= 40 ? '#92400E' : '#991B1B';
+    }
+    if (elSocialConfronted) {
+      elSocialConfronted.innerHTML = `✅ <b style="color:#059669;">${social.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${social.pendientes}</b> pendientes)`;
+    }
+
+    // 3.2 CONFRONTACIÓN EN TARJETA MEDICAMENTOS / SALUD
+    const elMedDirecto = document.getElementById('kpi-medicamentos-directo');
+    const elMedBadge = document.getElementById('kpi-medicamentos-badge');
+    const elMedConfronted = document.getElementById('kpi-medicamentos-confronted');
+    if (elMedDirecto) elMedDirecto.textContent = medicamentos.solicitados;
+    if (elMedBadge) {
+      elMedBadge.textContent = `${medicamentos.pct}% Cobertura`;
+      elMedBadge.style.background = medicamentos.pct >= 80 ? '#D1FAE5' : medicamentos.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
+      elMedBadge.style.color = medicamentos.pct >= 80 ? '#065F46' : medicamentos.pct >= 40 ? '#92400E' : '#991B1B';
+    }
+    if (elMedConfronted) {
+      elMedConfronted.innerHTML = `✅ <b style="color:#059669;">${medicamentos.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${medicamentos.pendientes}</b> pendientes)`;
     }
 
     // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA

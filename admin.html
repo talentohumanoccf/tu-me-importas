@@ -228,6 +228,24 @@
               </div>
               <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
             </div>
+            <!-- TARJETA: SOLICITARON TRABAJO SOCIAL -->
+            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%); border-left: 5px solid #F59E0B;">
+              <div class="kpi-header" style="color:#B45309; font-weight:800;">Solicitaron Trabajo Social</div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <div class="kpi-value" id="kpi-social-directo" style="color:#B45309;">0</div>
+                <span id="kpi-social-badge" style="background:#FEF3C7; color:#B45309; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+              </div>
+              <div class="kpi-subtext" id="kpi-social-confronted" style="color:#92400E;">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+            </div>
+            <!-- TARJETA: SOLICITARON MEDICAMENTOS / SALUD -->
+            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #FEE2E2 100%); border-left: 5px solid #EF4444;">
+              <div class="kpi-header" style="color:#991B1B; font-weight:800;">Solicitaron Medicamentos / Salud</div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <div class="kpi-value" id="kpi-medicamentos-directo" style="color:#991B1B;">0</div>
+                <span id="kpi-medicamentos-badge" style="background:#FEE2E2; color:#991B1B; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
+              </div>
+              <div class="kpi-subtext" id="kpi-medicamentos-confronted" style="color:#991B1B;">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
+            </div>
             <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
             <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
               <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
@@ -476,9 +494,6 @@
             </p>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <button onclick="window.cleanGestionDuplicates && window.cleanGestionDuplicates()" class="btn-search" style="background:#D97706; color:#FFF; font-weight:800; font-size:0.88rem; border:none; box-shadow:0 4px 12px rgba(217,119,6,0.25);" title="Haz clic para eliminar filas duplicadas en la hoja GESTION_SST de Google Sheets y dejar un solo registro único por persona">
-              🧹 Desduplicar GESTION_SST
-            </button>
             <button onclick="window.homologateWithGestionSST && window.homologateWithGestionSST(true)" class="btn-search" style="background:#0284C7; color:#FFF; font-weight:800; font-size:0.88rem; border:none; box-shadow:0 4px 12px rgba(2,132,199,0.25);" title="Haz clic para forzar la homologación 100% concordante con los datos maestros de la hoja GESTION_SST">
               🔄 Homologar con GESTION_SST
             </button>
@@ -748,6 +763,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260815_1531_OHS_CHARTS_COLLAPSIBLE"></script>
+  <script src="app.js?v=20260817_0628_OHS_DASHBOARD_KPI_ALIGN"></script>
 </body>
 </html>
