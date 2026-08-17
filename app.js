@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function isNeedSupport(r) {
     const ap = getApoyoText(r);
-    return ap.length > 0 && !ap.includes('estoy bien y seguro');
+    return (ap.length > 0 && !ap.includes('estoy bien y seguro')) || matchesCategory(r, 'familiar');
   }
 
   function getNormalizedMgmtStatus(r) {
@@ -154,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function getReportSubCategories(r) {
     const categories = [];
     if (matchesCategory(r, 'psicologico')) categories.push({ key: 'psicologico', name: 'Apoyo Psicológico', icon: '🧠', color: '#003366' });
+    if (matchesCategory(r, 'familiar')) categories.push({ key: 'familiar', name: 'Pérdida de Familiares', icon: '🤍', color: '#B91C1C' });
     if (matchesCategory(r, 'alimentos')) categories.push({ key: 'alimentos', name: 'Kits de Alimentos / Mercado', icon: '📦', color: '#00A88F' });
     if (matchesCategory(r, 'medicamentos')) categories.push({ key: 'medicamentos', name: 'Medicamentos / Salud', icon: '💊', color: '#E63946' });
     if (matchesCategory(r, 'social')) categories.push({ key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' });
@@ -217,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const rawKey = match[1].toLowerCase().trim();
         let key = rawKey;
         if (rawKey.includes('psico')) key = 'psicologico';
+        else if (rawKey.includes('fam') || rawKey.includes('perd') || rawKey.includes('lut')) key = 'familiar';
         else if (rawKey.includes('alim') || rawKey.includes('merc')) key = 'alimentos';
         else if (rawKey.includes('med')) key = 'medicamentos';
         else if (rawKey.includes('soc')) key = 'social';
@@ -373,6 +375,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cat.includes('med')) return ap.includes('medicament') || ap.includes('salud') || ap.includes('receta');
     if (cat.includes('aliment')) return ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado') || ap.includes('vivere') || ap.includes('comida');
     if (cat.includes('juri')) return ap.includes('juri') || ap.includes('legal');
+    if (cat.includes('famili') || cat.includes('perdi')) {
+      return ap.includes('famili') || ap.includes('perdi') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo') ||
+             normalizeStr(r.estadoFamilia || '').includes('perdi') || normalizeStr(r.estadoFamilia || '').includes('fallec');
+    }
     return ap.includes(cat);
   }
 
@@ -1788,6 +1794,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('mgmt-reports-tbody');
     
     let countPsico = 0, countPsicoPend = 0, countPsicoProc = 0, countPsicoRes = 0;
+    let countFamiliar = 0, countFamiliarPend = 0, countFamiliarProc = 0, countFamiliarRes = 0;
     let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
     let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
     let countAlimentos = 0, countAlimentosPend = 0, countAlimentosProc = 0, countAlimentosRes = 0;
@@ -1805,6 +1812,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasSocial = matchesCategory(r, 'social');
         const hasMeds = matchesCategory(r, 'medicamentos');
         const hasAlim = matchesCategory(r, 'alimentos');
+        const hasFamiliar = matchesCategory(r, 'familiar');
 
         if (hasPsico) {
           countPsico++;
@@ -1812,6 +1820,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (subSt === 'resuelto') countPsicoRes++;
           else if (subSt === 'proceso') countPsicoProc++;
           else countPsicoPend++;
+        }
+        if (hasFamiliar) {
+          countFamiliar++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'familiar');
+          if (subSt === 'resuelto') countFamiliarRes++;
+          else if (subSt === 'proceso') countFamiliarProc++;
+          else countFamiliarPend++;
         }
         if (hasSocial) {
           countSocial++;
@@ -1834,7 +1849,7 @@ document.addEventListener('DOMContentLoaded', () => {
           else if (subSt === 'proceso') countAlimentosProc++;
           else countAlimentosPend++;
         }
-        if (!hasPsico && !hasSocial && !hasMeds && !hasAlim) {
+        if (!hasPsico && !hasSocial && !hasMeds && !hasAlim && !hasFamiliar) {
           countOtros++;
           const subSt = getNormalizedSubMgmtStatus(r, 'general');
           if (subSt === 'resuelto') countOtrosRes++;
@@ -1877,6 +1892,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       visualChartsContainer.innerHTML = `
         ${renderActivityChart('Apoyo Psicológico', '🧠', countPsico, countPsicoPend, countPsicoProc, countPsicoRes)}
+        ${renderActivityChart('Pérdida de Familiares', '🤍', countFamiliar, countFamiliarPend, countFamiliarProc, countFamiliarRes)}
         ${renderActivityChart('Trabajo Social', '🤝', countSocial, countSocialPend, countSocialProc, countSocialRes)}
         ${renderActivityChart('Medicamentos / Salud', '💊', countMeds, countMedsPend, countMedsProc, countMedsRes)}
         ${renderActivityChart('Kits de Alimentos', '📦', countAlimentos, countAlimentosPend, countAlimentosProc, countAlimentosRes)}
