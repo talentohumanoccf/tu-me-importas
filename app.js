@@ -459,28 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerGlobalFilter = function() { applyFilters(true); };
   window.triggerMgmtRender = function() { renderManagementDashboard(true); };
 
-  window.toggleMgmtKpiPanel = function() {
-    const container = document.getElementById('mgmt-kpi-collapse-container');
-    const text = document.getElementById('text-toggle-mgmt-kpi');
-    const arrow = document.getElementById('arrow-toggle-mgmt-kpi');
-    const btn = document.getElementById('btn-toggle-mgmt-kpi');
-
-    if (!container || !text || !arrow || !btn) return;
-
-    if (container.style.display === 'none') {
-      container.style.display = 'block';
-      text.textContent = 'Ocultar Consola de Indicadores Ejecutivos (KPIs)';
-      arrow.textContent = '▲';
-      btn.style.background = 'var(--secondary)';
-      localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'true');
-    } else {
-      container.style.display = 'none';
-      text.textContent = 'Mostrar Consola de Indicadores Ejecutivos (KPIs)';
-      arrow.textContent = '▼';
-      btn.style.background = 'var(--primary)';
-      localStorage.setItem('comfamiliar_mgmt_kpi_expanded', 'false');
-    }
-  };
+  // Consola ejecutiva de KPIs eliminada de la pestaña de Gestión SST.
 
   window.toggleMgmtChartsPanel = function() {
     const container = document.getElementById('mgmt-charts-collapse-container');
@@ -976,26 +955,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status') || 'pendiente';
       }
  
-      // Cargar estado de colapso de KPIs
-      const isExpanded = localStorage.getItem('comfamiliar_mgmt_kpi_expanded') === 'true';
-      const container = document.getElementById('mgmt-kpi-collapse-container');
-      const text = document.getElementById('text-toggle-mgmt-kpi');
-      const arrow = document.getElementById('arrow-toggle-mgmt-kpi');
-      const btnToggle = document.getElementById('btn-toggle-mgmt-kpi');
-
-      if (container && text && arrow && btnToggle) {
-        if (isExpanded) {
-          container.style.display = 'block';
-          text.textContent = 'Ocultar Consola de Indicadores Ejecutivos (KPIs)';
-          arrow.textContent = '▲';
-          btnToggle.style.background = 'var(--secondary)';
-        } else {
-          container.style.display = 'none';
-          text.textContent = 'Mostrar Consola de Indicadores Ejecutivos (KPIs)';
-          arrow.textContent = '▼';
-          btnToggle.style.background = 'var(--primary)';
-        }
-      }
+      // Memoria de colapso de KPIs eliminada.
 
       // Cargar estado de colapso de gráficas de avance SST
       const isChartsExpanded = localStorage.getItem('comfamiliar_mgmt_charts_expanded') === 'true';
@@ -1621,6 +1581,54 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
     }
 
+    const afAtendidasBreakdownContainer = document.getElementById('kpi-af-atendidas-breakdown-container');
+    const afAtendidasTotalBadge = document.getElementById('kpi-af-atendidas-total-badge');
+    
+    if (afAtendidasBreakdownContainer) {
+      const mapAFAll = {};
+      const mapAFAten = {};
+      let totalAFResolved = 0;
+
+      dataset.forEach(r => {
+        const val = getReportColumnAFValue(r);
+        mapAFAll[val] = (mapAFAll[val] || 0) + 1;
+        
+        const isResolved = getNormalizedMgmtStatus(r) === 'resuelto';
+        if (isResolved) {
+          mapAFAten[val] = (mapAFAten[val] || 0) + 1;
+          totalAFResolved++;
+        }
+      });
+
+      if (afAtendidasTotalBadge) {
+        afAtendidasTotalBadge.textContent = `${formatNumber(totalAFResolved)} ATENDIDOS (${Math.round((totalAFResolved / Math.max(total, 1)) * 100)}% COBERTURA GENERAL)`;
+      }
+
+      const entries = Object.entries(mapAFAll).sort((a, b) => {
+        const resolvedA = mapAFAten[a[0]] || 0;
+        const resolvedB = mapAFAten[b[0]] || 0;
+        return resolvedB - resolvedA;
+      });
+
+      afAtendidasBreakdownContainer.innerHTML = entries.map(([groupName, totalCount]) => {
+        const resolvedCount = mapAFAten[groupName] || 0;
+        const coveragePct = Math.round((resolvedCount / Math.max(totalCount, 1)) * 100);
+        const isActivos = normalizeStr(groupName).includes('activo');
+        const isWarning = normalizeStr(groupName).includes('inactivo');
+        const borderColor = resolvedCount > 0 ? (isActivos ? '#A7F3D0' : isWarning ? '#FCA5A5' : '#CBD5E1') : '#F1F5F9';
+        const textColor = isActivos ? '#065F46' : isWarning ? '#991B1B' : '#1E293B';
+        const subColor = isActivos ? '#047857' : isWarning ? '#DC2626' : '#475569';
+        const icon = isActivos ? '🏢' : isWarning ? '🚫' : '👥';
+
+        return `
+          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${groupName}">${icon} ${groupName}</span>
+            <b style="font-size:1.25rem; color:${textColor};">${formatNumber(resolvedCount)}</b> <small style="font-size:0.72rem; color:${subColor}; font-weight:700;">/ ${formatNumber(totalCount)} (${coveragePct}%)</small>
+          </div>
+        `;
+      }).join('');
+    }
+
     const elTopGruposValue = document.getElementById('top-grupos-af-value');
     const elTopGruposSubtext = document.getElementById('top-grupos-af-subtext');
     if (elTopGruposValue) {
@@ -1738,13 +1746,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    const elGlobalPend = document.getElementById('mgmt-global-kpi-pend');
-    const elGlobalProc = document.getElementById('mgmt-global-kpi-proc');
-    const elGlobalRes = document.getElementById('mgmt-global-kpi-res');
-
-    if (elGlobalPend) elGlobalPend.innerHTML = `${globalPend} <small style="font-size:0.85rem; color:#92400E; font-weight:700;">Casos</small>`;
-    if (elGlobalProc) elGlobalProc.innerHTML = `${globalProc} <small style="font-size:0.85rem; color:#075985; font-weight:700;">Casos</small>`;
-    if (elGlobalRes) elGlobalRes.innerHTML = `${globalRes} <small style="font-size:0.85rem; color:#065F46; font-weight:700;">Casos</small>`;
+    // Actualización de contadores ejecutivos eliminada por simplificación.
 
     const visualChartsContainer = document.getElementById('mgmt-visual-charts-container');
     if (visualChartsContainer) {

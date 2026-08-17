@@ -194,6 +194,16 @@
                 <!-- Renderizado dinámicamente con Activos Comfamiliar vs Otras por JS -->
               </div>
             </div>
+            <!-- NUEVA TARJETA: PERSONAS ATENDIDAS POR TIPO DE VINCULACIÓN -->
+            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #ECFDF5 100%); border-left: 5px solid #059669; grid-column: span 2;">
+              <div class="kpi-header" style="color:#047857; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <span>✅ Personas Atendidas por Tipo de Vinculación</span>
+                <span id="kpi-af-atendidas-total-badge" style="background:#D1FAE5; color:#047857; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 atendidos</span>
+              </div>
+              <div id="kpi-af-atendidas-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                <!-- Renderizado dinámicamente con JS -->
+              </div>
+            </div>
             <div class="kpi-card kpi-success">
               <div class="kpi-header">A Salvo y Seguro</div>
               <div class="kpi-value" id="kpi-salvo">0</div>
@@ -456,40 +466,7 @@
             </button>
           </div>
         </div>
-        <!-- BOTÓN PREMIUM DE CONTROL DE VISUALIZACIÓN DE KPIS (COLAPSIBLE) -->
-        <div style="margin-bottom: 20px;">
-          <button id="btn-toggle-mgmt-kpi" onclick="window.toggleMgmtKpiPanel && window.toggleMgmtKpiPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              📊 <span id="text-toggle-mgmt-kpi">Mostrar Consola de Indicadores Ejecutivos (KPIs)</span>
-            </span>
-            <span id="arrow-toggle-mgmt-kpi" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
 
-        <div id="mgmt-kpi-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <!-- CONSOLA EJECUTIVA GLOBAL DE INTERVENCIONES SST (PRIMERA POSICIÓN) -->
-          <div class="kpi-grid" style="margin-bottom:24px;">
-            
-            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('pendiente')" title="Haz clic para filtrar casos PENDIENTES por contactar" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%);">
-              <div class="kpi-header" style="color:#B45309;">🟡 1. Pendientes por Contactar</div>
-              <div class="kpi-value" id="mgmt-global-kpi-pend" style="color:#B45309;">0</div>
-              <div class="kpi-subtext" style="color:#92400E; font-weight:700;">Requieren primer contacto del equipo SST</div>
-            </div>
-
-            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('proceso')" title="Haz clic para filtrar casos EN ATENCIÓN / PROCESO" style="border-left: 5px solid #0284C7; background: linear-gradient(180deg, #FFFFFF 0%, #E0F2FE 100%);">
-              <div class="kpi-header" style="color:#0369A1;">🔵 2. En Atención / Gestión</div>
-              <div class="kpi-value" id="mgmt-global-kpi-proc" style="color:#0369A1;">0</div>
-              <div class="kpi-subtext" style="color:#075985; font-weight:700;">En seguimiento activo por profesional SST</div>
-            </div>
-
-            <div class="kpi-card clickable-kpi-card" onclick="window.filterMgmtByStatusCard && window.filterMgmtByStatusCard('resuelto')" title="Haz clic para consultar HISTÓRICO DE CASOS CERRADOS" style="border-left: 5px solid #107C41; background: linear-gradient(180deg, #FFFFFF 0%, #D1FAE5 100%);">
-              <div class="kpi-header" style="color:#065F46;">🟢 3. Apoyos Entregados / Resueltos</div>
-              <div class="kpi-value" id="mgmt-global-kpi-res" style="color:#065F46;">0</div>
-              <div class="kpi-subtext" style="color:#047857; font-weight:700;">Casos cerrados e intervenciones completadas</div>
-            </div>
-
-          </div>
-        </div>
 
         <!-- BOTÓN PREMIUM PARA GRÁFICAS DE AVANCE (COLAPSIBLE) -->
         <div style="margin-bottom: 20px;">
@@ -717,6 +694,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260817_0639_UNIFIED_OHS_KPIS"></script>
+  <script src="app.js?v=20260817_0708_AF_RESOLVED_KPI"></script>
 </body>
 </html>
