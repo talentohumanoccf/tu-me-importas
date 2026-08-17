@@ -951,8 +951,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if(c3) c3.style.display = 'block';
  
       const elStatus = document.getElementById('mgmt-filter-status');
+      const elCat = document.getElementById('mgmt-filter-category');
       if (elStatus && !elStatus.dataset.manualOverride) {
         elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status') || 'pendiente';
+      }
+      if (elCat) {
+        elCat.value = sessionStorage.getItem('comfamiliar_mgmt_filter_category') || 'all';
       }
  
       // Memoria de colapso de KPIs eliminada.
@@ -1820,14 +1824,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
-    // Cargar filtros guardados de la sesión al renderizar
-    if (elStatus && sessionStorage.getItem('comfamiliar_mgmt_filter_status') && !elStatus.dataset.manualOverride) {
-      elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status');
-    }
-    if (elCat && sessionStorage.getItem('comfamiliar_mgmt_filter_category')) {
-      elCat.value = sessionStorage.getItem('comfamiliar_mgmt_filter_category');
-    }
-
     // Guardar los filtros actuales en la sesión
     if (elStatus) sessionStorage.setItem('comfamiliar_mgmt_filter_status', elStatus.value);
     if (elCat) sessionStorage.setItem('comfamiliar_mgmt_filter_category', elCat.value);
@@ -1844,8 +1840,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const mgmt = state.supportManagement[String(r.documento || r.cedula).trim()] || {};
 
       let matchStatus = false;
-      if (statusFilter === 'pendiente' || statusFilter === 'activos') {
+      if (statusFilter === 'pendiente') {
         matchStatus = st === 'pendiente';
+      } else if (statusFilter === 'activos') {
+        matchStatus = st === 'pendiente' || st === 'proceso';
       } else if (statusFilter === 'proceso') {
         matchStatus = st === 'proceso';
       } else if (statusFilter === 'mis_casos') {
