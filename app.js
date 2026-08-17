@@ -2309,6 +2309,83 @@ document.addEventListener('DOMContentLoaded', () => {
     ], 'herramientasTrabajo', total);
 
     renderAFGroupBarGroup('analytics-grupos-af-list', total);
+    renderTeleworkCrossAnalysis();
+  }
+
+  function renderTeleworkCrossAnalysis() {
+    const container = document.getElementById('analytics-teletrabajo-cruce');
+    if (!container) return;
+
+    let teleworkReady = 0; // No presencial + Sí condiciones
+    let teleworkRestricted = 0; // No presencial + No condiciones
+    let presentialMandatory = 0; // Sí presencial
+    let sinDato = 0;
+
+    const dataset = state.filteredReports;
+    const total = dataset.length;
+
+    dataset.forEach(r => {
+      const pres = normalizeStr(r.presencialidadObligatoria || '');
+      const cond = normalizeStr(r.condicionesOptimas || '');
+
+      if (pres.includes('no')) {
+        if (cond.includes('si')) {
+          teleworkReady++;
+        } else {
+          teleworkRestricted++;
+        }
+      } else if (pres.includes('si')) {
+        presentialMandatory++;
+      } else {
+        sinDato++;
+      }
+    });
+
+    const pctReady = total > 0 ? Math.round((teleworkReady / total) * 100) : 0;
+    const pctRestricted = total > 0 ? Math.round((teleworkRestricted / total) * 100) : 0;
+    const pctPresential = total > 0 ? Math.round((presentialMandatory / total) * 100) : 0;
+    const pctSinDato = total > 0 ? Math.round((sinDato / total) * 100) : 0;
+
+    container.innerHTML = `
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:15px;">
+        <div style="background:rgba(16,185,129,0.08); padding:12px; border-radius:8px; border-left:4px solid #10B981;">
+          <span style="font-size:0.75rem; color:#065F46; font-weight:700; display:block;">💻 TELETRABAJO VIABLE (ÓPTIMO)</span>
+          <b style="font-size:1.6rem; color:#065F46;">${teleworkReady.toLocaleString('es-CO')}</b>
+          <span style="font-size:0.8rem; color:#047857; display:block; font-weight:600; margin-top:2px;">${pctReady}% del total de censados</span>
+          <small style="font-size:0.7rem; color:#065F46; display:block; margin-top:4px;">No requieren presencialidad + Tienen luz e internet.</small>
+        </div>
+
+        <div style="background:rgba(245,158,11,0.08); padding:12px; border-radius:8px; border-left:4px solid #F59E0B;">
+          <span style="font-size:0.75rem; color:#92400E; font-weight:700; display:block;">⚠️ TELETRABAJO CON RESTRICCIÓN</span>
+          <b style="font-size:1.6rem; color:#92400E;">${teleworkRestricted.toLocaleString('es-CO')}</b>
+          <span style="font-size:0.8rem; color:#B45309; display:block; font-weight:600; margin-top:2px;">${pctRestricted}% del total de censados</span>
+          <small style="font-size:0.7rem; color:#92400E; display:block; margin-top:4px;">No requieren presencialidad, pero están sin luz o internet.</small>
+        </div>
+
+        <div style="background:rgba(59,130,246,0.08); padding:12px; border-radius:8px; border-left:4px solid #3B82F6;">
+          <span style="font-size:0.75rem; color:#1E40AF; font-weight:700; display:block;">🏢 PRESENCIALIDAD OBLIGATORIA</span>
+          <b style="font-size:1.6rem; color:#1E40AF;">${presentialMandatory.toLocaleString('es-CO')}</b>
+          <span style="font-size:0.8rem; color:#2563EB; display:block; font-weight:600; margin-top:2px;">${pctPresential}% del total de censados</span>
+          <small style="font-size:0.7rem; color:#1E40AF; display:block; margin-top:4px;">Cargos que obligatoriamente deben asistir de forma presencial.</small>
+        </div>
+      </div>
+
+      <div style="margin-top:15px;">
+        <span style="font-size:0.8rem; font-weight:700; color:var(--text-dark); display:block; margin-bottom:6px;">Distribución Proporcional de Viabilidad Laboral:</span>
+        <div class="analytics-bar-bg" style="background:#E2E8F0; height:18px; border-radius:9px; overflow:hidden; width:100%; display:flex; position:relative;" title="Viabilidad de Teletrabajo">
+          <div style="background:#10B981; width:${pctReady}%; height:100%; transition: width 0.4s ease;" title="Viable (Óptimo): ${teleworkReady}"></div>
+          <div style="background:#F59E0B; width:${pctRestricted}%; height:100%; transition: width 0.4s ease;" title="Con Restricción: ${teleworkRestricted}"></div>
+          <div style="background:#3B82F6; width:${pctPresential}%; height:100%; transition: width 0.4s ease;" title="Presencial Obligatorio: ${presentialMandatory}"></div>
+          <div style="background:#94A3B8; width:${pctSinDato}%; height:100%; transition: width 0.4s ease;" title="Sin Registrar: ${sinDato}"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:6px; font-weight:600; flex-wrap:wrap; gap:10px;">
+          <span>🟢 Viable Óptimo: ${teleworkReady}</span>
+          <span>🟡 Con Restricción: ${teleworkRestricted}</span>
+          <span>🔵 Presencial Obligatorio: ${presentialMandatory}</span>
+          ${sinDato > 0 ? `<span>⚪ Sin Registrar: ${sinDato}</span>` : ''}
+        </div>
+      </div>
+    `;
   }
 
   function renderAFGroupBarGroup(containerId, total) {
