@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function getReportSubCategories(r) {
     const categories = [];
     if (matchesCategory(r, 'psicologico')) categories.push({ key: 'psicologico', name: 'Apoyo Psicológico', icon: '🧠', color: '#003366' });
-    if (matchesCategory(r, 'familiar')) categories.push({ key: 'familiar', name: 'Pérdida de Familiares', icon: '🤍', color: '#B91C1C' });
+    if (matchesCategory(r, 'familiar')) categories.push({ key: 'familiar', name: 'Pérdida / Afectación Familiar', icon: '🤍', color: '#B91C1C' });
     if (matchesCategory(r, 'alimentos')) categories.push({ key: 'alimentos', name: 'Kits de Alimentos / Mercado', icon: '📦', color: '#00A88F' });
     if (matchesCategory(r, 'medicamentos')) categories.push({ key: 'medicamentos', name: 'Medicamentos / Salud', icon: '💊', color: '#E63946' });
     if (matchesCategory(r, 'social')) categories.push({ key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' });
@@ -376,8 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cat.includes('aliment')) return ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado') || ap.includes('vivere') || ap.includes('comida');
     if (cat.includes('juri')) return ap.includes('juri') || ap.includes('legal');
     if (cat.includes('famili') || cat.includes('perdi')) {
-      return ap.includes('famili') || ap.includes('perdi') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo') ||
-             normalizeStr(r.estadoFamilia || '').includes('perdi') || normalizeStr(r.estadoFamilia || '').includes('fallec');
+      const estFam = normalizeStr(r.estadoFamilia || '');
+      const hasFamSupportText = ap.includes('famili') || ap.includes('perdi') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo');
+      const requiresMgmt = estFam.includes('lesionad') || 
+                           estFam.includes('psicosoc') || 
+                           estFam.includes('medic') || 
+                           estFam.includes('perdi') || 
+                           estFam.includes('fallec');
+      return hasFamSupportText || requiresMgmt;
     }
     return ap.includes(cat);
   }
@@ -1892,7 +1898,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       visualChartsContainer.innerHTML = `
         ${renderActivityChart('Apoyo Psicológico', '🧠', countPsico, countPsicoPend, countPsicoProc, countPsicoRes)}
-        ${renderActivityChart('Pérdida de Familiares', '🤍', countFamiliar, countFamiliarPend, countFamiliarProc, countFamiliarRes)}
+        ${renderActivityChart('Pérdida / Afectación Familiar', '🤍', countFamiliar, countFamiliarPend, countFamiliarProc, countFamiliarRes)}
         ${renderActivityChart('Trabajo Social', '🤝', countSocial, countSocialPend, countSocialProc, countSocialRes)}
         ${renderActivityChart('Medicamentos / Salud', '💊', countMeds, countMedsPend, countMedsProc, countMedsRes)}
         ${renderActivityChart('Kits de Alimentos', '📦', countAlimentos, countAlimentosPend, countAlimentosProc, countAlimentosRes)}
