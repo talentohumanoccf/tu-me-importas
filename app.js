@@ -1756,6 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Sin Lugar Seguro / Vivienda', '🏠', '#DC2626');
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
+    renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
 
     // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
     const elPolizasTotal = document.getElementById('kpi-polizas-total');
@@ -1805,6 +1806,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
     let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
     let countAlimentos = 0, countAlimentosPend = 0, countAlimentosProc = 0, countAlimentosRes = 0;
+    let countJuridico = 0, countJuridicoPend = 0, countJuridicoProc = 0, countJuridicoRes = 0;
     let countOtros = 0, countOtrosPend = 0, countOtrosProc = 0, countOtrosRes = 0;
     let globalPend = 0, globalProc = 0, globalRes = 0;
 
@@ -1820,6 +1822,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasMeds = matchesCategory(r, 'medicamentos');
         const hasAlim = matchesCategory(r, 'alimentos');
         const hasFamiliar = matchesCategory(r, 'familiar');
+        const hasJuridico = matchesCategory(r, 'juridico');
 
         if (hasPsico) {
           countPsico++;
@@ -1856,7 +1859,14 @@ document.addEventListener('DOMContentLoaded', () => {
           else if (subSt === 'proceso') countAlimentosProc++;
           else countAlimentosPend++;
         }
-        if (!hasPsico && !hasSocial && !hasMeds && !hasAlim && !hasFamiliar) {
+        if (hasJuridico) {
+          countJuridico++;
+          const subSt = getNormalizedSubMgmtStatus(r, 'juridico');
+          if (subSt === 'resuelto') countJuridicoRes++;
+          else if (subSt === 'proceso') countJuridicoProc++;
+          else countJuridicoPend++;
+        }
+        if (!hasPsico && !hasSocial && !hasMeds && !hasAlim && !hasFamiliar && !hasJuridico) {
           countOtros++;
           const subSt = getNormalizedSubMgmtStatus(r, 'general');
           if (subSt === 'resuelto') countOtrosRes++;
@@ -1903,6 +1913,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ${renderActivityChart('Trabajo Social', '🤝', countSocial, countSocialPend, countSocialProc, countSocialRes)}
         ${renderActivityChart('Medicamentos / Salud', '💊', countMeds, countMedsPend, countMedsProc, countMedsRes)}
         ${renderActivityChart('Kits de Alimentos', '📦', countAlimentos, countAlimentosPend, countAlimentosProc, countAlimentosRes)}
+        ${renderActivityChart('Gestión Jurídica', '⚖️', countJuridico, countJuridicoPend, countJuridicoProc, countJuridicoRes)}
         ${renderActivityChart('Vivienda / Apoyos Especiales', '🏠', countOtros, countOtrosPend, countOtrosProc, countOtrosRes)}
       `;
     }
