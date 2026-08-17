@@ -204,48 +204,16 @@
               <div class="kpi-value" id="kpi-leve">0</div>
               <div class="kpi-subtext">Afectación leve / moderada</div>
             </div>
-            <div class="kpi-card kpi-info">
-              <div class="kpi-header">Solicitaron Apoyo Psicológico</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-psico-directo">0</div>
-                <span id="kpi-psico-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-psico-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
-            <div class="kpi-card kpi-warning">
-              <div class="kpi-header">Solicitaron Kits de Alimentos</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-alimentos-directo">0</div>
-                <span id="kpi-alimentos-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-alimentos-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
-            <div class="kpi-card kpi-danger">
-              <div class="kpi-header">Sin Lugar Seguro / Vivienda</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-vivienda">0</div>
-                <span id="kpi-vivienda-badge" style="background:#D1FAE5; color:#065F46; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-vivienda-confronted">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
+            <!-- TARJETA: SOLICITARON APOYO PSICOLÓGICO -->
+            <div id="kpi-card-psicologico" class="kpi-card" style="border-left: 5px solid #003366; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: SOLICITARON KITS DE ALIMENTOS -->
+            <div id="kpi-card-alimentos" class="kpi-card" style="border-left: 5px solid #00A88F; background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: SIN LUGAR SEGURO / VIVIENDA -->
+            <div id="kpi-card-vivienda" class="kpi-card" style="border-left: 5px solid #DC2626; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
             <!-- TARJETA: SOLICITARON TRABAJO SOCIAL -->
-            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%); border-left: 5px solid #F59E0B;">
-              <div class="kpi-header" style="color:#B45309; font-weight:800;">Solicitaron Trabajo Social</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-social-directo" style="color:#B45309;">0</div>
-                <span id="kpi-social-badge" style="background:#FEF3C7; color:#B45309; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-social-confronted" style="color:#92400E;">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
+            <div id="kpi-card-social" class="kpi-card" style="border-left: 5px solid #F59E0B; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
             <!-- TARJETA: SOLICITARON MEDICAMENTOS / SALUD -->
-            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #FEE2E2 100%); border-left: 5px solid #EF4444;">
-              <div class="kpi-header" style="color:#991B1B; font-weight:800;">Solicitaron Medicamentos / Salud</div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div class="kpi-value" id="kpi-medicamentos-directo" style="color:#991B1B;">0</div>
-                <span id="kpi-medicamentos-badge" style="background:#FEE2E2; color:#991B1B; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px;">0% Cobertura</span>
-              </div>
-              <div class="kpi-subtext" id="kpi-medicamentos-confronted" style="color:#991B1B;">✅ <b>0</b> Intervenidos (<b>0</b> pendientes)</div>
-            </div>
+            <div id="kpi-card-medicamentos" class="kpi-card" style="border-left: 5px solid #E63946; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
             <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
             <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
               <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
@@ -280,21 +248,7 @@
           <div id="emergency-map" class="no-print"></div>
         </div>
 
-        <!-- CONFRONTACIÓN EJECUTIVA COLAPSIBLE -->
-        <div style="margin: 20px 0 10px 0;">
-          <button id="btn-toggle-main-confrontation" onclick="window.toggleMainConfrontationPanel && window.toggleMainConfrontationPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              ⚖️ <span id="text-toggle-main-confrontation">Mostrar Confrontación de Intervenciones (Demanda vs Gestión)</span>
-            </span>
-            <span id="arrow-toggle-main-confrontation" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
-          </button>
-        </div>
 
-        <div id="main-confrontation-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <div id="confrontation-interventions-grid" class="no-print" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom: 24px;">
-            <!-- Renderizado dinámicamente desde app.js -->
-          </div>
-        </div>
 
         <!-- BARRA DE FILTROS AVANZADOS -->
         <div class="filter-bar no-print" style="margin-top: 24px;">
@@ -763,6 +717,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260817_0628_OHS_DASHBOARD_KPI_ALIGN"></script>
+  <script src="app.js?v=20260817_0639_UNIFIED_OHS_KPIS"></script>
 </body>
 </html>

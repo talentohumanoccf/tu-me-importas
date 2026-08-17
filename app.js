@@ -557,28 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  window.toggleMainConfrontationPanel = function() {
-    const container = document.getElementById('main-confrontation-collapse-container');
-    const text = document.getElementById('text-toggle-main-confrontation');
-    const arrow = document.getElementById('arrow-toggle-main-confrontation');
-    const btn = document.getElementById('btn-toggle-main-confrontation');
-
-    if (!container || !text || !arrow || !btn) return;
-
-    if (container.style.display === 'none') {
-      container.style.display = 'block';
-      text.textContent = 'Ocultar Confrontación de Intervenciones (Demanda vs Gestión)';
-      arrow.textContent = '▲';
-      btn.style.background = 'var(--secondary)';
-      localStorage.setItem('comfamiliar_main_confrontation_expanded', 'true');
-    } else {
-      container.style.display = 'none';
-      text.textContent = 'Mostrar Confrontación de Intervenciones (Demanda vs Gestión)';
-      arrow.textContent = '▼';
-      btn.style.background = 'var(--primary)';
-      localStorage.setItem('comfamiliar_main_confrontation_expanded', 'false');
-    }
-  };
+  // Panel de confrontación removido y unificado en los KPIs superiores del Tablero 1.
   
   // FILTRADO INTELIGENTE AL HACER CLIC EN LAS 3 FICHAS EJECUTIVAS GLOBALES
   window.filterMgmtByStatusCard = function(status) {
@@ -983,26 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Cargar estado de colapso de confrontación en Tablero 1
-      const isConfrontationExpanded = localStorage.getItem('comfamiliar_main_confrontation_expanded') === 'true';
-      const confContainer = document.getElementById('main-confrontation-collapse-container');
-      const confText = document.getElementById('text-toggle-main-confrontation');
-      const confArrow = document.getElementById('arrow-toggle-main-confrontation');
-      const btnConfToggle = document.getElementById('btn-toggle-main-confrontation');
-
-      if (confContainer && confText && confArrow && btnConfToggle) {
-        if (isConfrontationExpanded) {
-          confContainer.style.display = 'block';
-          confText.textContent = 'Ocultar Confrontación de Intervenciones (Demanda vs Gestión)';
-          confArrow.textContent = '▲';
-          btnConfToggle.style.background = 'var(--secondary)';
-        } else {
-          confContainer.style.display = 'none';
-          confText.textContent = 'Mostrar Confrontación de Intervenciones (Demanda vs Gestión)';
-          confArrow.textContent = '▼';
-          btnConfToggle.style.background = 'var(--primary)';
-        }
-      }
+      // Memoria de confrontación eliminada debido a unificación.
     } else if (tabName === 'analytics') {
       if(btn2) btn2.classList.add('active');
       if(c2) c2.style.display = 'block';
@@ -1464,7 +1424,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderDashboard(forceRender = false) {
     updateKPIs();
-    renderConfrontationInterventions();
     renderTable();
     
     renderManagementDashboard(forceRender);
@@ -1523,61 +1482,48 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function renderConfrontationInterventions() {
-    const grid = document.getElementById('confrontation-interventions-grid');
-    if (!grid) return;
+  function renderUnifiedKPICard(containerId, catKey, name, icon, color) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-    const categories = [
-      { key: 'psicologico', name: 'Apoyo Psicológico', icon: '🧠', color: '#003366' },
-      { key: 'alimentos', name: 'Kits de Alimentos / Mercado', icon: '📦', color: '#00A88F' },
-      { key: 'medicamentos', name: 'Medicamentos', icon: '💊', color: '#E63946' },
-      { key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' },
-      { key: 'juridico', name: 'Apoyo Jurídico', icon: '⚖️', color: '#8B5CF6' },
-      { key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' }
-    ];
+    const metrics = getConfrontationMetrics(catKey);
+    const solicitados = metrics.solicitados;
+    const totalIntervenidos = metrics.totalIntervenidos;
+    const intervencionAtendida = metrics.intervencionAtendida;
+    const intervencionEnProceso = metrics.intervencionEnProceso;
+    const pendientes = metrics.pendientes;
+    const pctCobertura = metrics.pct;
 
-    grid.innerHTML = categories.map(cat => {
-      const metrics = getConfrontationMetrics(cat.key);
-      const solicitados = metrics.solicitados;
-      const totalIntervenidos = metrics.totalIntervenidos;
-      const intervencionAtendida = metrics.intervencionAtendida;
-      const intervencionEnProceso = metrics.intervencionEnProceso;
-      const pendientes = metrics.pendientes;
-      const pctCobertura = metrics.pct;
+    container.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong style="color:var(--primary); font-size:0.92rem; display:flex; align-items:center; gap:6px; font-weight:800;">
+          <span>${icon}</span> ${name}
+        </strong>
+        <span style="background:${pctCobertura >= 80 ? '#D1FAE5' : pctCobertura >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pctCobertura >= 80 ? '#065F46' : pctCobertura >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">
+          ${pctCobertura}% Cobertura
+        </span>
+      </div>
 
-      return `
-        <div class="analytics-card" style="background:#FFF; border:1px solid var(--border); padding:16px; border-radius:14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <strong style="color:var(--primary); font-size:0.92rem; display:flex; align-items:center; gap:6px;">
-              <span>${cat.icon}</span> ${cat.name}
-            </strong>
-            <span style="background:${pctCobertura >= 80 ? '#D1FAE5' : pctCobertura >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pctCobertura >= 80 ? '#065F46' : pctCobertura >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:3px 10px; border-radius:12px;">
-              ${pctCobertura}% Cobertura
-            </span>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px; font-size:0.85rem;">
-            <div style="background:rgba(0,51,102,0.05); padding:8px 10px; border-radius:8px;">
-              <span style="color:var(--text-muted); font-size:0.72rem; display:block; font-weight:700;">📋 Solicitados</span>
-              <b style="color:var(--primary); font-size:1.25rem;">${solicitados.toLocaleString('es-CO')}</b> <span style="font-size:0.72rem; color:var(--text-muted);">Casos</span>
-            </div>
-            <div style="background:rgba(5,150,105,0.08); padding:8px 10px; border-radius:8px;">
-              <span style="color:#065F46; font-size:0.72rem; display:block; font-weight:700;">✅ Intervenidos</span>
-              <b style="color:#059669; font-size:1.25rem;">${totalIntervenidos.toLocaleString('es-CO')}</b> <span style="font-size:0.72rem; color:#065F46;">Casos</span>
-            </div>
-          </div>
-
-          <div style="background:#E2E8F0; height:8px; border-radius:4px; overflow:hidden; margin-bottom:8px;">
-            <div style="background:linear-gradient(90deg, ${cat.color} 0%, #059669 100%); width:${Math.max(pctCobertura, 3)}%; height:100%;"></div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:var(--text-muted); font-weight:700;">
-            <span>🟢 Atendidos: <b style="color:#059669;">${intervencionAtendida}</b> | 🟡 En Proceso: <b style="color:#D97706;">${intervencionEnProceso}</b></span>
-            <span>🔴 Pendientes: <b style="color:#DC2626;">${pendientes}</b></span>
-          </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px; font-size:0.85rem;">
+        <div style="background:rgba(0,51,102,0.05); padding:6px 8px; border-radius:6px;">
+          <span style="color:var(--text-muted); font-size:0.7rem; display:block; font-weight:700;">📋 Solicitados</span>
+          <b style="color:var(--primary); font-size:1.2rem;">${solicitados.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:var(--text-muted);">Casos</span>
         </div>
-      `;
-    }).join('');
+        <div style="background:rgba(5,150,105,0.08); padding:6px 8px; border-radius:6px;">
+          <span style="color:#065F46; font-size:0.7rem; display:block; font-weight:700;">✅ Intervenidos</span>
+          <b style="color:#059669; font-size:1.2rem;">${totalIntervenidos.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:#065F46;">Casos</span>
+        </div>
+      </div>
+
+      <div style="background:#E2E8F0; height:6px; border-radius:3px; overflow:hidden; margin-bottom:8px; width:100%;">
+        <div style="background:linear-gradient(90deg, ${color} 0%, #059669 100%); width:${Math.max(pctCobertura, 3)}%; height:100%;"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted); font-weight:700; flex-wrap:wrap; gap:4px;">
+        <span>🟢 Atendidos: <b style="color:#059669;">${intervencionAtendida}</b> | 🟡 En Proceso: <b style="color:#D97706;">${intervencionEnProceso}</b></span>
+        <span>🔴 Pendientes: <b style="color:#DC2626;">${pendientes}</b></span>
+      </div>
+    `;
   }
 
   function getReportColumnAFValue(r) {
@@ -1685,75 +1631,12 @@ document.addEventListener('DOMContentLoaded', () => {
       elTopGruposSubtext.textContent = `(${formatNumber(total)} personas clasificadas en Col. AF)`;
     }
 
-    // 1. CONFRONTACIÓN EN TARJETA APOYO PSICOLÓGICO
-    const elPsicoDirecto = document.getElementById('kpi-psico-directo');
-    const elPsicoBadge = document.getElementById('kpi-psico-badge');
-    const elPsicoConfronted = document.getElementById('kpi-psico-confronted');
-    if (elPsicoDirecto) elPsicoDirecto.textContent = psico.solicitados;
-    if (elPsicoBadge) {
-      elPsicoBadge.textContent = `${psico.pct}% Cobertura`;
-      elPsicoBadge.style.background = psico.pct >= 80 ? '#D1FAE5' : psico.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
-      elPsicoBadge.style.color = psico.pct >= 80 ? '#065F46' : psico.pct >= 40 ? '#92400E' : '#991B1B';
-    }
-    if (elPsicoConfronted) {
-      elPsicoConfronted.innerHTML = `✅ <b style="color:#059669;">${psico.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${psico.pendientes}</b> pendientes)`;
-    }
-
-    // 2. CONFRONTACIÓN EN TARJETA KITS DE ALIMENTOS
-    const elAlimDirecto = document.getElementById('kpi-alimentos-directo');
-    const elAlimBadge = document.getElementById('kpi-alimentos-badge');
-    const elAlimConfronted = document.getElementById('kpi-alimentos-confronted');
-    if (elAlimDirecto) elAlimDirecto.textContent = alimentos.solicitados;
-    if (elAlimBadge) {
-      elAlimBadge.textContent = `${alimentos.pct}% Cobertura`;
-      elAlimBadge.style.background = alimentos.pct >= 80 ? '#D1FAE5' : alimentos.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
-      elAlimBadge.style.color = alimentos.pct >= 80 ? '#065F46' : alimentos.pct >= 40 ? '#92400E' : '#991B1B';
-    }
-    if (elAlimConfronted) {
-      elAlimConfronted.innerHTML = `✅ <b style="color:#059669;">${alimentos.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${alimentos.pendientes}</b> pendientes)`;
-    }
-
-    // 3. CONFRONTACIÓN EN TARJETA SIN LUGAR SEGURO / VIVIENDA
-    const elVivienda = document.getElementById('kpi-vivienda');
-    const elViviendaBadge = document.getElementById('kpi-vivienda-badge');
-    const elViviendaConfronted = document.getElementById('kpi-vivienda-confronted');
-    if (elVivienda) elVivienda.textContent = vivienda.solicitados;
-    if (elViviendaBadge) {
-      elViviendaBadge.textContent = `${vivienda.pct}% Cobertura`;
-      elViviendaBadge.style.background = vivienda.pct >= 80 ? '#D1FAE5' : vivienda.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
-      elViviendaBadge.style.color = vivienda.pct >= 80 ? '#065F46' : vivienda.pct >= 40 ? '#92400E' : '#991B1B';
-    }
-    if (elViviendaConfronted) {
-      elViviendaConfronted.innerHTML = `✅ <b style="color:#059669;">${vivienda.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${vivienda.pendientes}</b> pendientes)`;
-    }
-
-    // 3.1 CONFRONTACIÓN EN TARJETA TRABAJO SOCIAL
-    const elSocialDirecto = document.getElementById('kpi-social-directo');
-    const elSocialBadge = document.getElementById('kpi-social-badge');
-    const elSocialConfronted = document.getElementById('kpi-social-confronted');
-    if (elSocialDirecto) elSocialDirecto.textContent = social.solicitados;
-    if (elSocialBadge) {
-      elSocialBadge.textContent = `${social.pct}% Cobertura`;
-      elSocialBadge.style.background = social.pct >= 80 ? '#D1FAE5' : social.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
-      elSocialBadge.style.color = social.pct >= 80 ? '#065F46' : social.pct >= 40 ? '#92400E' : '#991B1B';
-    }
-    if (elSocialConfronted) {
-      elSocialConfronted.innerHTML = `✅ <b style="color:#059669;">${social.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${social.pendientes}</b> pendientes)`;
-    }
-
-    // 3.2 CONFRONTACIÓN EN TARJETA MEDICAMENTOS / SALUD
-    const elMedDirecto = document.getElementById('kpi-medicamentos-directo');
-    const elMedBadge = document.getElementById('kpi-medicamentos-badge');
-    const elMedConfronted = document.getElementById('kpi-medicamentos-confronted');
-    if (elMedDirecto) elMedDirecto.textContent = medicamentos.solicitados;
-    if (elMedBadge) {
-      elMedBadge.textContent = `${medicamentos.pct}% Cobertura`;
-      elMedBadge.style.background = medicamentos.pct >= 80 ? '#D1FAE5' : medicamentos.pct >= 40 ? '#FEF3C7' : '#FEE2E2';
-      elMedBadge.style.color = medicamentos.pct >= 80 ? '#065F46' : medicamentos.pct >= 40 ? '#92400E' : '#991B1B';
-    }
-    if (elMedConfronted) {
-      elMedConfronted.innerHTML = `✅ <b style="color:#059669;">${medicamentos.totalIntervenidos}</b> Intervenidos (<b style="color:#DC2626;">${medicamentos.pendientes}</b> pendientes)`;
-    }
+    // Renderizado dinámico de las fichas KPI unificadas con el diseño avanzado de confrontación
+    renderUnifiedKPICard('kpi-card-psicologico', 'psicologico', 'Apoyo Psicológico', '🧠', '#003366');
+    renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
+    renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Sin Lugar Seguro / Vivienda', '🏠', '#DC2626');
+    renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B');
+    renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
 
     // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
     const elPolizasTotal = document.getElementById('kpi-polizas-total');
