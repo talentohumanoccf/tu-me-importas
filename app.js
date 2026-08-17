@@ -760,18 +760,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanNotes = sanitizeNotes(notesVal);
     const url = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(cleanNotes)}&operator=${encodeURIComponent(operatorVal || 'Operador SST')}&_t=${Date.now()}`;
 
-    // 1. INTENTO PRIMARIO VÍA FETCH API NATIVO
-    try {
-      const response = await fetch(url, { method: 'GET', redirect: 'follow' });
-      if (response.ok) {
-        console.log('✅ Gestión SST guardada exitosamente vía Fetch en Google Sheets.');
-        return true;
-      }
-    } catch(err) {
-      console.log('ℹ️ Fetch directo con restricciones de política de red, intentando fallback vía script tag JSONP...');
-    }
-
-    // 2. FALLBACK SECUNDARIO VÍA SCRIPT TAG JSONP
+    // Realizar la sincronización EXCLUSIVAMENTE vía JSONP para evitar la doble petición
+    // que causa el intento fallido de Fetch por restricciones de CORS de redirección de Google.
     return new Promise((resolve) => {
       const callbackName = 'onMgmtSaveResult_' + String(doc).replace(/[^a-zA-Z0-9]/g, '_');
       const scriptId = 'jsonp-save-mgmt-sync-' + doc;
