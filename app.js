@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
-  window.saveSupportCase = function(doc) {
+  window.saveSupportCase = async function(doc) {
     state.isTypingActive = false;
     
     const rTarget = state.reports.find(item => String(item.documento || item.cedula).trim() === String(doc).trim()) || {};
@@ -662,6 +662,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!anyChanges) return;
 
+    // Localizar el botón de guardar y deshabilitarlo con estado de cargando
+    const btn = document.getElementById('mgmt-save-btn-' + doc);
+    const originalText = btn ? btn.innerHTML : '💾 Guardar Todo';
+    if (btn) {
+      btn.innerHTML = '⏳ Guardando...';
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.style.background = '#475569';
+    }
+
     if (document.activeElement && document.activeElement.blur) {
       document.activeElement.blur();
     }
@@ -686,18 +696,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.supportManagement[doc].notes = combinedNotesStr;
     state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
-    localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
+    
+    updateLocalManagementState(doc, globalStatus, combinedNotesStr, currentOperator, nowStr);
 
+    let saveSuccess = true;
     if (state.googleSheetsUrl && navigator.onLine) {
-      sendManagementToSheets(doc, globalStatus, combinedNotesStr, currentOperator);
+      saveSuccess = await sendManagementToSheets(doc, globalStatus, combinedNotesStr, currentOperator);
+    }
+    
+    // Restaurar el botón
+    if (btn) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.background = '#059669';
     }
     
     renderDashboard(true);
 
-    if (globalStatus === 'resuelto') {
-      showToast(`🎉 Caso RESUELTO para Cédula ${doc}.`, 'success');
+    if (saveSuccess) {
+      if (globalStatus === 'resuelto') {
+        showToast(`🎉 Caso RESUELTO para Cédula ${doc}.`, 'success');
+      } else {
+        showToast(`🔵 Caso asignado y guardado a nombre de [${currentOperator}].`, 'info');
+      }
     } else {
-      showToast(`🔵 Caso asignado y guardado a nombre de [${currentOperator}].`, 'info');
+      showToast(`⚠️ Guardado en navegador, pero hubo un retardo al sincronizar con Google Sheets.`, 'warning');
     }
   };
 
@@ -731,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function sendManagementToSheets(doc, statusVal, notesVal, operatorVal) {
-    if (!state.googleSheetsUrl) return;
+    if (!state.googleSheetsUrl) return false;
 
     const cleanNotes = sanitizeNotes(notesVal);
     const url = `${state.googleSheetsUrl}?action=saveManagementNote&documento=${encodeURIComponent(doc)}&status=${encodeURIComponent(statusVal)}&notes=${encodeURIComponent(cleanNotes)}&operator=${encodeURIComponent(operatorVal || 'Operador SST')}&_t=${Date.now()}`;
@@ -741,28 +765,43 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(url, { method: 'GET', redirect: 'follow' });
       if (response.ok) {
         console.log('✅ Gestión SST guardada exitosamente vía Fetch en Google Sheets.');
-        return;
+        return true;
       }
     } catch(err) {
       console.log('ℹ️ Fetch directo con restricciones de política de red, intentando fallback vía script tag JSONP...');
     }
 
     // 2. FALLBACK SECUNDARIO VÍA SCRIPT TAG JSONP
-    const callbackName = 'onMgmtSaveResult';
-    const scriptId = 'jsonp-save-mgmt-sync';
-    
-    const oldScript = document.getElementById(scriptId);
-    if (oldScript) oldScript.remove();
+    return new Promise((resolve) => {
+      const callbackName = 'onMgmtSaveResult_' + String(doc).replace(/[^a-zA-Z0-9]/g, '_');
+      const scriptId = 'jsonp-save-mgmt-sync-' + doc;
+      
+      const oldScript = document.getElementById(scriptId);
+      if (oldScript) oldScript.remove();
 
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `${url}&callback=${callbackName}`;
-    
-    window.onMgmtSaveResult = function(res) {
-      console.log('✅ Estado y Responsable SST sincronizados con Google Sheets vía JSONP:', res);
-    };
+      const script = document.createElement('script');
+      script.id = scriptId;
+      
+      const timeoutId = setTimeout(() => {
+        console.log('⚠️ Sincronización JSONP excedió tiempo límite.');
+        resolve(false);
+      }, 8000);
 
-    document.body.appendChild(script);
+      window[callbackName] = function(res) {
+        clearTimeout(timeoutId);
+        console.log('✅ Estado y Responsable SST sincronizados con Google Sheets vía JSONP:', res);
+        resolve(true);
+      };
+
+      script.src = `${url}&callback=${callbackName}`;
+      script.onerror = () => {
+        clearTimeout(timeoutId);
+        console.log('❌ Error al cargar script JSONP.');
+        resolve(false);
+      };
+
+      document.body.appendChild(script);
+    });
   }
 
   setupTabsNavigation();
@@ -2006,7 +2045,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; background:#EEF2FF; padding:8px 10px; border-radius:8px; border:1px solid #C7D2FE;">
               ${lastOperatorHTML}
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                <button onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn" style="padding:5px 12px; font-size:0.8rem; background:#059669;">💾 Guardar Todo</button>
+                <button id="mgmt-save-btn-${doc}" onclick="window.saveSupportCase('${doc}')" class="mgmt-save-btn" style="padding:5px 12px; font-size:0.8rem; background:#059669; transition: all 0.2s ease;">💾 Guardar Todo</button>
                 ${releaseBtnHTML}
               </div>
             </div>
