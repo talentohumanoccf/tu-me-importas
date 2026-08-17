@@ -1573,9 +1573,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const icon = isActivos ? '🏢' : isWarning ? '🚫' : '👥';
 
         return `
-          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between; min-height:85px;">
             <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${groupName}">${icon} ${groupName}</span>
-            <b style="font-size:1.25rem; color:${textColor};">${formatNumber(count)}</b> <small style="font-size:0.72rem; color:${subColor}; font-weight:700;">(${pct}%)</small>
+            <div style="margin:4px 0; display:flex; align-items:baseline; gap:4px;">
+              <b style="font-size:1.25rem; color:${textColor};">${formatNumber(count)}</b> 
+              <span style="font-size:0.72rem; color:${subColor}; font-weight:700;">pers.</span>
+              <span style="margin-left:auto; background:${borderColor}; color:${textColor}; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:8px;">${pct}%</span>
+            </div>
+            <!-- Barra de progreso de participación -->
+            <div style="background:#E2E8F0; height:6px; border-radius:3px; overflow:hidden; width:100%; margin-top:2px;">
+              <div style="background:${textColor}; width:${pct}%; height:100%; border-radius:3px;"></div>
+            </div>
           </div>
         `;
       }).join('');
@@ -1621,9 +1629,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const icon = isActivos ? '🏢' : isWarning ? '🚫' : '👥';
 
         return `
-          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between; min-height:85px;">
             <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${groupName}">${icon} ${groupName}</span>
-            <b style="font-size:1.25rem; color:${textColor};">${formatNumber(resolvedCount)}</b> <small style="font-size:0.72rem; color:${subColor}; font-weight:700;">/ ${formatNumber(totalCount)} (${coveragePct}%)</small>
+            <div style="margin:4px 0; display:flex; align-items:baseline; gap:4px;">
+              <b style="font-size:1.25rem; color:${textColor};">${formatNumber(resolvedCount)}</b> 
+              <span style="font-size:0.72rem; color:${subColor}; font-weight:700;">/ ${formatNumber(totalCount)}</span>
+              <span style="margin-left:auto; background:${resolvedCount > 0 ? borderColor : '#E2E8F0'}; color:${textColor}; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:8px;">${coveragePct}%</span>
+            </div>
+            <!-- Barra de progreso de cobertura de atendidos -->
+            <div style="background:#E2E8F0; height:6px; border-radius:3px; overflow:hidden; width:100%; margin-top:2px;">
+              <div style="background:${textColor}; width:${coveragePct}%; height:100%; border-radius:3px;"></div>
+            </div>
           </div>
         `;
       }).join('');
@@ -2195,6 +2211,71 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    if (containerId === 'analytics-apoyo-list') {
+      container.innerHTML = optionsConfig.map(opt => {
+        const targetKey = normalizeStr(opt.key);
+        
+        // Obtener todos los reportes filtrados que solicitan este apoyo
+        const matchedReports = state.filteredReports.filter(r => {
+          const val = normalizeStr(r[fieldName] || '');
+          return val.includes(targetKey);
+        });
+        const count = matchedReports.length;
+
+        // Calcular atendidos (resueltos)
+        const resolvedReports = matchedReports.filter(r => getNormalizedMgmtStatus(r) === 'resuelto');
+        const resolvedCount = resolvedReports.length;
+        const coveragePct = count > 0 ? Math.round((resolvedCount / count) * 100) : 100;
+
+        // Desglose de los atendidos por Tipo de Vinculación (Columna AF)
+        let resActivos = 0;
+        let resInactivos = 0;
+        let resOtras = 0;
+
+        resolvedReports.forEach(r => {
+          const afVal = normalizeStr(getReportColumnAFValue(r));
+          if (afVal.includes('activo')) {
+            resActivos++;
+          } else if (afVal.includes('inactivo')) {
+            resInactivos++;
+          } else {
+            resOtras++;
+          }
+        });
+
+        // Porcentajes para dibujar la barra segmentada (sobre el total de solicitudes de esta variable)
+        const pctActivos = count > 0 ? (resActivos / count) * 100 : 0;
+        const pctInactivos = count > 0 ? (resInactivos / count) * 100 : 0;
+        const pctOtras = count > 0 ? (resOtras / count) * 100 : 0;
+
+        return `
+          <div class="analytics-bar-item" style="margin-bottom: 14px;">
+            <div class="analytics-bar-label" style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:4px;">
+              <span style="font-weight:700; color:var(--text-dark);">${opt.label}</span>
+              <span style="font-size:0.8rem; color:var(--text-muted);">
+                <strong>${count}</strong> solicitados | Cobertura: <strong>${coveragePct}%</strong> (${resolvedCount} atendidos)
+              </span>
+            </div>
+            
+            <div class="analytics-bar-bg" style="background:#E2E8F0; height:12px; border-radius:6px; overflow:hidden; width:100%; display:flex; position:relative;" title="Cobertura: ${coveragePct}% (${resolvedCount} de ${count} atendidos)">
+              <div style="background:#10B981; width:${pctActivos}%; height:100%; transition: width 0.4s ease;" title="Activos Comfamiliar Atendidos: ${resActivos}"></div>
+              <div style="background:#EF4444; width:${pctInactivos}%; height:100%; transition: width 0.4s ease;" title="Inactivos Atendidos: ${resInactivos}"></div>
+              <div style="background:#64748B; width:${pctOtras}%; height:100%; transition: width 0.4s ease;" title="Otras Atendidos: ${resOtras}"></div>
+            </div>
+
+            <div style="display:flex; gap:10px; font-size:0.7rem; color:var(--text-muted); margin-top:2px; font-weight:600;">
+              <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10B981;"></span> Activos: ${resActivos}</span>
+              <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#EF4444;"></span> Inactivos: ${resInactivos}</span>
+              <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#64748B;"></span> Otras: ${resOtras}</span>
+              <span style="margin-left:auto; color:#DC2626;">Pendientes: ${count - resolvedCount}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      return;
+    }
+
+    // Comportamiento por defecto para los demás grupos
     container.innerHTML = optionsConfig.map(opt => {
       const targetKey = normalizeStr(opt.key);
       const count = state.filteredReports.filter(r => {
