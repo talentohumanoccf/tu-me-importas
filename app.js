@@ -1751,6 +1751,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Renderizado dinámico de las fichas KPI unificadas con el diseño avanzado de confrontación
     renderUnifiedKPICard('kpi-card-psicologico', 'psicologico', 'Apoyo Psicológico', '🧠', '#003366');
+    renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Sin Lugar Seguro / Vivienda', '🏠', '#DC2626');
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B');
@@ -2358,10 +2359,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const count = matchedReports.length;
 
-        // Calcular atendidos (resueltos)
-        const resolvedReports = matchedReports.filter(r => getNormalizedMgmtStatus(r) === 'resuelto');
-        const resolvedCount = resolvedReports.length;
-        const coveragePct = count > 0 ? Math.round((resolvedCount / count) * 100) : 100;
+        // Mapear la subclave de gestión de apoyo correspondiente
+        let subKey = '';
+        if (targetKey.includes('psico')) subKey = 'psicologico';
+        else if (targetKey.includes('social') || targetKey.includes('trabajo')) subKey = 'social';
+        else if (targetKey.includes('juri') || targetKey.includes('legal')) subKey = 'juridico';
+        else if (targetKey.includes('med')) subKey = 'medicamentos';
+        else if (targetKey.includes('alim') || targetKey.includes('mercado')) subKey = 'alimentos';
+
+        let resolvedCount = 0;
+        let inProcessCount = 0;
+        let pendingCount = 0;
+        let resolvedReports = [];
+
+        if (subKey) {
+          resolvedReports = matchedReports.filter(r => getNormalizedSubMgmtStatus(r, subKey) === 'resuelto');
+          resolvedCount = resolvedReports.length;
+          inProcessCount = matchedReports.filter(r => getNormalizedSubMgmtStatus(r, subKey) === 'proceso').length;
+          pendingCount = matchedReports.filter(r => getNormalizedSubMgmtStatus(r, subKey) === 'pendiente').length;
+        } else {
+          // Fallback para "Estoy bien y seguro" u otras variables genéricas
+          resolvedReports = matchedReports.filter(r => getNormalizedMgmtStatus(r) === 'resuelto');
+          resolvedCount = resolvedReports.length;
+          inProcessCount = matchedReports.filter(r => getNormalizedMgmtStatus(r) === 'proceso').length;
+          pendingCount = count - resolvedCount - inProcessCount;
+        }
+
+        // La Cobertura (intervención) en el proyecto cuenta los atendidos + en proceso (mismo criterio del Tablero 1)
+        const coveragePct = count > 0 ? Math.round(((resolvedCount + inProcessCount) / count) * 100) : 0;
 
         // Desglose de los atendidos por Tipo de Vinculación (Columna AF)
         let resActivos = 0;
@@ -2383,27 +2408,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const pctActivos = count > 0 ? (resActivos / count) * 100 : 0;
         const pctInactivos = count > 0 ? (resInactivos / count) * 100 : 0;
         const pctOtras = count > 0 ? (resOtras / count) * 100 : 0;
+        const pctProceso = count > 0 ? (inProcessCount / count) * 100 : 0;
 
         return `
           <div class="analytics-bar-item" style="margin-bottom: 14px;">
             <div class="analytics-bar-label" style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:4px;">
               <span style="font-weight:700; color:var(--text-dark);">${opt.label}</span>
               <span style="font-size:0.8rem; color:var(--text-muted);">
-                <strong>${count}</strong> solicitados | Cobertura: <strong>${coveragePct}%</strong> (${resolvedCount} atendidos)
+                <strong>${count}</strong> solicitados | Cobertura: <strong>${coveragePct}%</strong> (${resolvedCount} atendidos, ${inProcessCount} en proceso)
               </span>
             </div>
             
-            <div class="analytics-bar-bg" style="background:#E2E8F0; height:12px; border-radius:6px; overflow:hidden; width:100%; display:flex; position:relative;" title="Cobertura: ${coveragePct}% (${resolvedCount} de ${count} atendidos)">
+            <div class="analytics-bar-bg" style="background:#E2E8F0; height:12px; border-radius:6px; overflow:hidden; width:100%; display:flex; position:relative;" title="Cobertura: ${coveragePct}% (${resolvedCount} atendidos, ${inProcessCount} en proceso de ${count} solicitados)">
               <div style="background:#10B981; width:${pctActivos}%; height:100%; transition: width 0.4s ease;" title="Activos Comfamiliar Atendidos: ${resActivos}"></div>
               <div style="background:#EF4444; width:${pctInactivos}%; height:100%; transition: width 0.4s ease;" title="Inactivos Atendidos: ${resInactivos}"></div>
               <div style="background:#64748B; width:${pctOtras}%; height:100%; transition: width 0.4s ease;" title="Otras Atendidos: ${resOtras}"></div>
+              <div style="background:#3B82F6; width:${pctProceso}%; height:100%; transition: width 0.4s ease;" title="En Proceso: ${inProcessCount}"></div>
             </div>
 
-            <div style="display:flex; gap:10px; font-size:0.7rem; color:var(--text-muted); margin-top:2px; font-weight:600;">
+            <div style="display:flex; gap:10px; font-size:0.7rem; color:var(--text-muted); margin-top:2px; font-weight:600; flex-wrap:wrap;">
               <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10B981;"></span> Activos: ${resActivos}</span>
               <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#EF4444;"></span> Inactivos: ${resInactivos}</span>
               <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#64748B;"></span> Otras: ${resOtras}</span>
-              <span style="margin-left:auto; color:#DC2626;">Pendientes: ${count - resolvedCount}</span>
+              <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#3B82F6;"></span> En Proceso: ${inProcessCount}</span>
+              <span style="margin-left:auto; color:#DC2626;">Pendientes: ${pendingCount}</span>
             </div>
           </div>
         `;
