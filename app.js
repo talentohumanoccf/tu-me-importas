@@ -602,6 +602,13 @@ document.addEventListener('DOMContentLoaded', () => {
       sendManagementToSheets(doc, newStatus, currentNotesValue, currentOperator);
     }
 
+    // Cambiar filtro a "mis_casos" automáticamente para llevar al usuario directamente a gestionarlo
+    const elStatus = document.getElementById('mgmt-filter-status');
+    if (elStatus) {
+      elStatus.value = 'mis_casos';
+      elStatus.dataset.manualOverride = 'true';
+    }
+
     renderDashboard(true);
     showToast(`✋ Caso asignado exitosamente a [${currentOperator}].`, 'info');
   };
@@ -623,6 +630,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (state.googleSheetsUrl && navigator.onLine) {
       sendManagementToSheets(doc, newStatus, currentNotesValue, 'Sin asignar');
+    }
+
+    // Al liberar, volver al filtro de "pendiente" automáticamente para elegir otro
+    const elStatus = document.getElementById('mgmt-filter-status');
+    if (elStatus) {
+      elStatus.value = 'pendiente';
+      elStatus.dataset.manualOverride = 'true';
     }
 
     renderDashboard(true);
@@ -732,6 +746,15 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = false;
       btn.style.opacity = '1';
       btn.style.background = '#059669';
+    }
+    
+    // Al resolver el caso por completo, volver automáticamente a "pendiente" para elegir otro
+    if (globalStatus === 'resuelto') {
+      const elStatus = document.getElementById('mgmt-filter-status');
+      if (elStatus) {
+        elStatus.value = 'pendiente';
+        elStatus.dataset.manualOverride = 'true';
+      }
     }
     
     renderDashboard(true);
