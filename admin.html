@@ -523,6 +523,14 @@
               <option value="juridico">⚖️ Jurídico</option>
             </select>
           </div>
+          <div>
+            <select id="mgmt-filter-sort" onchange="window.triggerMgmtRender && window.triggerMgmtRender()" class="form-control" style="font-weight:700; background:rgba(0,51,102,0.02); border-color:var(--border);">
+              <option value="updated_desc" selected>⚡ Última Gestión (Modificados/Tomados recién)</option>
+              <option value="timestamp_desc">📅 Fecha Reporte (Recientes primero)</option>
+              <option value="timestamp_asc">⏳ Fecha Reporte (Antiguos primero)</option>
+              <option value="criticidad_desc">🚨 Criticidad / Urgencia (Rojo -> Amarillo -> Verde)</option>
+            </select>
+          </div>
         </div>
 
         <!-- CONTROLES DE PAGINACIÓN INTELIGENTE TABLERO 3 -->
@@ -694,6 +702,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260817_0826_JSONP_ONLY_WRITE"></script>
+  <script src="app.js?v=20260817_0850_SORTING_SELECTOR"></script>
 </body>
 </html>

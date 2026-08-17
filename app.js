@@ -79,6 +79,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
   }
 
+  function parseColombiaDate(str) {
+    if (!str) return new Date(0);
+    const cleanStr = String(str).replace(/,/g, '').trim();
+    const parts = cleanStr.split(' ');
+    if (parts.length === 0) return new Date(0);
+    const dateParts = parts[0].split('/');
+    if (dateParts.length < 3) return new Date(cleanStr); // Fallback format
+
+    const day = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1; // 0-indexed
+    const year = parseInt(dateParts[2], 10);
+
+    let hours = 0, minutes = 0, seconds = 0;
+    if (parts.length > 1) {
+      const timeParts = parts[1].split(':');
+      if (timeParts.length > 0) hours = parseInt(timeParts[0], 10);
+      if (timeParts.length > 1) minutes = parseInt(timeParts[1], 10);
+      if (timeParts.length > 2) seconds = parseInt(timeParts[2], 10);
+    }
+    return new Date(year, month, day, hours, minutes, seconds);
+  }
+
   function sanitizeNotes(notesStr) {
     if (!notesStr) return '';
     const clean = String(notesStr).trim();
@@ -981,11 +1003,15 @@ document.addEventListener('DOMContentLoaded', () => {
  
       const elStatus = document.getElementById('mgmt-filter-status');
       const elCat = document.getElementById('mgmt-filter-category');
+      const elSort = document.getElementById('mgmt-filter-sort');
       if (elStatus && !elStatus.dataset.manualOverride) {
         elStatus.value = sessionStorage.getItem('comfamiliar_mgmt_filter_status') || 'pendiente';
       }
       if (elCat) {
         elCat.value = sessionStorage.getItem('comfamiliar_mgmt_filter_category') || 'all';
+      }
+      if (elSort) {
+        elSort.value = sessionStorage.getItem('comfamiliar_mgmt_filter_sort') || 'updated_desc';
       }
  
       // Memoria de colapso de KPIs eliminada.
@@ -1853,9 +1879,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const elStatus = document.getElementById('mgmt-filter-status');
     const elCat = document.getElementById('mgmt-filter-category');
 
+    const elSort = document.getElementById('mgmt-filter-sort');
+
     // Guardar los filtros actuales en la sesión
     if (elStatus) sessionStorage.setItem('comfamiliar_mgmt_filter_status', elStatus.value);
     if (elCat) sessionStorage.setItem('comfamiliar_mgmt_filter_category', elCat.value);
+    if (elSort) sessionStorage.setItem('comfamiliar_mgmt_filter_sort', elSort.value);
 
     const currentOperator = topOperatorInput ? topOperatorInput.value.trim() : state.operatorName;
     const statusFilter = elStatus ? (elStatus.value || 'pendiente') : 'pendiente';
@@ -1886,6 +1915,41 @@ document.addEventListener('DOMContentLoaded', () => {
       const matchCat = matchesCategory(r, catFilter);
 
       return matchStatus && matchCat;
+    });
+
+    // Aplicar ordenamiento dinámico
+    const sortVal = elSort ? elSort.value : 'updated_desc';
+    supportReports.sort((a, b) => {
+      const docA = String(a.documento || a.cedula).trim();
+      const docB = String(b.documento || b.cedula).trim();
+      const mgmtA = state.supportManagement[docA] || {};
+      const mgmtB = state.supportManagement[docB] || {};
+
+      if (sortVal === 'updated_desc') {
+        // Última Gestión (Modificados/Tomados recién): Si tienen updatedAt se usa, de lo contrario la fecha original de censo (timestamp)
+        const dateA = mgmtA.updatedAt ? parseColombiaDate(mgmtA.updatedAt) : parseColombiaDate(a.timestamp);
+        const dateB = mgmtB.updatedAt ? parseColombiaDate(mgmtB.updatedAt) : parseColombiaDate(b.timestamp);
+        return dateB - dateA;
+      } else if (sortVal === 'timestamp_desc') {
+        // Fecha Reporte (Recientes primero)
+        const dateA = parseColombiaDate(a.timestamp);
+        const dateB = parseColombiaDate(b.timestamp);
+        return dateB - dateA;
+      } else if (sortVal === 'timestamp_asc') {
+        // Fecha Reporte (Antiguos primero)
+        const dateA = parseColombiaDate(a.timestamp);
+        const dateB = parseColombiaDate(b.timestamp);
+        return dateA - dateB;
+      } else if (sortVal === 'criticidad_desc') {
+        // Criticidad / Urgencia (Rojo -> Amarillo -> Verde)
+        const critOrder = { 'rojo': 3, 'amarillo': 2, 'verde': 1 };
+        const critA = critOrder[normalizeStr(a.criticidad || '')] || 0;
+        const critB = critOrder[normalizeStr(b.criticidad || '')] || 0;
+        if (critB !== critA) return critB - critA;
+        // Mismo nivel, desempatar por fecha de reporte descendente
+        return parseColombiaDate(b.timestamp) - parseColombiaDate(a.timestamp);
+      }
+      return 0;
     });
 
     const totalItems = supportReports.length;
