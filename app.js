@@ -112,7 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getApoyoText(r) {
-    return normalizeStr(r.situacionYApoyo || r.apoyo || r.necesidad || r.situacion || r._nApoyo || '');
+    let text = normalizeStr(r.situacionYApoyo || r.apoyo || r.necesidad || r.situacion || r._nApoyo || '');
+    if (r.novedades && r.novedades.length > 0) {
+      r.novedades.forEach(nov => {
+        text += ' ' + normalizeStr(nov.novedad || nov.novedadTexto || '') + ' ' + normalizeStr(nov.requerimientos || nov.novedadNeeds || '');
+      });
+    }
+    return text;
   }
 
   function isNeedSupport(r) {
@@ -1802,6 +1808,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
 
+    // Actualización de la tarjeta KPI de novedades
+    const elNovedadesTotal = document.getElementById('kpi-novedades-total');
+    if (elNovedadesTotal) {
+      const noveltyCount = state.reports.filter(r => (r.situacionYApoyo || '').includes('[NOVEDAD]')).length;
+      elNovedadesTotal.textContent = formatNumber(noveltyCount);
+    }
+
     // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
     const elPolizasTotal = document.getElementById('kpi-polizas-total');
     const elPolizasConfronted = document.getElementById('kpi-polizas-confronted');
@@ -2007,6 +2020,8 @@ document.addEventListener('DOMContentLoaded', () => {
         matchStatus = st === 'proceso';
       } else if (statusFilter === 'mis_casos') {
         matchStatus = st === 'proceso' && mgmt.operator === currentOperator;
+      } else if (statusFilter === 'novedad') {
+        matchStatus = (r.situacionYApoyo || '').includes('[NOVEDAD]');
       } else if (statusFilter === 'resuelto') {
         matchStatus = st === 'resuelto';
       } else if (statusFilter === 'all') {
@@ -2192,7 +2207,20 @@ document.addEventListener('DOMContentLoaded', () => {
             ${addressesHTML}
           </td>
           <td style="vertical-align:top; padding:12px; width:22%;">
+            ${((r.novedades && r.novedades.length > 0) || (r.situacionYApoyo || '').includes('[NOVEDAD]')) ? `<span style="background:#FEF3C7; color:#D97706; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:3px; margin-bottom:4px; border:1px solid #FCD34D;">🔔 NOVEDAD REPORTADA</span>` : ''}
             <strong style="color:var(--primary); font-size:0.88rem; display:block; margin-bottom:6px;">${r.situacionYApoyo || 'Sin novedad'}</strong>
+            ${(r.novedades && r.novedades.length > 0) ? (() => {
+              const sortedNovs = [...r.novedades].sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+              const nov = sortedNovs[0];
+              return `
+                <div style="background:#FFFDF5; border:1px dashed #F59E0B; border-radius:6px; padding:6px 8px; margin-top:8px; font-size:0.78rem; color:#92400E; text-align:left; box-sizing:border-box;">
+                  <strong style="color:#B45309; display:block; margin-bottom:2px;">🚨 Novedad (${nov.timestamp.split(',')[0]}):</strong>
+                  ${nov.novedad}
+                  ${nov.requerimientos ? `<div style="color:#D97706; font-weight:700; margin-top:2px; font-size:0.72rem;">Apoyos: ${nov.requerimientos}</div>` : ''}
+                  ${nov.direccion ? `<div style="color:#0284C7; margin-top:2px; font-size:0.72rem;">Nueva Dir: ${nov.direccion}</div>` : ''}
+                </div>
+              `;
+            })() : ''}
             ${colAFBadge}
           </td>
           <td style="vertical-align:top; padding:12px; width:50%;">
@@ -2570,7 +2598,19 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td style="vertical-align:top; padding:10px;">
             <div style="margin-bottom:6px;">${criticidadBadge}</div>
+            ${((r.novedades && r.novedades.length > 0) || (r.situacionYApoyo || '').includes('[NOVEDAD]')) ? `<span style="background:#FEF3C7; color:#D97706; font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:3px; margin-bottom:4px; border:1px solid #FCD34D;">🔔 NOVEDAD REPORTADA</span>` : ''}
             <strong style="color:var(--primary); font-size:0.86rem; display:block;">${r.situacionYApoyo || r.estadoSalud || 'Sin novedad'}</strong>
+            ${(r.novedades && r.novedades.length > 0) ? (() => {
+              const sortedNovs = [...r.novedades].sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+              const nov = sortedNovs[0];
+              return `
+                <div style="background:#FFFDF5; border:1px dashed #F59E0B; border-radius:6px; padding:6px 8px; margin-top:6px; font-size:0.76rem; color:#92400E; text-align:left; box-sizing:border-box;">
+                  <strong style="color:#B45309; display:block; margin-bottom:2px;">🚨 Novedad (${nov.timestamp.split(',')[0]}):</strong>
+                  ${nov.novedad}
+                  ${nov.requerimientos ? `<div style="color:#D97706; font-weight:700; margin-top:2px; font-size:0.7rem;">Apoyos: ${nov.requerimientos}</div>` : ''}
+                </div>
+              `;
+            })() : ''}
             <small style="color:var(--text-muted); display:block; margin-top:3px; font-size:0.76rem;">🏠 Vivienda: ${r.afectacionVivienda || 'Normal'}<br>👨‍👩‍👧‍👦 Fam: ${estadoFamiliaText}</small>
           </td>
           <td style="vertical-align:top; padding:10px;">

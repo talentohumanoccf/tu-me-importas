@@ -34,7 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const greetingBox = document.getElementById('user-greeting-box');
   const empName = document.getElementById('user-emp-name');
   const empMeta = document.getElementById('user-emp-meta');
-  const duplicateWarning = document.getElementById('user-duplicate-warning');
+  
+  const existingFlowChoice = document.getElementById('user-existing-flow-choice');
+  const btnFlowUpdate = document.getElementById('btn-flow-update');
+  const btnFlowNovelty = document.getElementById('btn-flow-novelty');
+  const noveltySection = document.getElementById('user-novelty-section');
+
+  const novedadTexto = document.getElementById('user-novedad-texto');
+  const novedadDireccion = document.getElementById('user-novedad-direccion');
+  const btnNovedadGps = document.getElementById('btn-novedad-gps');
+  const novedadGpsStatus = document.getElementById('user-novedad-gps-status');
+  const btnSubmitNovedad = document.getElementById('btn-submit-novedad');
   
   const formSection = document.getElementById('user-form-section');
   const successSection = document.getElementById('user-success-section');
@@ -46,8 +56,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const reportForm = document.getElementById('user-report-form');
   const btnReset = document.getElementById('btn-user-reset');
 
+  state.currentFlow = 'new'; // 'new', 'update', 'novelty'
+  state.noveltyGps = null;
+  state.novedadNeeds = [];
+
   setupTouchOptions();
   setupFamilyTags();
+  setupNoveltyFlowEvents();
 
   if (btnVerifyCC) btnVerifyCC.addEventListener('click', handleCCLookupInstant);
   if (ccInput) {
@@ -61,6 +76,155 @@ document.addEventListener('DOMContentLoaded', () => {
     return (el && el.value !== undefined && el.value !== null) ? el.value.trim() : fallback;
   }
 
+  function setupNoveltyFlowEvents() {
+    if (btnFlowUpdate) {
+      btnFlowUpdate.addEventListener('click', () => {
+        btnFlowUpdate.classList.add('selected');
+        if (btnFlowNovelty) btnFlowNovelty.classList.remove('selected');
+        if (formSection) formSection.style.display = 'block';
+        if (noveltySection) noveltySection.style.display = 'none';
+        state.currentFlow = 'update';
+      });
+    }
+
+    if (btnFlowNovelty) {
+      btnFlowNovelty.addEventListener('click', () => {
+        btnFlowNovelty.classList.add('selected');
+        if (btnFlowUpdate) btnFlowUpdate.classList.remove('selected');
+        if (formSection) formSection.style.display = 'none';
+        if (noveltySection) noveltySection.style.display = 'block';
+        state.currentFlow = 'novelty';
+        if (novedadTexto) novedadTexto.focus();
+      });
+    }
+
+    if (btnNovedadGps) {
+      btnNovedadGps.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          alert('⚠️ Tu navegador no soporta geolocalización GPS.');
+          return;
+        }
+        if (novedadGpsStatus) novedadGpsStatus.innerHTML = '⌛ Obteniendo coordenadas exactas...';
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            state.noveltyGps = {
+              latitud: pos.coords.latitude,
+              longitud: pos.coords.longitude
+            };
+            if (novedadGpsStatus) novedadGpsStatus.innerHTML = `<span style="color:var(--success)">📍 Ubicación capturada: Lat ${pos.coords.latitude.toFixed(4)}, Lng ${pos.coords.longitude.toFixed(4)}</span>`;
+          },
+          (err) => {
+            if (novedadGpsStatus) novedadGpsStatus.innerHTML = `<span style="color:var(--danger)">⚠️ No se pudo obtener GPS (${err.message}).</span>`;
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+
+    // Opciones táctiles para apoyos de novedad
+    document.querySelectorAll('.touch-option-btn[data-group="novNeeds"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-value');
+        btn.classList.toggle('selected');
+        if (btn.classList.contains('selected')) {
+          if (!state.novedadNeeds.includes(val)) {
+            state.novedadNeeds.push(val);
+          }
+        } else {
+          state.novedadNeeds = state.novedadNeeds.filter(x => x !== val);
+        }
+      });
+    });
+
+    // Envío del botón de novedad
+    if (btnSubmitNovedad) {
+      btnSubmitNovedad.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleNoveltySubmit();
+      });
+    }
+  }
+
+  function handleNoveltySubmit() {
+    if (!state.documento) {
+      alert('⚠️ Por favor ingresa primero tu número de documento.');
+      return;
+    }
+    const textVal = novedadTexto ? novedadTexto.value.trim() : '';
+    if (!textVal) {
+      alert('⚠️ Por favor describe detalladamente tu nueva situación.');
+      if (novedadTexto) novedadTexto.focus();
+      return;
+    }
+
+    const emp = state.employee || {};
+    const cachedReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports')) || [];
+    const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];
+    const prevReport = cachedReports.find(r => String(r.documento || r.cedula).trim() === state.documento) || 
+                       localReports.find(r => String(r.documento || r.cedula).trim() === state.documento) || {};
+
+    let situacionTexto = `⚠️ [NOVEDAD] (${new Date().toLocaleDateString("es-CO")}): ${textVal}`;
+    if (state.novedadNeeds.length > 0) {
+      situacionTexto += ` | Requerimientos adicionales: ${state.novedadNeeds.join(', ')}`;
+    }
+
+    const newDir = novedadDireccion ? novedadDireccion.value.trim() : '';
+
+    const payload = {
+      timestamp: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
+      documento: state.documento,
+      cedula: state.documento,
+      nombre: emp.nombre || prevReport.nombre || 'Colaborador',
+      cargo: emp.cargo || prevReport.cargo || 'Colaborador',
+      sede: emp.sede || prevReport.sede || 'Sede Principal',
+      telefono: prevReport.telefono || emp.telefono || '',
+      direccionActual: newDir || prevReport.direccionActual || prevReport.direccionResidencia || '',
+      novedadTexto: textVal,
+      novedadNeeds: state.novedadNeeds.join(', '),
+      latitud: state.noveltyGps ? state.noveltyGps.latitud : '',
+      longitud: state.noveltyGps ? state.noveltyGps.longitud : ''
+    };
+
+    // Almacenamos localmente las novedades de manera independiente para no alterar el censo inicial
+    const localNovs = JSON.parse(localStorage.getItem('comfamiliar_local_novelties')) || [];
+    localNovs.unshift(payload);
+    localStorage.setItem('comfamiliar_local_novelties', JSON.stringify(localNovs));
+
+    if (state.googleSheetsUrl && navigator.onLine) {
+      sendNoveltyToSheetsJSONP(payload);
+    }
+
+    if (noveltySection) noveltySection.style.display = 'none';
+    if (greetingBox) greetingBox.style.display = 'none';
+    if (successSection) {
+      successSection.style.display = 'block';
+      successSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function sendNoveltyToSheetsJSONP(payload) {
+    const callbackName = 'onUserNoveltySaveResult';
+    const scriptId = 'jsonp-user-novelty-save';
+    
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+
+    const queryString = Object.keys(payload)
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(payload[key])}`)
+      .join('&');
+
+    script.src = `${state.googleSheetsUrl}?action=submitNovelty&${queryString}&callback=${callbackName}`;
+    
+    window.onUserNoveltySaveResult = function() {
+      console.log('✅ Novedad del colaborador enviada exitosamente a Google Sheets.');
+    };
+
+    document.body.appendChild(script);
+  }
+
   function handleCCLookupInstant() {
     if (!ccInput) return;
     const doc = ccInput.value.trim();
@@ -70,6 +234,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     state.documento = doc;
+
+    // Reset flow buttons
+    if (btnFlowUpdate) btnFlowUpdate.classList.add('selected');
+    if (btnFlowNovelty) btnFlowNovelty.classList.remove('selected');
+    if (noveltySection) noveltySection.style.display = 'none';
+    state.noveltyGps = null;
+    state.novedadNeeds = [];
+    document.querySelectorAll('.touch-option-btn[data-group="novNeeds"]').forEach(b => b.classList.remove('selected'));
+    if (novedadTexto) novedadTexto.value = '';
+    if (novedadDireccion) novedadDireccion.value = '';
+    if (novedadGpsStatus) novedadGpsStatus.innerHTML = '';
 
     // 1. VERIFICAR SI YA EXISTE UN REPORTE PREVIO (REMOTO O LOCAL)
     const cachedReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports')) || [];
@@ -81,10 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (prevReport) {
       state.isPreviousReport = true;
-      if (duplicateWarning) duplicateWarning.style.display = 'block';
+      state.currentFlow = 'update';
+      if (existingFlowChoice) existingFlowChoice.style.display = 'block';
     } else {
       state.isPreviousReport = false;
-      if (duplicateWarning) duplicateWarning.style.display = 'none';
+      state.currentFlow = 'new';
+      if (existingFlowChoice) existingFlowChoice.style.display = 'none';
     }
 
     // 2. BÚSQUEDA INTEGRADA EN TODAS LAS BASES (CACHÉ REMOTO 1962 REGISTROS, MOCK DB, REPORTES)
@@ -430,6 +607,15 @@ document.addEventListener('DOMContentLoaded', () => {
       state.employee = null;
       state.isPreviousReport = false;
       state.gps = null;
+      state.noveltyGps = null;
+      state.novedadNeeds = [];
+      state.currentFlow = 'new';
+
+      if (novedadTexto) novedadTexto.value = '';
+      if (novedadDireccion) novedadDireccion.value = '';
+      if (novedadGpsStatus) novedadGpsStatus.innerHTML = '';
+      if (existingFlowChoice) existingFlowChoice.style.display = 'none';
+      if (noveltySection) noveltySection.style.display = 'none';
 
       document.querySelectorAll('.touch-option-btn').forEach(btn => btn.classList.remove('selected'));
       document.querySelectorAll('.family-tag-btn').forEach(btn => btn.classList.remove('selected'));

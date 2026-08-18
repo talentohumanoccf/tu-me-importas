@@ -54,13 +54,86 @@
       <div id="user-greeting-box" class="greeting-box" style="display: none;">
         <div id="user-emp-name" class="greeting-name">¡Hola!</div>
         <div id="user-emp-meta" class="greeting-meta">Confírmanos tu información a continuación para actualizar la base de datos de la emergencia.</div>
-        <div id="user-duplicate-warning" style="display:none; margin-top:10px; background:rgba(255, 183, 3, 0.15); border:1px solid #FFB703; padding:10px; border-radius:8px; font-size:0.82rem; color:#92400E; font-weight:700;">
-          💡 <em>Nota:</em> Ya existe un registro previo para este documento. Los datos que envíes ahora <strong>ACTUALIZARÁN tu registro existente</strong> (evitando registros duplicados).
+        
+        <!-- Bloque de selección para registros existentes -->
+        <div id="user-existing-flow-choice" style="display:none; margin-top:15px; padding-top:15px; border-top:1px solid rgba(0,51,102,0.1);">
+          <p style="font-size:0.85rem; font-weight:700; color:var(--primary); margin-bottom:10px;">Hemos detectado un reporte previo de tu parte. ¿Qué deseas hacer hoy?</p>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button type="button" id="btn-flow-update" class="touch-option-btn selected" style="text-align:left; padding:10px 14px; min-height:auto; display:flex; align-items:center; gap:10px; width:100%;">
+              <div class="touch-icon" style="font-size:1.1rem; margin:0;">🔄</div>
+              <div>
+                <strong style="display:block; font-size:0.8rem; color:#1E293B;">Corregir o Actualizar mis datos generales</strong>
+                <span style="display:block; font-size:0.7rem; color:#64748B; font-weight:400;">Si cambiaste de dirección, teléfono o cometiste algún error.</span>
+              </div>
+            </button>
+            <button type="button" id="btn-flow-novelty" class="touch-option-btn warning" style="text-align:left; padding:10px 14px; min-height:auto; display:flex; align-items:center; gap:10px; width:100%;">
+              <div class="touch-icon" style="font-size:1.1rem; margin:0;">🚨</div>
+              <div>
+                <strong style="display:block; font-size:0.8rem; color:#92400E;">Reportar una nueva situación o afectación</strong>
+                <span style="display:block; font-size:0.7rem; color:#B45309; font-weight:400;">Si ocurrió algo nuevo en tu hogar, salud o requieres un nuevo apoyo.</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- FORMULARIO ESTRUCTURADO EXACTAMENTE COMO EL GOOGLE FORM -->
       <form id="user-report-form">
+        
+        <!-- SECCIÓN ESPECIAL: REPORTE RÁPIDO DE NOVEDAD -->
+        <div id="user-novelty-section" class="form-section-card" style="display: none; border-left: 5px solid #F59E0B; background: #FFFDF5; margin-bottom: 20px; padding:15px; border-radius:8px;">
+          <div class="form-section-title" style="color:#B45309; display:flex; align-items:center; gap:6px; font-weight:800; font-size:1rem;">
+            <span>🚨</span> Reportar Nueva Situación o Afectación
+          </div>
+          <p style="font-size:0.78rem; color:#B45309; margin-top:4px; font-weight:600;">Utiliza este espacio para reportarle a SST cualquier novedad o cambio crítico de tu estado actual.</p>
+          
+          <div class="question-block" style="margin-top:15px;">
+            <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">1. Describe detalladamente qué ocurrió o cuál es tu nueva situación: <span class="req-star">*</span></label>
+            <textarea id="user-novedad-texto" class="form-input-mobile" rows="4" style="padding:10px; width:100%; border:1px solid #F59E0B; border-radius:8px; resize:vertical; font-family:inherit; box-sizing:border-box;" placeholder="Ej: Se cayó una pared de mi casa por la lluvia de anoche. Necesitamos apoyo con alimentos y reubicación..."></textarea>
+          </div>
+
+          <div class="question-block">
+            <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">2. ¿Qué apoyos necesitas prioritariamente con esta novedad? (Selecciona los que apliquen):</label>
+            <div class="touch-options-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:6px; display:grid;">
+              <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Apoyo Psicológico" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">🧠</div>
+                <div style="font-size:0.72rem; font-weight:700;">Apoyo Psicológico</div>
+              </button>
+              <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Trabajo Social" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">🤝</div>
+                <div style="font-size:0.72rem; font-weight:700;">Trabajo Social</div>
+              </button>
+              <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Medicamentos" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">💊</div>
+                <div style="font-size:0.72rem; font-weight:700;">Medicamentos</div>
+              </button>
+              <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Alimentos" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">📦</div>
+                <div style="font-size:0.72rem; font-weight:700;">Alimentos</div>
+              </button>
+              <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Vivienda" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">🏠</div>
+                <div style="font-size:0.72rem; font-weight:700;">Vivienda / Refugio</div>
+              </button>
+              <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Apoyo Jurídico" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">⚖️</div>
+                <div style="font-size:0.72rem; font-weight:700;">Apoyo Jurídico</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="question-block" style="background:#FFF9E6; padding:10px; border-radius:8px; border:1px dashed #F59E0B; box-sizing:border-box;">
+            <label style="font-weight:700; font-size:0.78rem; color:#92400E; display:block; margin-bottom:4px;">📍 ¿Tu ubicación o dirección física cambió?</label>
+            <input type="text" id="user-novedad-direccion" class="form-input-mobile" style="border:1px solid #F59E0B; margin-bottom:8px; box-sizing:border-box;" placeholder="Escribe tu nueva dirección (si aplica)">
+            <button type="button" id="btn-novedad-gps" class="btn-verify-cc" style="background:#F59E0B; border:none; color:white; font-size:0.75rem; padding:6px 12px; border-radius:6px; width:100%; display:block; cursor:pointer;">📍 Capturar Coordenadas GPS de la Novedad</button>
+            <div id="user-novedad-gps-status" style="margin-top:6px; font-weight:700; font-size:0.7rem; color:#B45309; text-align:center;"></div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <button type="button" id="btn-submit-novedad" class="btn-verify-cc" style="background:#D97706; width:100%; font-size:1rem; padding:12px; font-weight:800; text-transform:uppercase; border:none; border-radius:8px; color:white; cursor:pointer;">🚨 Enviar Reporte de Novedad ➔</button>
+          </div>
+        </div>
+
         <div id="user-form-section" style="display: none;">
           
           <!-- SECCIÓN: DATOS GENERALES -->
@@ -378,6 +451,6 @@
   </main>
 
   <script src="mock-data.js"></script>
-  <script src="user-app.js?v=20260813_01"></script>
+  <script src="user-app.js?v=20260818_0820_NOVELTY_FLOW"></script>
 </body>
 </html>
