@@ -79,9 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupNoveltyFlowEvents() {
     if (btnFlowUpdate) {
       btnFlowUpdate.addEventListener('click', () => {
-        btnFlowUpdate.classList.add('selected');
-        if (btnFlowNovelty) btnFlowNovelty.classList.remove('selected');
-        if (formSection) formSection.style.display = 'block';
+        if (formSection) {
+          formSection.style.display = 'block';
+          formSection.scrollIntoView({ behavior: 'smooth' });
+        }
         if (noveltySection) noveltySection.style.display = 'none';
         state.currentFlow = 'update';
       });
@@ -89,10 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnFlowNovelty) {
       btnFlowNovelty.addEventListener('click', () => {
-        btnFlowNovelty.classList.add('selected');
-        if (btnFlowUpdate) btnFlowUpdate.classList.remove('selected');
         if (formSection) formSection.style.display = 'none';
-        if (noveltySection) noveltySection.style.display = 'block';
+        if (noveltySection) {
+          noveltySection.style.display = 'block';
+          noveltySection.scrollIntoView({ behavior: 'smooth' });
+        }
         state.currentFlow = 'novelty';
         if (novedadTexto) novedadTexto.focus();
       });
@@ -306,9 +308,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (greetingBox) greetingBox.style.display = 'block';
-    if (formSection) {
-      formSection.style.display = 'block';
-      formSection.scrollIntoView({ behavior: 'smooth' });
+    if (state.isPreviousReport) {
+      if (formSection) formSection.style.display = 'none';
+      if (noveltySection) noveltySection.style.display = 'none';
+      if (existingFlowChoice) {
+        existingFlowChoice.style.display = 'block';
+        existingFlowChoice.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      if (existingFlowChoice) existingFlowChoice.style.display = 'none';
+      if (noveltySection) noveltySection.style.display = 'none';
+      if (formSection) {
+        formSection.style.display = 'block';
+        formSection.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   }
 
