@@ -1739,6 +1739,50 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
     }
 
+    const areaBreakdownContainer = document.getElementById('kpi-area-breakdown-container');
+    const areaTotalBadge = document.getElementById('kpi-area-total-badge');
+
+    if (areaBreakdownContainer) {
+      const mapArea = {};
+      let totalAreaCount = 0;
+
+      dataset.forEach(r => {
+        const val = String(r.area || 'Sin Área Registrada').trim();
+        mapArea[val] = (mapArea[val] || 0) + 1;
+        totalAreaCount++;
+      });
+
+      const uniqueAreas = Object.keys(mapArea).length;
+      if (areaTotalBadge) {
+        areaTotalBadge.textContent = `${uniqueAreas} áreas (${formatNumber(totalAreaCount)} pers.)`;
+      }
+
+      const entries = Object.entries(mapArea).sort((a, b) => b[1] - a[1]);
+
+      areaBreakdownContainer.innerHTML = entries.map(([areaName, count]) => {
+        const pct = Math.round((count / Math.max(totalAreaCount, 1)) * 100);
+        const borderColor = '#DDD6FE'; // light purple border
+        const textColor = '#5B21B6'; // dark purple text
+        const subColor = '#7C3AED'; // medium purple sub text
+        const icon = '🏢';
+
+        return `
+          <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between; min-height:85px;">
+            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${areaName}">${icon} ${areaName}</span>
+            <div style="margin:4px 0; display:flex; align-items:baseline; gap:4px;">
+              <b style="font-size:1.25rem; color:${textColor};">${formatNumber(count)}</b> 
+              <span style="font-size:0.72rem; color:${subColor}; font-weight:700;">pers.</span>
+              <span style="margin-left:auto; background:${borderColor}; color:${textColor}; font-size:0.68rem; font-weight:800; padding:1px 6px; border-radius:8px;">${pct}%</span>
+            </div>
+            <!-- Barra de progreso de participación -->
+            <div style="background:#E2E8F0; height:6px; border-radius:3px; overflow:hidden; width:100%; margin-top:2px;">
+              <div style="background:${textColor}; width:${pct}%; height:100%; border-radius:3px;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     const elTopGruposValue = document.getElementById('top-grupos-af-value');
     const elTopGruposSubtext = document.getElementById('top-grupos-af-subtext');
     if (elTopGruposValue) {
