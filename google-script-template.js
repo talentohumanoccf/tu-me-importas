@@ -48,7 +48,13 @@ function doGet(e) {
       return ContentService.createTextOutput(dedupMsg).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 3. ACCIÓN: RECIBIR Y GUARDAR NUEVA ENCUESTA DESDE EL FORMULARIO DE TRABAJADORES (GET / JSONP)
+    // 3. ACCIÓN: RECIBIR Y GUARDAR NUEVO REPORTE DE NOVEDAD (ESCRIBE EN NOVEDADES_SST)
+    if (action === "submitNovelty" || action === "saveNovelty") {
+      var sheetNovelties = obtenerOCrearHojaNovedades(ss);
+      return procesarYGuardarNovedad(sheetNovelties, params, callback);
+    }
+
+    // 3.5 ACCIÓN: RECIBIR Y GUARDAR NUEVA ENCUESTA DESDE EL FORMULARIO DE TRABAJADORES (GET / JSONP)
     if (action === "submitReport" || action === "saveReport" || action === "addReport" || (params.situacionYApoyo && docParam)) {
       return procesarYGuardarReporte(sheetReportes, params, callback);
     }
@@ -142,7 +148,7 @@ function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) 
     return cachedData;
   }
 
-  var reportsArray = obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion);
+  var reportsArray = obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss);
   var donationsData = obtenerDatosDonacionesYKardex(ss);
   
   // Lectura segura del módulo externo de pólizas
@@ -452,8 +458,8 @@ function procesarYGuardarReporte(reportSheet, data, callback) {
   }
 }
 
-// LECTURA PURA DE LA ENCUESTA COMBINADA CON GESTION_SST
-function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion) {
+// LECTURA PURA DE LA ENCUESTA COMBINADA CON GESTION_SST Y NOVEDADES_SST
+function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
   if (!sheetReportes) return [];
   var lastRowR = sheetReportes.getLastRow();
   if (lastRowR < 2) return [];
@@ -475,6 +481,39 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion) {
         };
       }
     }
+  }
+
+  // Cargar novedades de la hoja NOVEDADES_SST
+  var mapaNovedades = {};
+  try {
+    if (ss) {
+      var sheetNovelties = ss.getSheetByName("NOVEDADES_SST");
+      if (sheetNovelties && sheetNovelties.getLastRow() >= 2) {
+        var dataN = sheetNovelties.getRange(2, 1, sheetNovelties.getLastRow() - 1, Math.min(sheetNovelties.getLastColumn(), 11)).getValues();
+        for (var n = 0; n < dataN.length; n++) {
+          var docN = String(dataN[n][1]).trim();
+          if (docN) {
+            if (!mapaNovedades[docN]) {
+              mapaNovedades[docN] = [];
+            }
+            mapaNovedades[docN].push({
+              timestamp: dataN[n][0] ? String(dataN[n][0]) : '',
+              nombre: String(dataN[n][2] || ''),
+              cargo: String(dataN[n][3] || ''),
+              sede: String(dataN[n][4] || ''),
+              telefono: String(dataN[n][5] || ''),
+              direccion: String(dataN[n][6] || ''),
+              novedad: String(dataN[n][7] || ''),
+              requerimientos: String(dataN[n][8] || ''),
+              latitud: dataN[n][9] || '',
+              longitud: dataN[n][10] || ''
+            });
+          }
+        }
+      }
+    }
+  } catch (nErr) {
+    console.log("Error al leer hoja NOVEDADES_SST: " + nErr.toString());
   }
 
   var reports = [];
@@ -531,7 +570,8 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion) {
         gestionStatus: mgmtStatusVal,
         gestionNotes: mgmtNotesVal,
         gestionUpdatedAt: mgmtUpdatedAtVal,
-        gestionOperator: mgmtOperatorVal
+        gestionOperator: mgmtOperatorVal,
+        novedades: mapaNovedades[docR] || []
       });
     }
   }
@@ -540,7 +580,8 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion) {
 }
 
 function obtenerReportePorDocumento(sheetReportes, sheetGestion, targetDoc) {
-  var list = obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion);
+  var ss = sheetReportes ? sheetReportes.getParent() : SpreadsheetApp.getActiveSpreadsheet();
+  var list = obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss);
   var target = String(targetDoc).trim();
   for (var i = 0; i < list.length; i++) {
     if (String(list[i].documento).trim() === target) {
@@ -903,5 +944,86 @@ function obtenerEstadisticasPolizasExternas() {
   } catch (err) {
     console.log("Error en obtenerEstadisticasPolizasExternas: " + err.toString());
     return { status: "error", message: err.toString(), totalSiniestros: 0, grave: 0, moderado: 0, leve: 0, porHoja: {} };
+  }
+}
+
+function obtenerOCrearHojaNovedades(ss) {
+  var sheet = ss.getSheetByName("NOVEDADES_SST");
+  if (!sheet) {
+    sheet = ss.insertSheet("NOVEDADES_SST");
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "Timestamp Reporte", "Documento", "Nombre Colaborador", "Cargo", "Sede",
+      "Teléfono", "Dirección Novedad", "Novedad / Situación Reportada", "Requerimientos Adicionales", "Latitud GPS", "Longitud GPS"
+    ]);
+    var headerRange = sheet.getRange(1, 1, 1, 11);
+    headerRange.setBackground("#D97706");
+    headerRange.setFontColor("#FFFFFF");
+    headerRange.setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function procesarYGuardarNovedad(noveltySheet, data, callback) {
+  try {
+    var docFinal = String(data.documento || data.cedula || "").trim();
+    if (!docFinal) {
+      throw new Error("El documento de identidad es obligatorio");
+    }
+
+    var nombreFinal = String(data.nombre || data.nombreCompleto || "Colaborador").trim();
+    var cargoFinal = String(data.cargo || "").trim();
+    var sedeFinal = String(data.sede || "Sede Principal").trim();
+    var telefonoFinal = String(data.telefono || "").trim();
+    var direccionFinal = String(data.direccionActual || "").trim();
+    var novedadFinal = String(data.novedadTexto || data.situacionYApoyo || "").trim();
+    var requerimientosFinal = String(data.novedadNeeds || "").trim();
+    var latFinal = String(data.latitud || "").trim();
+    var lngFinal = String(data.longitud || "").trim();
+
+    var rowValues = [
+      data.timestamp || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
+      docFinal,
+      nombreFinal,
+      cargoFinal,
+      sedeFinal,
+      telefonoFinal,
+      direccionFinal,
+      novedadFinal,
+      requerimientosFinal,
+      latFinal,
+      lngFinal
+    ];
+
+    // Registrar novedad en el histórico cronológico
+    noveltySheet.appendRow(rowValues);
+    
+    // Limpiar caché del tablero
+    limpiarCacheReportes();
+
+    var responseObj = {
+      status: "success",
+      action: "inserted_novelty",
+      documento: docFinal,
+      message: "Novedad registrada exitosamente en NOVEDADES_SST para " + docFinal
+    };
+
+    if (callback) {
+      return ContentService.createTextOutput(callback + "(" + JSON.stringify(responseObj) + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(responseObj))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    var errObj = { status: "error", message: error.toString() };
+    if (callback) {
+      return ContentService.createTextOutput(callback + "(" + JSON.stringify(errObj) + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(JSON.stringify(errObj)).setMimeType(ContentService.MimeType.JSON);
   }
 }
