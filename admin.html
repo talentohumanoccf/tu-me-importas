@@ -177,12 +177,28 @@
         </div>
 
         <div id="main-kpi-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
-          <!-- KPIS PRINCIPALES DE RIESGO CON CONFRONTACIÓN DE INTERVENCIONES EN TIEMPO REAL -->
-          <div class="kpi-grid">
+          
+          <!-- SUBSECCIÓN 1: ESTADÍSTICAS GENERALES DEL CENSO -->
+          <div style="margin-top: 10px; margin-bottom: 12px;">
+            <h4 style="color: var(--primary); font-size: 0.9rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; display: flex; align-items: center; gap: 6px; margin: 0;">
+              📋 Estadísticas Generales del Censo (Diligenciamiento)
+            </h4>
+          </div>
+          <div class="kpi-grid" style="margin-bottom: 25px;">
             <div class="kpi-card kpi-primary">
               <div class="kpi-header">Total Registrados</div>
               <div class="kpi-value" id="kpi-total">0</div>
               <div class="kpi-subtext" id="kpi-total-subtext">Formularios recibidos</div>
+            </div>
+            <div class="kpi-card kpi-success">
+              <div class="kpi-header">A Salvo y Seguro</div>
+              <div class="kpi-value" id="kpi-salvo">0</div>
+              <div class="kpi-subtext">Sin necesidad de apoyos</div>
+            </div>
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
+              <div class="kpi-value" id="kpi-leve">0</div>
+              <div class="kpi-subtext">Afectación leve / moderada</div>
             </div>
             <!-- TARJETA DESTACADA DE PARTICIPACIÓN POR ESTADO (COLUMNA AF: ACTIVOS COMFAMILIAR Y OTRAS) -->
             <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); border-left: 5px solid #10B981; grid-column: span 2;">
@@ -192,16 +208,6 @@
               </div>
               <div id="kpi-af-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
                 <!-- Renderizado dinámicamente con Activos Comfamiliar vs Otras por JS -->
-              </div>
-            </div>
-            <!-- NUEVA TARJETA: PERSONAS ATENDIDAS POR TIPO DE VINCULACIÓN -->
-            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #ECFDF5 100%); border-left: 5px solid #059669; grid-column: span 2;">
-              <div class="kpi-header" style="color:#047857; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
-                <span>✅ Personas Atendidas por Tipo de Vinculación</span>
-                <span id="kpi-af-atendidas-total-badge" style="background:#D1FAE5; color:#047857; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 atendidos</span>
-              </div>
-              <div id="kpi-af-atendidas-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
-                <!-- Renderizado dinámicamente con JS -->
               </div>
             </div>
             <!-- TARJETA: DISTRIBUCIÓN DE PERSONAS POR ÁREA DE TRABAJO -->
@@ -214,30 +220,25 @@
                 <!-- Renderizado dinámicamente con JS -->
               </div>
             </div>
-            <div class="kpi-card kpi-success">
-              <div class="kpi-header">A Salvo y Seguro</div>
-              <div class="kpi-value" id="kpi-salvo">0</div>
-              <div class="kpi-subtext">Sin necesidad de apoyos</div>
+          </div>
+
+          <!-- SUBSECCIÓN 2: CONTROL DE INTERVENCIONES Y GESTIÓN OPERATIVA -->
+          <div style="margin-top: 20px; margin-bottom: 12px;">
+            <h4 style="color: var(--primary); font-size: 0.9rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; display: flex; align-items: center; gap: 6px; margin: 0;">
+              ⚙️ Gestión Operativa e Intervenciones de Casos (SST)
+            </h4>
+          </div>
+          <div class="kpi-grid">
+            <!-- NUEVA TARJETA: PERSONAS ATENDIDAS POR TIPO DE VINCULACIÓN -->
+            <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #ECFDF5 100%); border-left: 5px solid #059669; grid-column: span 2;">
+              <div class="kpi-header" style="color:#047857; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <span>✅ Personas Atendidas por Tipo de Vinculación</span>
+                <span id="kpi-af-atendidas-total-badge" style="background:#D1FAE5; color:#047857; font-size:0.72rem; padding:2px 8px; border-radius:10px; font-weight:800;">0 atendidos</span>
+              </div>
+              <div id="kpi-af-atendidas-breakdown-container" style="margin-top:8px; display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                <!-- Renderizado dinámicamente con JS -->
+              </div>
             </div>
-            <div class="kpi-card kpi-warning">
-              <div class="kpi-header">Pueden Requerir Apoyo Psicológico</div>
-              <div class="kpi-value" id="kpi-leve">0</div>
-              <div class="kpi-subtext">Afectación leve / moderada</div>
-            </div>
-            <!-- TARJETA: SOLICITARON APOYO PSICOLÓGICO -->
-            <div id="kpi-card-psicologico" class="kpi-card" style="border-left: 5px solid #003366; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: PERDIDA / AFECTACION FAMILIAR -->
-            <div id="kpi-card-familiar" class="kpi-card" style="border-left: 5px solid #B91C1C; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SOLICITARON KITS DE ALIMENTOS -->
-            <div id="kpi-card-alimentos" class="kpi-card" style="border-left: 5px solid #00A88F; background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SIN LUGAR SEGURO / VIVIENDA -->
-            <div id="kpi-card-vivienda" class="kpi-card" style="border-left: 5px solid #DC2626; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SOLICITARON TRABAJO SOCIAL -->
-            <div id="kpi-card-social" class="kpi-card" style="border-left: 5px solid #F59E0B; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SOLICITARON MEDICAMENTOS / SALUD -->
-            <div id="kpi-card-medicamentos" class="kpi-card" style="border-left: 5px solid #E63946; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: GESTIÓN JURÍDICA -->
-            <div id="kpi-card-juridico" class="kpi-card" style="border-left: 5px solid #7C3AED; background: linear-gradient(180deg, #FFFFFF 0%, #F5F3FF 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
             <!-- NUEVA FICHA DE GESTIÓN DE PÓLIZAS (SINIESTROS) -->
             <div class="kpi-card" style="background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 100%); border-left: 5px solid #0284c7; grid-column: span 2;">
               <div class="kpi-header" style="color:#0369a1; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
@@ -255,6 +256,20 @@
                 <!-- Se cargará dinámicamente con los casos reportados por cada línea de póliza -->
               </div>
             </div>
+            <!-- TARJETA: SOLICITARON APOYO PSICOLÓGICO -->
+            <div id="kpi-card-psicologico" class="kpi-card" style="border-left: 5px solid #003366; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: PERDIDA / AFECTACION FAMILIAR -->
+            <div id="kpi-card-familiar" class="kpi-card" style="border-left: 5px solid #B91C1C; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: SOLICITARON KITS DE ALIMENTOS -->
+            <div id="kpi-card-alimentos" class="kpi-card" style="border-left: 5px solid #00A88F; background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: SIN LUGAR SEGURO / VIVIENDA -->
+            <div id="kpi-card-vivienda" class="kpi-card" style="border-left: 5px solid #DC2626; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: SOLICITARON TRABAJO SOCIAL -->
+            <div id="kpi-card-social" class="kpi-card" style="border-left: 5px solid #F59E0B; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: SOLICITARON MEDICAMENTOS / SALUD -->
+            <div id="kpi-card-medicamentos" class="kpi-card" style="border-left: 5px solid #E63946; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- TARJETA: GESTIÓN JURÍDICA -->
+            <div id="kpi-card-juridico" class="kpi-card" style="border-left: 5px solid #7C3AED; background: linear-gradient(180deg, #FFFFFF 0%, #F5F3FF 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
           </div>
         </div>
 
@@ -418,7 +433,7 @@
           </div>
 
           <div class="analytics-card" style="grid-column: span 2;">
-            <h3 class="analytics-card-title">📋 Grupos y Clasificaciones que han Diligenciado (Columna AF)</h3>
+            <h3 class="analytics-card-title">📋 Participación por Tipo de Vinculación (Columna AF)</h3>
             <div id="analytics-grupos-af-list" class="bars-container"></div>
           </div>
 
@@ -721,6 +736,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260818_0658_REVERT_ANALYTICS_APOYO"></script>
+  <script src="app.js?v=20260818_0719_SEPARATED_KPI_GRIDS"></script>
 </body>
 </html>
