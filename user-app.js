@@ -434,6 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const group = btn.getAttribute('data-group');
         const val = btn.getAttribute('data-value');
 
+        if (group === 'novNeeds') return;
+
         if (group === 'situacionYApoyo') {
           if (val === 'Estoy bien y seguro') {
             document.querySelectorAll(`.touch-option-btn[data-group="${group}"]`).forEach(b => b.classList.remove('selected'));
