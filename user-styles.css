@@ -360,6 +360,17 @@ html, body {
   background: var(--warning-bg);
 }
 
+#btn-flow-novelty {
+  white-space: normal !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  padding: 12px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
 .touch-title {
   font-size: 0.9rem;
   font-weight: 600;
