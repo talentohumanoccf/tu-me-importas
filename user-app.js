@@ -394,8 +394,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.onBasePXLookupResult = function(result) {
     let foundData = null;
+    let isPrev = false;
 
     if (result && result.status === 'success') {
+      isPrev = true;
       if (result.data) {
         foundData = result.data;
       } else if (Array.isArray(result.reports)) {
@@ -408,6 +410,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (foundData && (foundData.nombre || foundData.documento)) {
       foundData.encontrado = true;
       applyEmployeeData(foundData);
+
+      if (isPrev) {
+        state.isPreviousReport = true;
+        state.currentFlow = 'update';
+        if (formSection) formSection.style.display = 'none';
+        if (noveltySection) noveltySection.style.display = 'none';
+        if (existingFlowChoice) {
+          existingFlowChoice.style.display = 'block';
+          existingFlowChoice.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
     }
   };
 
