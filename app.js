@@ -689,6 +689,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  window.triggerExcelExportTelework = function() {
+    exportTeleworkToExcel();
+  };
+
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
   window.saveSupportCase = async function(doc) {
@@ -2548,11 +2552,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     container.innerHTML = `
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:15px;">
-        <div style="background:rgba(16,185,129,0.08); padding:12px; border-radius:8px; border-left:4px solid #10B981;">
-          <span style="font-size:0.75rem; color:#065F46; font-weight:700; display:block;">💻 TELETRABAJO VIABLE (ÓPTIMO)</span>
-          <b style="font-size:1.6rem; color:#065F46;">${teleworkReady.toLocaleString('es-CO')}</b>
-          <span style="font-size:0.8rem; color:#047857; display:block; font-weight:600; margin-top:2px;">${pctReady}% del total de censados</span>
-          <small style="font-size:0.7rem; color:#065F46; display:block; margin-top:4px;">No requieren presencialidad + Tienen luz e internet.</small>
+        <div style="background:rgba(16,185,129,0.08); padding:12px; border-radius:8px; border-left:4px solid #10B981; display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <span style="font-size:0.75rem; color:#065F46; font-weight:700; display:block;">💻 TELETRABAJO VIABLE (ÓPTIMO)</span>
+            <b style="font-size:1.6rem; color:#065F46;">${teleworkReady.toLocaleString('es-CO')}</b>
+            <span style="font-size:0.8rem; color:#047857; display:block; font-weight:600; margin-top:2px;">${pctReady}% del total de censados</span>
+            <small style="font-size:0.7rem; color:#065F46; display:block; margin-top:4px;">No requieren presencialidad + Tienen luz e internet.</small>
+          </div>
+          <button onclick="window.triggerExcelExportTelework && window.triggerExcelExportTelework()" style="margin-top:8px; background:#10B981; color:#FFF; border:none; border-radius:4px; padding:6px 10px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:3px; box-shadow:0 2px 4px rgba(16,185,129,0.2); width:fit-content; align-self:flex-start;">
+            📥 Descargar Listado (.xls)
+          </button>
         </div>
 
         <div style="background:rgba(245,158,11,0.08); padding:12px; border-radius:8px; border-left:4px solid #F59E0B;">
@@ -2818,6 +2827,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     renderDashboard(forceRender);
+  }
+
+  function exportTeleworkToExcel() {
+    const teleworkReadyReports = state.reports.filter(r => {
+      const pres = normalizeStr(r.presencialidadObligatoria || '');
+      const cond = normalizeStr(r.condicionesOptimas || '');
+      return pres.includes('no') && cond.includes('si');
+    });
+
+    if (teleworkReadyReports.length === 0) {
+      alert('⚠️ No hay colaboradores clasificados con Teletrabajo Viable (Óptimo) para exportar.');
+      return;
+    }
+
+    const dateStr = new Date().toISOString().slice(0,10);
+    const cleanFileName = `Reporte_Teletrabajo_Viable_Optimo_${dateStr}.xls`;
+
+    exportDataToExcelFile(teleworkReadyReports, cleanFileName);
   }
 
   function exportFilteredToExcel() {

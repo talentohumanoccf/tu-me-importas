@@ -348,6 +348,11 @@
               📊 Exportar Filtrados a Excel (.xls)
             </button>
           </div>
+          <div>
+            <button id="btn-export-telework-excel" onclick="window.triggerExcelExportTelework && window.triggerExcelExportTelework()" class="btn-search" style="background: #0D9488; color:#FFF; font-weight:800; font-size:0.85rem; white-space:nowrap; border:none; box-shadow:0 4px 12px rgba(13,148,136,0.25);">
+              💻 Exportar Teletrabajo Viable (.xls)
+            </button>
+          </div>
         </div>
 
         <!-- CONTROLES DE PAGINACIÓN INTELIGENTE TABLERO 1 -->
@@ -473,7 +478,7 @@
         <div class="analytics-grid">
           
           <div class="analytics-card">
-            <h3 class="analytics-card-title">🏢 Presencialidad Obligatoria</h3>
+            <h3 class="analytics-card-title">🏢 Modelos de Trabajo posibles</h3>
             <div id="analytics-presencial-list" class="bars-container"></div>
           </div>
 
@@ -758,6 +763,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260819_1040_GPS_ONLY"></script>
+  <script src="app.js?v=20260819_1340_TELEWORK_EXPORT"></script>
 </body>
 </html>
