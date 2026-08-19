@@ -1618,7 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.reports.forEach(r => {
       let rawMuni = (r.municipio || '').trim();
       if (rawMuni) {
-        const cleanMuni = extractMunicipality(rawMuni);
+        const cleanMuni = extractMunicipality(r);
         uniqueMunis.add(cleanMuni);
       }
     });
