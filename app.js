@@ -1328,17 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (text.includes(kw)) return 'La Virginia';
     }
 
-    // 4. Si no coincide con ninguna regla y tiene texto, ver si es otra ciudad vecina o default Pereira
-    const parts = rawText.split(/[\/\-,]/);
-    let firstPart = parts[0].trim();
-    if (firstPart && firstPart.length > 3) {
-      const commonNeighborhoods = ['cuba', 'alamos', 'alpes', 'providencia', 'jardin', 'centro', 'saman', 'recreo', 'consuelo', 'villa', 'llano', 'lotes'];
-      for (let cn of commonNeighborhoods) {
-        if (firstPart.toLowerCase().includes(cn)) return 'Pereira';
-      }
-      return firstPart.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-    }
-
+    // 4. Si no coincide con ninguna de las anteriores, por defecto es Pereira
     return 'Pereira';
   }
 
