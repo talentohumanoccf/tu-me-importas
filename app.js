@@ -2531,9 +2531,18 @@ document.addEventListener('DOMContentLoaded', () => {
     dataset.forEach(r => {
       const pres = normalizeStr(r.presencialidadObligatoria || '');
       const cond = normalizeStr(r.condicionesOptimas || '');
+      const vivienda = normalizeStr(r.afectacionVivienda || '');
+      const lugarSeguro = normalizeStr(r.lugarSeguro || '');
+
+      // ¿La vivienda es inhabitable, no es segura o está en criticidad Alta (rojo)?
+      const isCritical = normalizeStr(r.criticidad || '') === 'rojo';
+      const isHousingBlocked = vivienda.includes('no me permiten habitarla') || 
+                               vivienda.includes('impiden habitarla') || 
+                               lugarSeguro === 'no' ||
+                               isCritical;
 
       if (pres.includes('no')) {
-        if (cond.includes('si')) {
+        if (cond.includes('si') && !isHousingBlocked) {
           teleworkReady++;
         } else {
           teleworkRestricted++;
@@ -2833,7 +2842,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const teleworkReadyReports = state.reports.filter(r => {
       const pres = normalizeStr(r.presencialidadObligatoria || '');
       const cond = normalizeStr(r.condicionesOptimas || '');
-      return pres.includes('no') && cond.includes('si');
+      const vivienda = normalizeStr(r.afectacionVivienda || '');
+      const lugarSeguro = normalizeStr(r.lugarSeguro || '');
+
+      const isCritical = normalizeStr(r.criticidad || '') === 'rojo';
+      const isHousingBlocked = vivienda.includes('no me permiten habitarla') || 
+                               vivienda.includes('impiden habitarla') || 
+                               lugarSeguro === 'no' ||
+                               isCritical;
+
+      return pres.includes('no') && cond.includes('si') && !isHousingBlocked;
     });
 
     if (teleworkReadyReports.length === 0) {
