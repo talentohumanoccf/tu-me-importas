@@ -860,33 +860,48 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTabsNavigation();
   checkAuthentication();
 
-  window.directUnlockAdmin = function() {
-    sessionStorage.setItem('comfamiliar_admin_auth', 'true');
-    state.isAuthenticated = true;
-    if (loginError) loginError.style.display = 'none';
-    checkAuthentication();
-  };
+  function logAccessRemotely(adminName) {
+    if (!state.googleSheetsUrl) return;
+    const callbackName = 'onAdminLogResult';
+    const scriptId = 'jsonp-admin-log';
+    const oldScript = document.getElementById(scriptId);
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `${state.googleSheetsUrl}?action=logAdminAccess&adminName=${encodeURIComponent(adminName)}&callback=${callbackName}`;
+    window[callbackName] = function(res) {
+      console.log('Access log response:', res);
+    };
+    document.body.appendChild(script);
+  }
 
   loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const enteredPinRaw = pinInput ? pinInput.value.trim() : '';
     const enteredPin = enteredPinRaw.toLowerCase();
-    const customPin = (localStorage.getItem('comfamiliar_admin_pin') || '').toLowerCase();
 
     const opName = loginOperatorInput ? loginOperatorInput.value.trim() : '';
-    if (opName) {
-      state.operatorName = opName;
-      localStorage.setItem('comfamiliar_operator_name', opName);
-      if (topOperatorInput) topOperatorInput.value = opName;
-    }
 
-    const isMatch = window.VALID_PINS.includes(enteredPin) || 
-                    (customPin && enteredPin === customPin) || 
-                    enteredPin.includes('2026') || 
-                    enteredPin.includes('comfamiliar') || 
-                    enteredPin.length === 0;
+    // Enforce strict check of defined passcodes only, no empty PINs or partial matches
+    const isMatch = enteredPinRaw.length > 0 && (
+      enteredPin === '2026' ||
+      enteredPin === 'comfamiliar2026' || 
+      enteredPin === 'sst2026' || 
+      enteredPin === 'comfamiliar2026*' || 
+      enteredPin === 'sstcomfamiliar2026*'
+    );
 
     if (isMatch) {
+      if (opName) {
+        state.operatorName = opName;
+        localStorage.setItem('comfamiliar_operator_name', opName);
+        if (topOperatorInput) topOperatorInput.value = opName;
+        
+        // Registrar el acceso en Google Sheets de forma auditada
+        logAccessRemotely(opName);
+      }
+      
       sessionStorage.setItem('comfamiliar_admin_auth', 'true');
       state.isAuthenticated = true;
       if (loginError) loginError.style.display = 'none';
