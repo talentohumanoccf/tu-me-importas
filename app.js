@@ -1231,8 +1231,59 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'Activos Comfamiliar';
   }
 
-  function extractMunicipality(rawText) {
-    if (!rawText) return 'Otro';
+  const MUNI_CENTERS = [
+    { name: 'Pereira', lat: 4.8143, lng: -75.6946 },
+    { name: 'Dosquebradas', lat: 4.8350, lng: -75.6750 },
+    { name: 'La Virginia', lat: 4.8980, lng: -75.8820 },
+    { name: 'Santa Rosa de Cabal', lat: 4.8680, lng: -75.6210 },
+    { name: 'Marsella', lat: 4.9378, lng: -75.7369 },
+    { name: 'Belén de Umbría', lat: 5.2014, lng: -75.8672 },
+    { name: 'Apía', lat: 5.0536, lng: -75.9422 },
+    { name: 'Santuario', lat: 5.0714, lng: -75.9625 },
+    { name: 'Pueblo Rico', lat: 5.2239, lng: -76.0356 },
+    { name: 'Mistrató', lat: 5.3014, lng: -75.8822 },
+    { name: 'Quinchía', lat: 5.3392, lng: -75.7297 },
+    { name: 'Guática', lat: 5.3181, lng: -75.8019 },
+    { name: 'Balboa', lat: 4.9525, lng: -75.9528 },
+    { name: 'La Celia', lat: 4.9822, lng: -75.9861 },
+    { name: 'Manizales', lat: 5.0689, lng: -75.5174 },
+    { name: 'Armenia', lat: 4.5339, lng: -75.6811 },
+    { name: 'Cartago', lat: 4.6990, lng: -75.9140 },
+    { name: 'Chinchiná', lat: 5.0131, lng: -75.6022 }
+  ];
+
+  function getMuniByCoordinates(lat, lng) {
+    let closestMuni = null;
+    let minDistance = Infinity;
+    
+    MUNI_CENTERS.forEach(m => {
+      const d = Math.pow(lat - m.lat, 2) + Math.pow(lng - m.lng, 2);
+      if (d < minDistance) {
+        minDistance = d;
+        closestMuni = m.name;
+      }
+    });
+    
+    // Distancia euclidiana aproximada menor a ~0.012 grados (~12 km)
+    if (minDistance < 0.012) {
+      return closestMuni;
+    }
+    return null;
+  }
+
+  function extractMunicipality(r) {
+    if (!r) return 'Pereira';
+    
+    // 1. Intentar clasificar por coordenadas GPS si existen
+    const lat = parseFloat(r.latitud);
+    const lng = parseFloat(r.longitud);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const gpsMuni = getMuniByCoordinates(lat, lng);
+      if (gpsMuni) return gpsMuni;
+    }
+
+    // 2. Clasificar por texto del campo municipio
+    const rawText = r.municipio || '';
     const text = rawText.toLowerCase().trim();
 
     if (text.includes('dosquebradas')) return 'Dosquebradas';
@@ -1253,14 +1304,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if (text.includes('armenia')) return 'Armenia';
     if (text.includes('cartago')) return 'Cartago';
     if (text.includes('chinchina')) return 'Chinchiná';
+    if (text.includes('alcala')) return 'Alcalá';
+    if (text.includes('anserma')) return 'Anserma';
 
+    // 3. Mapear barrios conocidos de Dosquebradas para que no caigan en Pereira
+    const dosquebradasKeywords = [
+      'frailes', 'japon', 'santa monica', 'santamonica', 'valher', 'pradera', 'bello horizonte',
+      'campestre', 'rosales', 'soleira', 'tuna', 'milano', 'la aurora', 'aurora', 'girasoles',
+      'badajoz', 'villavento', 'bosques de la acuarela', 'acuarela', 'los naranjos', 'naranjos',
+      'santiago de chile', 'llano grande', 'llanogrande', 'la macarena', 'macarena', 'galilea'
+    ];
+    for (let kw of dosquebradasKeywords) {
+      if (text.includes(kw)) return 'Dosquebradas';
+    }
+
+    const santaRosaKeywords = ['tarapaca', 'termales', 'la hermosa'];
+    for (let kw of santaRosaKeywords) {
+      if (text.includes(kw)) return 'Santa Rosa de Cabal';
+    }
+
+    const laVirginiaKeywords = ['balsillas', 'el progreso', 'progreso', 'pizarro', 'san bernardo'];
+    for (let kw of laVirginiaKeywords) {
+      if (text.includes(kw)) return 'La Virginia';
+    }
+
+    // 4. Si no coincide con ninguna regla y tiene texto, ver si es otra ciudad vecina o default Pereira
     const parts = rawText.split(/[\/\-,]/);
     let firstPart = parts[0].trim();
-    if (firstPart) {
+    if (firstPart && firstPart.length > 3) {
+      const commonNeighborhoods = ['cuba', 'alamos', 'alpes', 'providencia', 'jardin', 'centro', 'saman', 'recreo', 'consuelo', 'villa', 'llano', 'lotes'];
+      for (let cn of commonNeighborhoods) {
+        if (firstPart.toLowerCase().includes(cn)) return 'Pereira';
+      }
       return firstPart.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     }
-    
-    return 'Otro';
+
+    return 'Pereira';
   }
 
   function preprocessReports(list) {
@@ -1274,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
       r._nProceso = normalizeStr(r.proceso);
       r._nApoyo = getApoyoText(r);
       r._nStatus = normalizeStr(r.criticidad);
-      r._nMuni = normalizeStr(extractMunicipality(r.municipio));
+      r._nMuni = normalizeStr(extractMunicipality(r));
 
       const doc = String(r.documento || r.cedula).trim();
       const localMgmt = state.supportManagement[doc];
