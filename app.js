@@ -1646,12 +1646,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
     
-    // Si es vivienda, se marca como 0 intervenidas y todos quedan como pendientes por intervenir
-    const finalIntervenidos = categoryKey === 'vivienda' ? 0 : totalIntervenidos;
-    const finalPendientes = categoryKey === 'vivienda' ? solicitados : pendientes;
-    const finalAtendidas = categoryKey === 'vivienda' ? 0 : intervencionAtendida;
-    const finalEnProceso = categoryKey === 'vivienda' ? 0 : intervencionEnProceso;
-    const pct = categoryKey === 'vivienda' ? 0 : (solicitados > 0 ? Math.round((finalIntervenidos / solicitados) * 100) : 100);
+    const finalIntervenidos = totalIntervenidos;
+    const finalPendientes = pendientes;
+    const finalAtendidas = intervencionAtendida;
+    const finalEnProceso = intervencionEnProceso;
+    const pct = solicitados > 0 ? Math.round((finalIntervenidos / solicitados) * 100) : 100;
     
     return { 
       solicitados, 
