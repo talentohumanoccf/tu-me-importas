@@ -2761,21 +2761,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let lng = parseFloat(r.longitud);
 
       if (isNaN(lat) || isNaN(lng)) {
-        const muni = (r.municipio || '').toLowerCase();
-        if (muni.includes('dosquebradas')) { lat = 4.8350 + (Math.random() - 0.5) * 0.02; lng = -75.6750 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('virginia')) { lat = 4.8980 + (Math.random() - 0.5) * 0.02; lng = -75.8820 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('santa rosa')) { lat = 4.8680 + (Math.random() - 0.5) * 0.02; lng = -75.6210 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('marsella')) { lat = 4.9378 + (Math.random() - 0.5) * 0.02; lng = -75.7369 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('belen') || muni.includes('umbria')) { lat = 5.2014 + (Math.random() - 0.5) * 0.02; lng = -75.8672 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('apia')) { lat = 5.0536 + (Math.random() - 0.5) * 0.02; lng = -75.9422 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('santuario')) { lat = 5.0714 + (Math.random() - 0.5) * 0.02; lng = -75.9625 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('pueblo rico')) { lat = 5.2239 + (Math.random() - 0.5) * 0.02; lng = -76.0356 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('mistrato')) { lat = 5.3014 + (Math.random() - 0.5) * 0.02; lng = -75.8822 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('quinchia')) { lat = 5.3392 + (Math.random() - 0.5) * 0.02; lng = -75.7297 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('guatica')) { lat = 5.3181 + (Math.random() - 0.5) * 0.02; lng = -75.8019 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('balboa')) { lat = 4.9525 + (Math.random() - 0.5) * 0.02; lng = -75.9528 + (Math.random() - 0.5) * 0.02; }
-        else if (muni.includes('celia')) { lat = 4.9822 + (Math.random() - 0.5) * 0.02; lng = -75.9861 + (Math.random() - 0.5) * 0.02; }
-        else { lat = 4.8143 + (Math.random() - 0.5) * 0.03; lng = -75.6946 + (Math.random() - 0.5) * 0.03; }
+        return; // No mostrar en el mapa si no envió coordenadas reales
       }
 
       const colorMarker = r.criticidad === 'rojo' ? '#DC3545' : r.criticidad === 'amarillo' ? '#FFB703' : '#25D366';
