@@ -1231,6 +1231,38 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'Activos Comfamiliar';
   }
 
+  function extractMunicipality(rawText) {
+    if (!rawText) return 'Otro';
+    const text = rawText.toLowerCase().trim();
+
+    if (text.includes('dosquebradas')) return 'Dosquebradas';
+    if (text.includes('virginia')) return 'La Virginia';
+    if (text.includes('santa rosa') || text.includes('sta rosa')) return 'Santa Rosa de Cabal';
+    if (text.includes('pereira')) return 'Pereira';
+    if (text.includes('marsella')) return 'Marsella';
+    if (text.includes('belen') || text.includes('umbria')) return 'Belén de Umbría';
+    if (text.includes('apia')) return 'Apía';
+    if (text.includes('santuario')) return 'Santuario';
+    if (text.includes('pueblo rico')) return 'Pueblo Rico';
+    if (text.includes('mistrato')) return 'Mistrató';
+    if (text.includes('quinchia')) return 'Quinchía';
+    if (text.includes('guatica')) return 'Guática';
+    if (text.includes('balboa')) return 'Balboa';
+    if (text.includes('celia')) return 'La Celia';
+    if (text.includes('manizales')) return 'Manizales';
+    if (text.includes('armenia')) return 'Armenia';
+    if (text.includes('cartago')) return 'Cartago';
+    if (text.includes('chinchina')) return 'Chinchiná';
+
+    const parts = rawText.split(/[\/\-,]/);
+    let firstPart = parts[0].trim();
+    if (firstPart) {
+      return firstPart.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    }
+    
+    return 'Otro';
+  }
+
   function preprocessReports(list) {
     return list.map(r => {
       r.columnaAF = getReportColumnAFValue(r);
@@ -1242,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', () => {
       r._nProceso = normalizeStr(r.proceso);
       r._nApoyo = getApoyoText(r);
       r._nStatus = normalizeStr(r.criticidad);
-      r._nMuni = normalizeStr(r.municipio);
+      r._nMuni = normalizeStr(extractMunicipality(r.municipio));
 
       const doc = String(r.documento || r.cedula).trim();
       const localMgmt = state.supportManagement[doc];
@@ -1505,11 +1537,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const uniqueMunis = new Set();
     state.reports.forEach(r => {
-      let muni = (r.municipio || '').trim();
-      if (muni) {
-        // Normalizar capitalización
-        muni = muni.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-        uniqueMunis.add(muni);
+      let rawMuni = (r.municipio || '').trim();
+      if (rawMuni) {
+        const cleanMuni = extractMunicipality(rawMuni);
+        uniqueMunis.add(cleanMuni);
       }
     });
 
