@@ -8,6 +8,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
   window.VALID_PINS = window.VALID_PINS || ['2026', 'comfamiliar2026', 'comfamiliar 2026', 'sst2026', 'admin', 'admin2026', '1234', 'comfamiliar'];
 
+  const MUNI_CENTERS = [
+    { name: 'Pereira', lat: 4.8143, lng: -75.6946 },
+    { name: 'Dosquebradas', lat: 4.8350, lng: -75.6750 },
+    { name: 'La Virginia', lat: 4.8980, lng: -75.8820 },
+    { name: 'Santa Rosa de Cabal', lat: 4.8680, lng: -75.6210 },
+    { name: 'Marsella', lat: 4.9378, lng: -75.7369 },
+    { name: 'Belén de Umbría', lat: 5.2014, lng: -75.8672 },
+    { name: 'Apía', lat: 5.0536, lng: -75.9422 },
+    { name: 'Santuario', lat: 5.0714, lng: -75.9625 },
+    { name: 'Pueblo Rico', lat: 5.2239, lng: -76.0356 },
+    { name: 'Mistrató', lat: 5.3014, lng: -75.8822 },
+    { name: 'Quinchía', lat: 5.3392, lng: -75.7297 },
+    { name: 'Guática', lat: 5.3181, lng: -75.8019 },
+    { name: 'Balboa', lat: 4.9525, lng: -75.9528 },
+    { name: 'La Celia', lat: 4.9822, lng: -75.9861 },
+    { name: 'Manizales', lat: 5.0689, lng: -75.5174 },
+    { name: 'Armenia', lat: 4.5339, lng: -75.6811 },
+    { name: 'Cartago', lat: 4.6990, lng: -75.9140 },
+    { name: 'Chinchiná', lat: 5.0131, lng: -75.6022 }
+  ];
+
   const state = {
     isAuthenticated: sessionStorage.getItem('comfamiliar_admin_auth') === 'true',
     operatorName: localStorage.getItem('comfamiliar_operator_name') || 'Operador SST',
@@ -1230,27 +1251,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     return 'Activos Comfamiliar';
   }
-
-  const MUNI_CENTERS = [
-    { name: 'Pereira', lat: 4.8143, lng: -75.6946 },
-    { name: 'Dosquebradas', lat: 4.8350, lng: -75.6750 },
-    { name: 'La Virginia', lat: 4.8980, lng: -75.8820 },
-    { name: 'Santa Rosa de Cabal', lat: 4.8680, lng: -75.6210 },
-    { name: 'Marsella', lat: 4.9378, lng: -75.7369 },
-    { name: 'Belén de Umbría', lat: 5.2014, lng: -75.8672 },
-    { name: 'Apía', lat: 5.0536, lng: -75.9422 },
-    { name: 'Santuario', lat: 5.0714, lng: -75.9625 },
-    { name: 'Pueblo Rico', lat: 5.2239, lng: -76.0356 },
-    { name: 'Mistrató', lat: 5.3014, lng: -75.8822 },
-    { name: 'Quinchía', lat: 5.3392, lng: -75.7297 },
-    { name: 'Guática', lat: 5.3181, lng: -75.8019 },
-    { name: 'Balboa', lat: 4.9525, lng: -75.9528 },
-    { name: 'La Celia', lat: 4.9822, lng: -75.9861 },
-    { name: 'Manizales', lat: 5.0689, lng: -75.5174 },
-    { name: 'Armenia', lat: 4.5339, lng: -75.6811 },
-    { name: 'Cartago', lat: 4.6990, lng: -75.9140 },
-    { name: 'Chinchiná', lat: 5.0131, lng: -75.6022 }
-  ];
 
   function getMuniByCoordinates(lat, lng) {
     let closestMuni = null;
