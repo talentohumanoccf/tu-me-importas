@@ -693,10 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
     exportTeleworkToExcel();
   };
 
-  window.triggerHousingPdfReport = function() {
-    generateHousingPdfReport();
-  };
-
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
 
   window.saveSupportCase = async function(doc) {
@@ -1710,13 +1706,6 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    if (catKey === 'vivienda' && solicitados > 0) {
-      container.innerHTML += `
-        <button onclick="window.triggerHousingPdfReport && window.triggerHousingPdfReport()" style="margin-top:10px; background:#DC2626; color:#FFF; border:none; border-radius:6px; padding:6px 12px; font-size:0.75rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 3px 6px rgba(220,53,69,0.15); width:100%; justify-content:center;">
-          📄 Generar Informe Vivienda (PDF)
-        </button>
-      `;
-    }
   }
 
   function getReportColumnAFValue(r) {
@@ -2849,162 +2838,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     renderDashboard(forceRender);
-  }
-
-  function generateHousingPdfReport() {
-    const affectedReports = state.reports.filter(r => {
-      const viv = (r.afectacionVivienda || '').toLowerCase();
-      return r.lugarSeguro === 'No' || viv.includes('impiden') || viv.includes('no me permiten');
-    });
-
-    if (affectedReports.length === 0) {
-      alert('⚠️ No hay reportes de afectación de vivienda para generar el informe.');
-      return;
-    }
-
-    const areaStats = {};
-    affectedReports.forEach(r => {
-      const area = r.proceso || 'Sin Área/Proceso';
-      areaStats[area] = (areaStats[area] || 0) + 1;
-    });
-
-    const contractStats = {};
-    affectedReports.forEach(r => {
-      const contract = getReportColumnAFValue(r);
-      contractStats[contract] = (contractStats[contract] || 0) + 1;
-    });
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('⚠️ El navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes para este sitio.');
-      return;
-    }
-
-    const dateStr = new Date().toLocaleString("es-CO", { dateStyle: 'long', timeStyle: 'short' });
-
-    let areaTableRows = Object.entries(areaStats)
-      .sort((a,b) => b[1] - a[1])
-      .map(([area, count]) => `
-        <tr>
-          <td style="padding:8px; border:1px solid #CBD5E1; font-weight:bold;">${area}</td>
-          <td style="padding:8px; border:1px solid #CBD5E1; text-align:center; color:#DC3545; font-weight:bold;">${count}</td>
-        </tr>
-      `).join('');
-
-    let contractTableRows = Object.entries(contractStats)
-      .sort((a,b) => b[1] - a[1])
-      .map(([contract, count]) => `
-        <tr>
-          <td style="padding:8px; border:1px solid #CBD5E1; font-weight:bold;">${contract}</td>
-          <td style="padding:8px; border:1px solid #CBD5E1; text-align:center; color:#DC3545; font-weight:bold;">${count}</td>
-        </tr>
-      `).join('');
-
-    let detailedTableRows = affectedReports.map((r, i) => `
-      <tr>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem; text-align:center;">${i+1}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem; font-weight:bold;">${r.nombre}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem;">${r.documento || r.cedula || 'N/A'}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem;">${r.proceso || 'N/A'}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem;">${getReportColumnAFValue(r)}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem;">${r.municipio || 'N/A'}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem; color:#DC3545; font-weight:500;">${r.afectacionVivienda || 'Sin Lugar Seguro'}</td>
-        <td style="padding:6px; border:1px solid #CBD5E1; font-size:0.75rem; text-align:center;">${getBestPhoneNumber(r) || 'N/A'}</td>
-      </tr>
-    `).join('');
-
-    printWindow.document.write(`
-      <html>
-      <head>
-        <title>Informe de Afectación de Vivienda - Comfamiliar</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1E293B; margin: 20px; line-height: 1.5; }
-          .header { border-bottom: 3px double #003366; padding-bottom: 12px; margin-bottom: 20px; text-align: center; }
-          .logo-text { font-size: 1.5rem; font-weight: 800; color: #003366; text-transform: uppercase; }
-          .doc-title { font-size: 1.2rem; font-weight: 700; color: #DC2626; margin-top: 5px; }
-          .meta-info { font-size: 0.85rem; color: #64748B; margin-top: 4px; }
-          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
-          .card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 15px; }
-          .card-title { font-size: 0.95rem; font-weight: bold; color: #003366; margin-top: 0; margin-bottom: 10px; border-bottom: 1px solid #CBD5E1; padding-bottom: 5px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th { background-color: #003366; color: white; font-size: 0.75rem; padding: 8px; text-transform: uppercase; border: 1px solid #002244; }
-          .total-badge { background: #FEE2E2; color: #991B1B; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.85rem; display: inline-block; }
-          @media print {
-            .no-print { display: none; }
-            body { margin: 10mm; font-size: 12pt; }
-            .card { background: none; border: 1px solid #CBD5E1; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #FFFDF5; border: 1px solid #FCD34D; padding: 12px; border-radius: 8px;">
-          <span style="font-size:0.85rem; color:#92400E; font-weight:bold;">💡 Presiona "Imprimir" y en el destino de tu impresora elige "Guardar como PDF".</span>
-          <button onclick="window.print()" style="background:#003366; color:#FFF; border:none; border-radius:6px; padding:8px 16px; font-size:0.85rem; font-weight:bold; cursor:pointer;">🖨️ Imprimir / Guardar PDF</button>
-        </div>
-
-        <div class="header">
-          <div class="logo-text">Comfamiliar Risaralda</div>
-          <div class="doc-title">Reporte Especial: Colaboradores Sin Lugar Seguro o Afectación de Vivienda</div>
-          <div class="meta-info">Fecha de Generación: \${dateStr} | Total Casos Críticos: <span class="total-badge">\${affectedReports.length}</span></div>
-        </div>
-
-        <div class="grid">
-          <div class="card">
-            <div class="card-title">📊 Resumen de Afectación por Área / Proceso</div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="text-align:left;">Área / Proceso</th>
-                  <th style="width:80px; text-align:center;">Casos</th>
-                </tr>
-              </thead>
-              <tbody>
-                \${areaTableRows}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="card">
-            <div class="card-title">💼 Resumen de Afectación por Tipo de Contratación</div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="text-align:left;">Tipo de Contratación</th>
-                  <th style="width:80px; text-align:center;">Casos</th>
-                </tr>
-              </thead>
-              <tbody>
-                \${contractTableRows}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card" style="margin-bottom: 20px;">
-          <div class="card-title">📋 Listado Detallado de Colaboradores con Afectación</div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width:30px; text-align:center;">#</th>
-                <th style="text-align:left;">Colaborador</th>
-                <th style="width:80px; text-align:left;">Cédula</th>
-                <th style="text-align:left;">Área / Proceso</th>
-                <th style="text-align:left;">Contrato</th>
-                <th style="width:100px; text-align:left;">Municipio</th>
-                <th style="text-align:left;">Detalle Afectación</th>
-                <th style="width:80px; text-align:center;">Teléfono</th>
-              </tr>
-            </thead>
-            <tbody>
-              \${detailedTableRows}
-            </tbody>
-          </table>
-        </div>
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
   }
 
   function exportTeleworkToExcel() {
