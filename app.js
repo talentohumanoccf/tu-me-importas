@@ -1411,7 +1411,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
-    populateMunicipiosDropdown();
     applyFilters(true);
   }
 
@@ -1536,7 +1535,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     state.reports = preprocessReports(Array.from(mapReports.values()));
-    populateMunicipiosDropdown();
     
     // Homologación automática sin daño a datos
     window.homologateWithGestionSST(false);
@@ -1598,37 +1596,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.body.appendChild(script);
-  }
-
-  function populateMunicipiosDropdown() {
-    const filterMunicipio = document.getElementById('filter-municipio');
-    if (!filterMunicipio) return;
-
-    const uniqueMunis = new Set();
-    state.reports.forEach(r => {
-      let rawMuni = (r.municipio || '').trim();
-      if (rawMuni) {
-        const cleanMuni = extractMunicipality(r);
-        uniqueMunis.add(cleanMuni);
-      }
-    });
-
-    const sortedMunis = Array.from(uniqueMunis).sort();
-    const currentValue = filterMunicipio.value;
-
-    filterMunicipio.innerHTML = '<option value="all">Todos los Municipios</option>';
-    sortedMunis.forEach(m => {
-      const option = document.createElement('option');
-      option.value = m;
-      option.textContent = m;
-      filterMunicipio.appendChild(option);
-    });
-
-    if (currentValue && sortedMunis.includes(currentValue)) {
-      filterMunicipio.value = currentValue;
-    } else {
-      filterMunicipio.value = 'all';
-    }
   }
 
   function renderDashboard(forceRender = false) {
