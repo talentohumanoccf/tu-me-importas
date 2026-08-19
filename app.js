@@ -1716,8 +1716,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = getReportColumnAFValue(r);
         mapAFAll[val] = (mapAFAll[val] || 0) + 1;
         
-        const isResolved = getNormalizedMgmtStatus(r) === 'resuelto';
-        if (isResolved) {
+        const status = getNormalizedMgmtStatus(r);
+        const isAttended = status === 'resuelto' || status === 'proceso';
+        if (isAttended) {
           mapAFAten[val] = (mapAFAten[val] || 0) + 1;
           totalAFResolved++;
         }
@@ -1826,7 +1827,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Actualización de la tarjeta KPI de novedades
     const elNovedadesTotal = document.getElementById('kpi-novedades-total');
     if (elNovedadesTotal) {
-      const noveltyCount = state.reports.filter(r => (r.situacionYApoyo || '').includes('[NOVEDAD]')).length;
+      const noveltyCount = state.reports.filter(r => (r.situacionYApoyo || '').includes('[NOVEDAD]') || (r.novedades && r.novedades.length > 0)).length;
       elNovedadesTotal.textContent = formatNumber(noveltyCount);
     }
 
@@ -2036,7 +2037,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (statusFilter === 'mis_casos') {
         matchStatus = st === 'proceso' && mgmt.operator === currentOperator;
       } else if (statusFilter === 'novedad') {
-        matchStatus = (r.situacionYApoyo || '').includes('[NOVEDAD]');
+        matchStatus = (r.situacionYApoyo || '').includes('[NOVEDAD]') || (r.novedades && r.novedades.length > 0);
       } else if (statusFilter === 'resuelto') {
         matchStatus = st === 'resuelto';
       } else if (statusFilter === 'all') {
