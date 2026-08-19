@@ -1625,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let isMatch = false;
       if (categoryKey === 'vivienda') {
         const viv = (r.afectacionVivienda || '').toLowerCase();
-        isMatch = (r.lugarSeguro === 'No' || viv.includes('impiden') || viv.includes('no me permiten'));
+        isMatch = (viv.includes('impiden') || viv.includes('no me permiten'));
       } else {
         isMatch = matchesCategory(r, categoryKey);
       }
@@ -1926,7 +1926,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-psicologico', 'psicologico', 'Apoyo Psicológico', '🧠', '#003366');
     renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
-    renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Sin Lugar Seguro / Vivienda', '🏠', '#DC2626');
+    renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Afectación de Vivienda', '🏠', '#DC2626');
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
