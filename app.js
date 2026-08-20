@@ -1712,6 +1712,22 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
       `;
     }
+
+    if (catKey === 'familiar') {
+      const lossesCount = state.reports.filter(r => {
+        if (!matchesCategory(r, 'familiar')) return false;
+        const estFam = normalizeStr(r.estadoFamilia || '');
+        const ap = getApoyoText(r);
+        return estFam.includes('perdida') || estFam.includes('fallec') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo');
+      }).length;
+
+      container.innerHTML += `
+        <div style="margin-top:10px; padding:8px; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:6px; font-size:0.72rem; color:#991B1B; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:4px; width:100%;">
+          <span>💀 Pérdidas Humanas declaradas:</span>
+          <b style="font-size:0.95rem; color:#B91C1C; white-space:nowrap;">${lossesCount} casos</b>
+        </div>
+      `;
+    }
   }
 
   function getReportColumnAFValue(r) {
