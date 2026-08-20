@@ -161,6 +161,7 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
     <a href="#familia">Familia y apoyos</a>
     <a href="#operacion">Operación</a>
     <a href="#prioridad">Priorización</a>
+    <a href="#gestion">Gestión de Casos</a>
     <a href="#calidad">Calidad del dato</a>
     <a href="#cierre">Conclusiones</a>
   </div>
@@ -369,9 +370,41 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
   </table>
 </section>
 
-<!-- 8 CALIDAD -->
+<!-- 8 GESTION OPERATIVA DE CASOS -->
+<section id="gestion" class="reveal">
+  <div class="sec-head"><span class="sec-num">08</span><h2>Estado de la gestión de apoyos (SST)</h2></div>
+  <div class="rule"></div>
+  <p>Seguimiento operativo y bitácora en vivo de los colaboradores vulnerables con afectaciones físicas en sus viviendas o entornos inseguros.</p>
+  
+  <div class="grid g3">
+    <div class="kpi" id="kpi-gestion-cobertura"><b>0 %</b><span>Cobertura de gestión</span></div>
+    <div class="kpi" id="kpi-gestion-atendidos"><b>0</b><span>Casos Atendidos / Resueltos</span></div>
+    <div class="kpi red" id="kpi-gestion-pendientes"><b>0</b><span>Casos Pendientes por intervenir</span></div>
+  </div>
+
+  <h3 style="margin-top:30px;">Bitácora nominal e historial de observaciones</h3>
+  <p>Detalle exhaustivo de cada colaborador damnificado de vivienda con el operador de SST a cargo y el último reporte de gestión grabado en el sistema:</p>
+  <table id="tb-gestion-detalle">
+    <thead>
+      <tr>
+        <th>Colaborador</th>
+        <th>Proceso / Área</th>
+        <th>Municipio</th>
+        <th>Afectación Reportada</th>
+        <th style="width:110px">Estado</th>
+        <th>Operador Asignado</th>
+        <th>Observaciones de Gestión (Bitácora)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Se llenará dinámicamente -->
+    </tbody>
+  </table>
+</section>
+
+<!-- 9 CALIDAD -->
 <section id="calidad" class="reveal">
-  <div class="sec-head"><span class="sec-num">08</span><h2>Calidad de la información</h2></div>
+  <div class="sec-head"><span class="sec-num">09</span><h2>Calidad de la información</h2></div>
   <div class="rule"></div>
   <p>Análisis de completitud y consistencia de los datos reportados para auditoría y asignación formal de auxilios.</p>
   <table>
@@ -380,9 +413,9 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
   </table>
 </section>
 
-<!-- 9 CIERRE -->
+<!-- 10 CIERRE -->
 <section id="cierre" class="reveal">
-  <div class="sec-head"><span class="sec-num">09</span><h2>Conclusiones y recomendaciones</h2></div>
+  <div class="sec-head"><span class="sec-num">10</span><h2>Conclusiones y recomendaciones</h2></div>
   <div class="rule"></div>
   <div class="grid g2" id="conclusiones"></div>
 
@@ -443,8 +476,10 @@ const pf = n => n.toFixed(1).replace(".", ",") + " %";
 
 // Cargar y calcular dinámicamente si hay datos en localStorage
 let rawReports = [];
+let supportManagement = {};
 try {
   rawReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports') || '[]');
+  supportManagement = JSON.parse(localStorage.getItem('comfamiliar_support_management') || '{}');
 } catch(e) {
   console.warn("Error leyendo de localStorage. Usando datos de respaldo.");
 }
@@ -474,6 +509,71 @@ function getReportColumnAFValue(r) {
   if (contrato.includes('pension')) return 'Pensionados';
   if (contrato.includes('prestacion') || contrato.includes('contratista')) return 'Contratistas';
   return 'Activo Comfamiliar';
+}
+
+function getNormalizedMgmtStatus(r, supportManagementObj) {
+  const doc = String(r.documento || r.cedula).trim();
+  const mgmt = supportManagementObj[doc] || {};
+  const rawStatus = normalizeStr(mgmt.status || r.gestionStatus || 'pendiente');
+
+  if (
+    rawStatus.includes('resuelt') || 
+    rawStatus.includes('finaliz') || 
+    rawStatus.includes('atend') || 
+    rawStatus.includes('entregad') || 
+    rawStatus.includes('cerrad') || 
+    rawStatus.includes('complet') || 
+    rawStatus.includes('listo') ||
+    rawStatus.includes('solucion')
+  ) {
+    return 'resuelto';
+  }
+  if (
+    rawStatus.includes('proces') || 
+    rawStatus.includes('gestion') || 
+    rawStatus.includes('atencion') || 
+    rawStatus.includes('tramit') || 
+    rawStatus.includes('contac') || 
+    rawStatus.includes('revision') ||
+    rawStatus.includes('seguimien')
+  ) {
+    return 'proceso';
+  }
+  return 'pendiente';
+}
+
+function getNormalizedSubMgmtStatus(r, subKey, supportManagementObj) {
+  const doc = String(r.documento || r.cedula).trim();
+  const mgmt = supportManagementObj[doc] || {};
+  
+  if (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].status) {
+    const rawStatus = normalizeStr(mgmt.subMgmt[subKey].status);
+    if (
+      rawStatus.includes('resuelt') || 
+      rawStatus.includes('finaliz') || 
+      rawStatus.includes('atend') || 
+      rawStatus.includes('entregad') || 
+      rawStatus.includes('cerrad') || 
+      rawStatus.includes('complet') || 
+      rawStatus.includes('listo') ||
+      rawStatus.includes('solucion')
+    ) {
+      return 'resuelto';
+    }
+    if (
+      rawStatus.includes('proces') || 
+      rawStatus.includes('gestion') || 
+      rawStatus.includes('atencion') || 
+      rawStatus.includes('tramit') || 
+      rawStatus.includes('contac') || 
+      rawStatus.includes('revision') ||
+      rawStatus.includes('seguimien')
+    ) {
+      return 'proceso';
+    }
+    return 'pendiente';
+  }
+  return getNormalizedMgmtStatus(r, supportManagementObj);
 }
 
 if (rawReports && rawReports.length > 0) {
@@ -729,11 +829,6 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector(".hero-figs div:nth-child(3) b").textContent = totalInhabitables;
   document.querySelector(".hero-figs div:nth-child(4) b").textContent = totalSinLugarSeguro;
 
-  document.querySelector(".hero-figs div:nth-child(1) b").dataset.count = reports.length;
-  document.querySelector(".hero-figs div:nth-child(2) b").dataset.count = totalImpactados;
-  document.querySelector(".hero-figs div:nth-child(3) b").dataset.count = totalInhabitables;
-  document.querySelector(".hero-figs div:nth-child(4) b").dataset.count = totalSinLugarSeguro;
-
   // Texto Resumen Ejecutivo
   document.querySelector("#resumen p").innerHTML = `La base consolida <strong>${reports.length} registros únicos</strong> de colaboradores y personal vinculado que reportaron afectación en su vivienda durante la emergencia. El <strong>${pf(totalInhabitables/reports.length*100)} (${totalInhabitables} personas)</strong> declara afectaciones graves que le impiden habitar el inmueble y el <strong>${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / reports.length * 100)}</strong> fue clasificado en <strong>criticidad roja</strong>: no se trata de reportes menores, sino de una población mayoritariamente en condición de urgencia. Al ponderar por el tamaño declarado de cada hogar, la afectación alcanza a cerca de <strong>${totalImpactados} personas</strong>.`;
   document.querySelector("#resumen p:nth-child(4)").innerHTML = `El grupo de atención inmediata está delimitado con precisión: <strong>${totalSinLugarSeguro} personas (${pf(totalSinLugarSeguro/reports.length*100)}) no cuentan con un lugar seguro</strong> y <strong>${reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length} de ellas tienen además afectación grave</strong>. A esto se suma que <strong>${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas viven en arriendo</strong> —el grupo más numeroso—, condición que cierra el acceso a soluciones patrimoniales y desplaza la necesidad hacia liquidez y relocalización.`;
@@ -770,6 +865,60 @@ if (rawReports && rawReports.length > 0) {
 
   // Texto Condición Habitacional
   document.querySelector("#vivienda p").innerHTML = `El <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas) habita en vivienda arrendada</strong> y el ${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length}) en vivienda familiar; solo el <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('prop')).length/reports.length*100)} es propietario</strong>. La tenencia condiciona el tipo de ayuda posible: quien arrienda no accede a subsidios de mejoramiento y su necesidad se traduce en <strong>apoyo para relocalización, depósito y canon</strong>.`;
+
+  // 15. Calcular Gestión
+  const housingCases = reports.filter(r => {
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    return viv.includes('impiden') || viv.includes('no me permiten');
+  });
+
+  let housingAtendidos = 0;
+  let housingProceso = 0;
+  let housingPendientes = 0;
+
+  let gestionRows = "";
+
+  housingCases.forEach(r => {
+    const doc = String(r.documento || r.cedula).trim();
+    const st = getNormalizedSubMgmtStatus(r, 'vivienda', supportManagement);
+    const mgmt = supportManagement[doc] || {};
+    const op = mgmt.operator || 'Sin asignar';
+    const notes = mgmt.notes || 'Sin observaciones de gestión registradas';
+
+    if (st === 'resuelto') {
+      housingAtendidos++;
+    } else if (st === 'proceso') {
+      housingProceso++;
+    } else {
+      housingPendientes++;
+    }
+
+    const badgeClass = st === 'resuelto' ? 't-n4' : st === 'proceso' ? 't-n3' : 't-n1';
+    const badgeLabel = st === 'resuelto' ? 'Atendido' : st === 'proceso' ? 'En Proceso' : 'Pendiente';
+
+    gestionRows += `
+      <tr>
+        <td><strong>${r.nombre}</strong><br><small style="color:var(--slate)">C.C. ${r.documento || r.cedula}</small></td>
+        <td>${r.proceso || 'N/A'}</td>
+        <td>${r.municipio || 'N/A'}</td>
+        <td style="color:var(--clay); font-weight:500;">${r.afectacionVivienda}</td>
+        <td><span class="tag ${badgeClass}">${badgeLabel}</span></td>
+        <td><strong>${op}</strong></td>
+        <td style="font-size:12.5px; line-height:1.4;">${notes}</td>
+      </tr>
+    `;
+  });
+
+  const totalHousingCases = housingCases.length;
+  const coveragePct = totalHousingCases > 0 ? Math.round(((housingAtendidos + housingProceso) / totalHousingCases) * 100) : 100;
+
+  // Actualizar los KPIs de Gestión
+  document.querySelector("#kpi-gestion-cobertura b").textContent = `${coveragePct} %`;
+  document.querySelector("#kpi-gestion-atendidos b").textContent = housingAtendidos;
+  document.querySelector("#kpi-gestion-pendientes b").textContent = housingPendientes;
+
+  // Llenar la tabla
+  document.querySelector("#tb-gestion-detalle tbody").innerHTML = gestionRows || `<tr><td colspan="7" style="text-align:center;">No hay casos críticos de vivienda registrados.</td></tr>`;
 }
 
 // Renderizar funciones con D dinámico
