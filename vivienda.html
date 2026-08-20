@@ -331,7 +331,7 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
   <div class="rule"></div>
   <figure class="card">
     <div class="chart-title">Condiciones declaradas para desempeñar el trabajo</div>
-    <div class="chart-sub">Conectividad, herramientas y presencialidad</div>
+    <div class="chart-sub">Conectividad, herramientas and presencialidad</div>
     <div class="cols" id="cols-continuidad" style="height:220px"></div>
     <div class="legend"><span><i style="background:#14513F"></i>Sí</span><span><i style="background:#C4552F"></i>No</span></div>
   </figure>
@@ -577,12 +577,17 @@ function getNormalizedSubMgmtStatus(r, subKey, supportManagementObj) {
 }
 
 if (rawReports && rawReports.length > 0) {
-  // Deduplicación por documento/cédula
+  // Deduplicación por documento/cédula Y FILTRAR estrictamente por casos con afectación de vivienda
   const mapReports = new Map();
   rawReports.forEach(r => {
     const doc = String(r.documento || r.cedula || '').trim();
-    if (doc && !mapReports.has(doc)) {
-      mapReports.set(doc, r);
+    if (doc) {
+      const viv = (r.afectacionVivienda || '').toLowerCase();
+      // Filtro para homologar con el conteo de la tarjeta de vivienda (320 en Excel / 318 únicos)
+      const isMatch = viv.includes('impiden') || viv.includes('no me permiten');
+      if (isMatch && !mapReports.has(doc)) {
+        mapReports.set(doc, r);
+      }
     }
   });
   const reports = Array.from(mapReports.values());
@@ -788,18 +793,13 @@ if (rawReports && rawReports.length > 0) {
 
     if (!r.municipio) muniMissing++;
   });
-  duplicatesCount = rawReports.length - reports.length;
-
-  const calidad = [
-    ["Coordenadas GPS ausentes", gpsMissing],
-    ["Campo “filtro” sin diligenciar", filtroMissing],
-    ["Sexo sin dato o inválido", sexInvalid],
-    ["Contrato sin dato", contratoMissing],
-    ["Sin cruce con Buk", bukMissing],
-    ["Proceso / área marcados como “undefined”", processUndefined],
-    ["Municipio o barrio sin dato", muniMissing],
-    ["Registros duplicados por documento", duplicatesCount]
-  ].filter(item => item[1] > 0);
+  
+  // Duplicados dentro del subconjunto de vivienda
+  const totalRawHousing = rawReports.filter(r => {
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    return viv.includes('impiden') || viv.includes('no me permiten');
+  }).length;
+  duplicatesCount = Math.max(0, totalRawHousing - reports.length);
 
   // 14. Conclusiones
   const totalImpactados = reports.reduce((sum, r) => sum + (parseInt(r.personasHogar) || 1), 0);
@@ -819,15 +819,20 @@ if (rawReports && rawReports.length > 0) {
     dias, area, tenencia, hogar, seguro, muni, familia, apoyos, continuidad, estado, estadoGrave, areaTabla, calidad, conclusiones
   };
 
-  // Actualizar metadatos en HTML
-  document.getElementById("meta-total-registros").textContent = `${rawReports.length} (${reports.length} únicos)`;
-  document.querySelector("header p.lede").textContent = `Análisis descriptivo de los ${reports.length} reportes únicos recibidos a través del formulario oficial de emergencia de Comfamiliar Risaralda.`;
+  // Metadatos en HTML
+  document.getElementById("meta-total-registros").textContent = `${totalRawHousing} (${reports.length} únicos)`;
+  document.querySelector("header p.lede").textContent = `Análisis descriptivo de los ${reports.length} reportes únicos de vivienda recibidos a través del formulario oficial de emergencia de Comfamiliar Risaralda.`;
   
   // Hero figures
   document.querySelector(".hero-figs div:nth-child(1) b").textContent = reports.length;
   document.querySelector(".hero-figs div:nth-child(2) b").textContent = totalImpactados;
   document.querySelector(".hero-figs div:nth-child(3) b").textContent = totalInhabitables;
   document.querySelector(".hero-figs div:nth-child(4) b").textContent = totalSinLugarSeguro;
+
+  document.querySelector(".hero-figs div:nth-child(1) b").dataset.count = reports.length;
+  document.querySelector(".hero-figs div:nth-child(2) b").dataset.count = totalImpactados;
+  document.querySelector(".hero-figs div:nth-child(3) b").dataset.count = totalInhabitables;
+  document.querySelector(".hero-figs div:nth-child(4) b").dataset.count = totalSinLugarSeguro;
 
   // Texto Resumen Ejecutivo
   document.querySelector("#resumen p").innerHTML = `La base consolida <strong>${reports.length} registros únicos</strong> de colaboradores y personal vinculado que reportaron afectación en su vivienda durante la emergencia. El <strong>${pf(totalInhabitables/reports.length*100)} (${totalInhabitables} personas)</strong> declara afectaciones graves que le impiden habitar el inmueble y el <strong>${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / reports.length * 100)}</strong> fue clasificado en <strong>criticidad roja</strong>: no se trata de reportes menores, sino de una población mayoritariamente en condición de urgencia. Al ponderar por el tamaño declarado de cada hogar, la afectación alcanza a cerca de <strong>${totalImpactados} personas</strong>.`;
@@ -867,11 +872,6 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector("#vivienda p").innerHTML = `El <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas) habita en vivienda arrendada</strong> y el ${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length}) en vivienda familiar; solo el <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('prop')).length/reports.length*100)} es propietario</strong>. La tenencia condiciona el tipo de ayuda posible: quien arrienda no accede a subsidios de mejoramiento y su necesidad se traduce en <strong>apoyo para relocalización, depósito y canon</strong>.`;
 
   // 15. Calcular Gestión
-  const housingCases = reports.filter(r => {
-    const viv = (r.afectacionVivienda || '').toLowerCase();
-    return viv.includes('impiden') || viv.includes('no me permiten');
-  });
-
   let housingAtendidos = 0;
   let housingProceso = 0;
   let housingPendientes = 0;
@@ -924,6 +924,7 @@ if (rawReports && rawReports.length > 0) {
 // Renderizar funciones con D dinámico
 /* --- barras horizontales simples --- */
 function barras(el, data, color, opts={}){
+  if (!el || !data || data.length === 0) return;
   const max = Math.max(...data.map(d=>d[1]));
   el.innerHTML = data.map((d,i)=>{
     const col = typeof color === "function" ? color(d,i) : color;
@@ -936,6 +937,7 @@ function barras(el, data, color, opts={}){
 }
 /* --- barras apiladas (2 series) --- */
 function barrasApiladas(el, data, c1, c2){
+  if (!el || !data || data.length === 0) return;
   const max = Math.max(...data.map(d=>d[1]+d[2]));
   el.innerHTML = data.map(d=>{
     const t = d[1]+d[2];
@@ -948,6 +950,7 @@ function barrasApiladas(el, data, c1, c2){
 }
 /* --- columnas apiladas --- */
 function columnas(el, data, c1, c2, labelMode="total"){
+  if (!el || !data || data.length === 0) return;
   const max = Math.max(...data.map(d=>d[1]+(d[2]||0)));
   el.innerHTML = data.map(d=>{
     const t = d[1]+(d[2]||0);
@@ -965,6 +968,7 @@ function columnas(el, data, c1, c2, labelMode="total"){
 }
 /* --- donut --- */
 function donut(el, partes, centro, sub){
+  if (!el || !partes || partes.length === 0) return;
   const tot = partes.reduce((a,b)=>a+b[1],0), r=54, cx=70, cy=70, circ=2*Math.PI*r;
   let off = 0;
   const arcs = partes.map(p=>{
@@ -983,7 +987,11 @@ function donut(el, partes, centro, sub){
 }
 /* --- área / línea --- */
 function areaChart(el, data){
-  if (!data || data.length === 0) return;
+  if (!el) return;
+  if (!data || data.length <= 1) {
+    el.innerHTML = `<div style="text-align:center; padding:40px; color:var(--slate); font-weight:600; font-size:13px; background:#F0EEE6; border-radius:4px; border:1px solid var(--line);">📈 No hay suficientes datos históricos por días para graficar (se requiere más de 1 día de registros).</div>`;
+    return;
+  }
   const W=760,H=230,pl=40,pr=16,pt=18,pb=34;
   const max = Math.max(...data.map(d=>d[1]))*1.15;
   const x = i => pl + i*(W-pl-pr)/(data.length-1);
@@ -1025,7 +1033,11 @@ if (rawReports && rawReports.length > 0) {
   const mapReports = new Map();
   rawReports.forEach(r => {
     const doc = String(r.documento || r.cedula || '').trim();
-    if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+    if (doc) {
+      const viv = (r.afectacionVivienda || '').toLowerCase();
+      const isMatch = viv.includes('impiden') || viv.includes('no me permiten');
+      if (isMatch && !mapReports.has(doc)) mapReports.set(doc, r);
+    }
   });
   const reports = Array.from(mapReports.values());
   critRed = reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length;
@@ -1075,7 +1087,11 @@ if (rawReports && rawReports.length > 0) {
   const mapReports = new Map();
   rawReports.forEach(r => {
     const doc = String(r.documento || r.cedula || '').trim();
-    if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+    if (doc) {
+      const viv = (r.afectacionVivienda || '').toLowerCase();
+      const isMatch = viv.includes('impiden') || viv.includes('no me permiten');
+      if (isMatch && !mapReports.has(doc)) mapReports.set(doc, r);
+    }
   });
   const reports = Array.from(mapReports.values());
   
@@ -1119,7 +1135,11 @@ if (rawReports && rawReports.length > 0) {
   const mapReports = new Map();
   rawReports.forEach(r => {
     const doc = String(r.documento || r.cedula || '').trim();
-    if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+    if (doc) {
+      const viv = (r.afectacionVivienda || '').toLowerCase();
+      const isMatch = viv.includes('impiden') || viv.includes('no me permiten');
+      if (isMatch && !mapReports.has(doc)) mapReports.set(doc, r);
+    }
   });
   const reports = Array.from(mapReports.values());
   
