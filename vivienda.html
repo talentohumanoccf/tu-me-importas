@@ -803,6 +803,17 @@ if (rawReports && rawReports.length > 0) {
   }).length;
   duplicatesCount = Math.max(0, totalRawHousing - reports.length);
 
+  const calidad = [
+    ["Coordenadas GPS ausentes", gpsMissing],
+    ["Campo “filtro” sin diligenciar", filtroMissing],
+    ["Sexo sin dato o inválido", sexInvalid],
+    ["Contrato sin dato", contratoMissing],
+    ["Sin cruce con Buk", bukMissing],
+    ["Proceso / área marcados como “undefined”", processUndefined],
+    ["Municipio o barrio sin dato", muniMissing],
+    ["Registros duplicados por documento", duplicatesCount]
+  ].filter(item => item[1] > 0);
+
   // 14. Conclusiones
   const totalImpactados = reports.reduce((sum, r) => sum + (parseInt(r.personasHogar) || 1), 0);
   const totalInhabitables = reports.filter(r => (r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten')).length;
