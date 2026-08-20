@@ -503,7 +503,7 @@ body {
     grid-template-columns: 1fr 1fr !important;
     gap: 12px !important;
   }
-  .card, .kpi-card, .analytics-card, figure, table, tr {
+  .kpi-card, .analytics-card, figure, table, tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
