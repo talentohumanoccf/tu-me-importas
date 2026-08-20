@@ -1626,6 +1626,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (categoryKey === 'vivienda') {
         const viv = (r.afectacionVivienda || '').toLowerCase();
         isMatch = (viv.includes('impiden') || viv.includes('no me permiten'));
+      } else if (categoryKey === 'leve') {
+        isMatch = (r.criticidad === 'amarillo');
       } else {
         isMatch = matchesCategory(r, categoryKey);
       }
@@ -1700,7 +1702,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted); font-weight:700; flex-wrap:wrap; gap:4px;">
-        <span>🟢 Atendidos: <b style="color:#059669;">${intervencionAtendida}</b> | 🟡 En Proceso: <b style="color:#D97706;">${intervencionEnProceso}</b></span>
+        <span>${catKey === 'leve' ? `🟢 Gestionados con Red de Apoyo: <b style="color:#059669;">${intervencionAtendida}</b>` : `🟢 Atendidos: <b style="color:#059669;">${intervencionAtendida}</b>`} | 🟡 En Proceso: <b style="color:#D97706;">${intervencionEnProceso}</b></span>
         <span>🔴 Pendientes: <b style="color:#DC2626;">${pendientes}</b></span>
       </div>
     `;
@@ -1946,6 +1948,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Renderizado dinámico de las fichas KPI unificadas con el diseño avanzado de confrontación
     renderUnifiedKPICard('kpi-card-psicologico', 'psicologico', 'Apoyo Psicológico', '🧠', '#003366');
+    renderUnifiedKPICard('kpi-card-leve', 'leve', 'Pueden Requerir Apoyo Psicológico', '🧠', '#D97706');
     renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Afectación de Vivienda', '🏠', '#DC2626');
