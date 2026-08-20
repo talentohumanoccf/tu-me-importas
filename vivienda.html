@@ -383,25 +383,6 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
     <div class="kpi" id="kpi-gestion-atendidos"><b>0</b><span>Casos Atendidos / Resueltos</span></div>
     <div class="kpi red" id="kpi-gestion-pendientes"><b>0</b><span>Casos Pendientes por intervenir</span></div>
   </div>
-
-  <h3 style="margin-top:30px;">Bitácora nominal e historial de observaciones</h3>
-  <p>Detalle exhaustivo de cada colaborador damnificado de vivienda con el operador de SST a cargo y el último reporte de gestión grabado en el sistema:</p>
-  <table id="tb-gestion-detalle">
-    <thead>
-      <tr>
-        <th>Colaborador</th>
-        <th>Proceso / Área</th>
-        <th>Municipio</th>
-        <th>Afectación Reportada</th>
-        <th style="width:110px">Estado</th>
-        <th>Operador Asignado</th>
-        <th>Observaciones de Gestión (Bitácora)</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Se llenará dinámicamente -->
-    </tbody>
-  </table>
 </section>
 
 <!-- 9 CALIDAD -->
@@ -493,6 +474,54 @@ function normalizeStr(str) {
   if (!str) return '';
   return str.toString().toLowerCase().trim()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+const MUNIS_LIST = [
+  'Pereira', 'Dosquebradas', 'La Virginia', 'Santa Rosa de Cabal', 
+  'Apía', 'Balboa', 'Belén de Umbría', 'Guática', 'La Celia', 
+  'Marsella', 'Mistrató', 'Pueblo Rico', 'Quinchía', 'Santuario', 
+  'Manizales', 'Armenia', 'Cartago', 'Chinchiná', 'Alcalá', 'Anserma'
+];
+
+function getNormalizedMunicipality(r) {
+  if (r._nMuni) {
+    const found = MUNIS_LIST.find(m => normalizeStr(m) === r._nMuni);
+    if (found) return found;
+  }
+  
+  const text = normalizeStr(r.municipio || '');
+  if (text.includes('dosquebradas')) return 'Dosquebradas';
+  if (text.includes('virginia')) return 'La Virginia';
+  if (text.includes('santa rosa') || text.includes('sta rosa')) return 'Santa Rosa de Cabal';
+  if (text.includes('pereira')) return 'Pereira';
+  if (text.includes('marsella')) return 'Marsella';
+  if (text.includes('belen') || text.includes('umbria')) return 'Belén de Umbría';
+  if (text.includes('apia')) return 'Apía';
+  if (text.includes('santuario')) return 'Santuario';
+  if (text.includes('pueblo rico')) return 'Pueblo Rico';
+  if (text.includes('mistrato')) return 'Mistrató';
+  if (text.includes('quinchia')) return 'Quinchía';
+  if (text.includes('guatica')) return 'Guática';
+  if (text.includes('balboa')) return 'Balboa';
+  if (text.includes('celia')) return 'La Celia';
+  if (text.includes('manizales')) return 'Manizales';
+  if (text.includes('armenia')) return 'Armenia';
+  if (text.includes('cartago')) return 'Cartago';
+  if (text.includes('chinchina')) return 'Chinchiná';
+  if (text.includes('alcala')) return 'Alcalá';
+  if (text.includes('anserma')) return 'Anserma';
+
+  const dosquebradasKeywords = [
+    'frailes', 'japon', 'santa monica', 'santamonica', 'valher', 'pradera', 'bello horizonte',
+    'campestre', 'rosales', 'soleira', 'tuna', 'milano', 'la aurora', 'aurora', 'girasoles',
+    'badajoz', 'villavento', 'bosques de la acuarela', 'acuarela', 'los naranjos', 'naranjos',
+    'santiago de chile', 'llano grande', 'llanogrande', 'la macarena', 'macarena', 'galilea'
+  ];
+  for (let kw of dosquebradasKeywords) {
+    if (text.includes(kw)) return 'Dosquebradas';
+  }
+  
+  return 'Pereira';
 }
 
 function getReportColumnAFValue(r) {
@@ -626,7 +655,7 @@ if (rawReports && rawReports.length > 0) {
   // 2. Calcular áreas
   const areaMap = {};
   reports.forEach(r => {
-    const ar = r.proceso || 'Sin clasificar';
+    const ar = r.area || 'Sin clasificar';
     if (!areaMap[ar]) areaMap[ar] = { grave: 0, menor: 0 };
     const viv = (r.afectacionVivienda || '').toLowerCase();
     if (viv.includes('grave') || viv.includes('no me permiten')) {
@@ -675,17 +704,21 @@ if (rawReports && rawReports.length > 0) {
 
   // 6. Muni
   const muniMap = {};
+  MUNIS_LIST.forEach(m => {
+    muniMap[m] = { total: 0, grave: 0 };
+  });
   reports.forEach(r => {
-    let m = r.municipio || 'Sin municipio';
-    if (!muniMap[m]) muniMap[m] = { total: 0, grave: 0 };
+    const m = getNormalizedMunicipality(r);
     muniMap[m].total++;
     const viv = (r.afectacionVivienda || '').toLowerCase();
     if (viv.includes('grave') || viv.includes('no me permiten')) muniMap[m].grave++;
   });
-  const muni = Object.entries(muniMap).map(([name, stats]) => {
-    const pct = stats.total > 0 ? (stats.grave / stats.total * 100) : 0;
-    return [name, stats.total, stats.grave, pct];
-  }).sort((a,b) => b[1] - a[1]);
+  const muni = Object.entries(muniMap)
+    .filter(([name, stats]) => stats.total > 0)
+    .map(([name, stats]) => {
+      const pct = stats.total > 0 ? (stats.grave / stats.total * 100) : 0;
+      return [name, stats.total, stats.grave, pct];
+    }).sort((a,b) => b[1] - a[1]);
 
   // 7. Familia
   const famMap = {};
@@ -892,15 +925,8 @@ if (rawReports && rawReports.length > 0) {
   let housingProceso = 0;
   let housingPendientes = 0;
 
-  let gestionRows = "";
-
   housingCases.forEach(r => {
-    const doc = String(r.documento || r.cedula).trim();
     const st = getNormalizedSubMgmtStatus(r, 'vivienda', supportManagement);
-    const mgmt = supportManagement[doc] || {};
-    const op = mgmt.operator || 'Sin asignar';
-    const notes = mgmt.notes || 'Sin observaciones de gestión registradas';
-
     if (st === 'resuelto') {
       housingAtendidos++;
     } else if (st === 'proceso') {
@@ -908,21 +934,6 @@ if (rawReports && rawReports.length > 0) {
     } else {
       housingPendientes++;
     }
-
-    const badgeClass = st === 'resuelto' ? 't-n4' : st === 'proceso' ? 't-n3' : 't-n1';
-    const badgeLabel = st === 'resuelto' ? 'Atendido' : st === 'proceso' ? 'En Proceso' : 'Pendiente';
-
-    gestionRows += `
-      <tr>
-        <td><strong>${r.nombre}</strong><br><small style="color:var(--slate)">C.C. ${r.documento || r.cedula}</small></td>
-        <td>${r.proceso || 'N/A'}</td>
-        <td>${r.municipio || 'N/A'}</td>
-        <td style="color:var(--clay); font-weight:500;">${r.afectacionVivienda}</td>
-        <td><span class="tag ${badgeClass}">${badgeLabel}</span></td>
-        <td><strong>${op}</strong></td>
-        <td style="font-size:12.5px; line-height:1.4;">${notes}</td>
-      </tr>
-    `;
   });
 
   const totalHousingCases = housingCases.length;
@@ -932,9 +943,6 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector("#kpi-gestion-cobertura b").textContent = `${coveragePct} %`;
   document.querySelector("#kpi-gestion-atendidos b").textContent = housingAtendidos;
   document.querySelector("#kpi-gestion-pendientes b").textContent = housingPendientes;
-
-  // Llenar la tabla
-  document.querySelector("#tb-gestion-detalle tbody").innerHTML = gestionRows || `<tr><td colspan="7" style="text-align:center;">No hay casos críticos de vivienda registrados.</td></tr>`;
 }
 
 // Renderizar funciones con D dinámico
