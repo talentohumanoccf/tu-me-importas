@@ -503,9 +503,12 @@ body {
     grid-template-columns: 1fr 1fr !important;
     gap: 12px !important;
   }
+  .card, .kpi-card, .analytics-card, figure, table, tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
   .analytics-card {
     border: 1px solid #CBD5E1 !important;
-    page-break-inside: avoid;
   }
 }
 
