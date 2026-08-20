@@ -836,13 +836,15 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector(".hero-figs div:nth-child(3) b").dataset.count = totalInhabitables;
   document.querySelector(".hero-figs div:nth-child(4) b").dataset.count = totalSinLugarSeguro;
 
+  const reqSupportCount = reports.filter(r => {
+    const apText = normalizeStr(r.situacionYApoyo || '');
+    return Object.values(supportTypes).some(keywords => keywords.some(kw => apText.includes(kw)));
+  }).length;
+
   // Texto Resumen Ejecutivo (Con IDs fijos y seguros)
   document.getElementById("resumen-p1").innerHTML = `La base consolida <strong>${reports.length} registros únicos</strong> de colaboradores y personal vinculado que reportaron afectación en su vivienda durante la emergencia. El <strong>${pf(totalInhabitables/reports.length*100)} (${totalInhabitables} personas)</strong> declara afectaciones que le impiden habitar el inmueble y el <strong>${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / reports.length * 100)}</strong> fue clasificado en <strong>criticidad roja</strong>: no se trata de reportes menores, sino de una población mayoritariamente en condición de urgencia. Al ponderar por el tamaño declarado de cada hogar, la afectación alcanza a cerca de <strong>${totalImpactados} personas</strong>.`;
   document.getElementById("resumen-p2").innerHTML = `El grupo de atención inmediata está delimitado con precisión: <strong>${totalSinLugarSeguro} personas (${pf(totalSinLugarSeguro/reports.length*100)}) no cuentan con un lugar seguro</strong> y <strong>${reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length} de ellas tienen además afectación grave</strong>. A esto se suma que <strong>${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas viven en arriendo</strong> —el grupo más numeroso—, condición que cierra el acceso a soluciones patrimoniales y desplaza la necesidad hacia liquidez y relocalización.`;
-  document.getElementById("resumen-p3").innerHTML = `Un total de <strong>${reports.filter(r => {
-    const apText = normalizeStr(r.situacionYApoyo || '');
-    return Object.values(supportTypes).some(keywords => keywords.some(kw => apText.includes(kw)));
-  }).length} personas (${pf(reqSupportCount/reports.length*100)})</strong> declararon requerir al menos un apoyo: alimentos, apoyo psicológico, trabajo social o medicamentos.`;
+  document.getElementById("resumen-p3").innerHTML = `Un total de <strong>${reqSupportCount} personas (${pf(reqSupportCount/reports.length*100)})</strong> declararon requerir al menos un apoyo: alimentos, apoyo psicológico, trabajo social o medicamentos.`;
   
   // KPIs Resumen
   document.querySelector("#kpi-1 b").textContent = reports.length;
@@ -856,10 +858,6 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector("#kpi-6 b").textContent = reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length;
   document.querySelector("#kpi-6 span").textContent = `Viven en arriendo (${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)})`;
   
-  const reqSupportCount = reports.filter(r => {
-    const apText = normalizeStr(r.situacionYApoyo || '');
-    return Object.values(supportTypes).some(keywords => keywords.some(kw => apText.includes(kw)));
-  }).length;
   document.querySelector("#kpi-7 b").textContent = reqSupportCount;
   document.querySelector("#kpi-7 span").textContent = `Requieren algún apoyo (${pf(reqSupportCount/reports.length*100)})`;
   
