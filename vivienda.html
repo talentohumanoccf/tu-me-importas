@@ -195,7 +195,9 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
 <section id="resumen" class="reveal">
   <div class="sec-head"><span class="sec-num">01</span><h2>Resumen ejecutivo</h2></div>
   <div class="rule"></div>
-  <p>La base consolida los registros de afectación reportados. El análisis de habitabilidad de los inmuebles y criticidad permite clasificar los casos prioritarios.</p>
+  <p id="resumen-p1">La base consolida los registros de afectación reportados. El análisis de habitabilidad de los inmuebles y criticidad permite clasificar los casos prioritarios.</p>
+  <p id="resumen-p2"></p>
+  <p id="resumen-p3"></p>
   <div class="callout">
     <h4>Lectura principal</h4>
     <p>La respuesta prioriza la atención a personas sin lugar seguro y aquellos casos con pérdida de familiares o severidad extrema que requieren intervención psicosocial y física inmediata.</p>
@@ -269,7 +271,7 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
       <div class="cols" id="cols-hogar"></div>
     </figure>
   </div>
-  <p style="margin-top:26px">El tipo de tenencia de la vivienda define las rutas de apoyo aplicables. Los arrendatarios y aquellos hospedados en viviendas familiares requieren esquemas de relocalización o subsidio de arrendamientos temporales.</p>
+  <p id="vivienda-p1" style="margin-top:26px">El tipo de tenencia de la vivienda define las rutas de apoyo aplicables. Los arrendatarios y aquellos hospedados en viviendas familiares requieren esquemas de relocalización o subsidio de arrendamientos temporales.</p>
 
   <h3>Disponibilidad de lugar seguro</h3>
   <div class="grid g2">
@@ -331,7 +333,7 @@ footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
   <div class="rule"></div>
   <figure class="card">
     <div class="chart-title">Condiciones declaradas para desempeñar el trabajo</div>
-    <div class="chart-sub">Conectividad, herramientas and presencialidad</div>
+    <div class="chart-sub">Conectividad, herramientas y presencialidad</div>
     <div class="cols" id="cols-continuidad" style="height:220px"></div>
     <div class="legend"><span><i style="background:#14513F"></i>Sí</span><span><i style="background:#C4552F"></i>No</span></div>
   </figure>
@@ -583,7 +585,7 @@ if (rawReports && rawReports.length > 0) {
     const doc = String(r.documento || r.cedula || '').trim();
     if (doc) {
       const viv = (r.afectacionVivienda || '').toLowerCase();
-      // Filtro para homologar con el conteo de la tarjeta de vivienda (320 en Excel / 318 únicos)
+      // Filtro para homologar con el conteo de la tarjeta de vivienda (320 en Excel / 319 únicos)
       const isMatch = viv.includes('impiden') || viv.includes('no me permiten');
       if (isMatch && !mapReports.has(doc)) {
         mapReports.set(doc, r);
@@ -834,9 +836,13 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector(".hero-figs div:nth-child(3) b").dataset.count = totalInhabitables;
   document.querySelector(".hero-figs div:nth-child(4) b").dataset.count = totalSinLugarSeguro;
 
-  // Texto Resumen Ejecutivo
-  document.querySelector("#resumen p").innerHTML = `La base consolida <strong>${reports.length} registros únicos</strong> de colaboradores y personal vinculado que reportaron afectación en su vivienda durante la emergencia. El <strong>${pf(totalInhabitables/reports.length*100)} (${totalInhabitables} personas)</strong> declara afectaciones graves que le impiden habitar el inmueble y el <strong>${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / reports.length * 100)}</strong> fue clasificado en <strong>criticidad roja</strong>: no se trata de reportes menores, sino de una población mayoritariamente en condición de urgencia. Al ponderar por el tamaño declarado de cada hogar, la afectación alcanza a cerca de <strong>${totalImpactados} personas</strong>.`;
-  document.querySelector("#resumen p:nth-child(4)").innerHTML = `El grupo de atención inmediata está delimitado con precisión: <strong>${totalSinLugarSeguro} personas (${pf(totalSinLugarSeguro/reports.length*100)}) no cuentan con un lugar seguro</strong> y <strong>${reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length} de ellas tienen además afectación grave</strong>. A esto se suma que <strong>${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas viven en arriendo</strong> —el grupo más numeroso—, condición que cierra el acceso a soluciones patrimoniales y desplaza la necesidad hacia liquidez y relocalización.`;
+  // Texto Resumen Ejecutivo (Con IDs fijos y seguros)
+  document.getElementById("resumen-p1").innerHTML = `La base consolida <strong>${reports.length} registros únicos</strong> de colaboradores y personal vinculado que reportaron afectación en su vivienda durante la emergencia. El <strong>${pf(totalInhabitables/reports.length*100)} (${totalInhabitables} personas)</strong> declara afectaciones que le impiden habitar el inmueble y el <strong>${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / reports.length * 100)}</strong> fue clasificado en <strong>criticidad roja</strong>: no se trata de reportes menores, sino de una población mayoritariamente en condición de urgencia. Al ponderar por el tamaño declarado de cada hogar, la afectación alcanza a cerca de <strong>${totalImpactados} personas</strong>.`;
+  document.getElementById("resumen-p2").innerHTML = `El grupo de atención inmediata está delimitado con precisión: <strong>${totalSinLugarSeguro} personas (${pf(totalSinLugarSeguro/reports.length*100)}) no cuentan con un lugar seguro</strong> y <strong>${reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length} de ellas tienen además afectación grave</strong>. A esto se suma que <strong>${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas viven en arriendo</strong> —el grupo más numeroso—, condición que cierra el acceso a soluciones patrimoniales y desplaza la necesidad hacia liquidez y relocalización.`;
+  document.getElementById("resumen-p3").innerHTML = `Un total de <strong>${reports.filter(r => {
+    const apText = normalizeStr(r.situacionYApoyo || '');
+    return Object.values(supportTypes).some(keywords => keywords.some(kw => apText.includes(kw)));
+  }).length} personas (${pf(reqSupportCount/reports.length*100)})</strong> declararon requerir al menos un apoyo: alimentos, apoyo psicológico, trabajo social o medicamentos.`;
   
   // KPIs Resumen
   document.querySelector("#kpi-1 b").textContent = reports.length;
@@ -869,7 +875,7 @@ if (rawReports && rawReports.length > 0) {
   document.querySelector("#kpi-seguro-hogar b").textContent = reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && (parseInt(r.personasHogar) >= 4)).length;
 
   // Texto Condición Habitacional
-  document.querySelector("#vivienda p").innerHTML = `El <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas) habita en vivienda arrendada</strong> y el ${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length}) en vivienda familiar; solo el <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('prop')).length/reports.length*100)} es propietario</strong>. La tenencia condiciona el tipo de ayuda posible: quien arrienda no accede a subsidios de mejoramiento y su necesidad se traduce en <strong>apoyo para relocalización, depósito y canon</strong>.`;
+  document.getElementById("vivienda-p1").innerHTML = `El <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas) habita en vivienda arrendada</strong> y el ${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length}) en vivienda familiar; solo el <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('prop')).length/reports.length*100)} es propietario</strong>. La tenencia condiciona el tipo de ayuda posible: quien arrienda no accede a subsidios de mejoramiento y su necesidad se traduce en <strong>apoyo para relocalización, depósito y canon</strong>.`;
 
   // 15. Calcular Gestión
   let housingAtendidos = 0;
