@@ -1705,6 +1705,13 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+    if (catKey === 'vivienda' && solicitados > 0) {
+      container.innerHTML += `
+        <button onclick="window.open('vivienda.html', '_blank')" style="margin-top:10px; background:#14513F; color:#FFF; border:none; border-radius:6px; padding:6px 12px; font-size:0.72rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 3px 6px rgba(20,81,63,0.15); width:100%; justify-content:center;">
+          📊 Ver Informe Especial de Vivienda
+        </button>
+      `;
+    }
   }
 
   function getReportColumnAFValue(r) {

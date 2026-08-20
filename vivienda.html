@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Afectación de vivienda · Comfamiliar Risaralda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Archivo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F3EC; --paper-2:#FFFFFF; --ink:#15211E; --ink-2:#3D4C49;
+  --green:#14513F; --green-2:#2E7C63; --green-3:#7FB6A0; --green-wash:#E7EFEB;
+  --clay:#B8452C; --clay-wash:#F6E7E2; --amber:#CE9327; --amber-wash:#F8EFDC;
+  --slate:#6C7B7A; --line:#DDD9CE; --shadow:0 1px 2px rgba(21,33,30,.05),0 12px 32px -18px rgba(21,33,30,.35);
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  --sans:'Archivo','Helvetica Neue',Helvetica,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 12% 8%,rgba(46,124,99,.06),transparent 45%),
+                   radial-gradient(circle at 88% 2%,rgba(184,69,44,.05),transparent 40%);
+}
+::selection{background:var(--green);color:#fff}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+
+/* ---------- NAV ---------- */
+nav{position:sticky;top:0;z-index:50;background:rgba(245,243,236,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:26px;height:58px;overflow-x:auto;scrollbar-width:none}
+nav .wrap::-webkit-scrollbar{display:none}
+nav .brand{font-family:var(--serif);font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap;color:var(--green)}
+nav a{color:var(--slate);text-decoration:none;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;padding:4px 0;border-bottom:2px solid transparent;transition:.25s}
+nav a:hover{color:var(--green)}
+nav a.on{color:var(--ink);border-color:var(--clay)}
+
+/* ---------- HERO ---------- */
+header{position:relative;overflow:hidden;background:var(--green);color:#EAF1ED;padding:86px 0 0}
+header::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 82% 18%,rgba(255,255,255,.09),transparent 42%),
+             radial-gradient(circle at 6% 92%,rgba(127,182,160,.22),transparent 45%)}
+header::after{content:"";position:absolute;inset:0;opacity:.16;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.35) 1px,transparent 1px);background-size:100% 34px;
+  mask-image:linear-gradient(to bottom,transparent,#000 60%,transparent)}
+header .wrap{position:relative;z-index:2}
+.eyebrow{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:#E9A97F;font-weight:600;margin-bottom:20px}
+h1{font-family:var(--serif);font-weight:300;font-size:clamp(38px,6.4vw,68px);line-height:1.02;letter-spacing:-.025em;margin:0 0 18px;max-width:15ch;color:#fff}
+h1 em{font-style:italic;font-weight:500;color:#B9DCCB}
+.lede{max-width:62ch;font-size:17px;color:#C9DCD4;font-weight:300}
+.meta-row{display:flex;flex-wrap:wrap;gap:34px;margin:38px 0 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.16)}
+.meta-row div span{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#8FB3A5}
+.meta-row div strong{font-weight:500;font-size:15px;color:#F0F6F3}
+.hero-figs{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.16);
+  margin-top:56px;border-top:1px solid rgba(255,255,255,.16)}
+.hero-figs div{background:var(--green);padding:26px 20px 30px}
+.hero-figs b{display:block;font-family:var(--serif);font-size:40px;font-weight:500;line-height:1;color:#fff;letter-spacing:-.02em}
+.hero-figs b.warn{color:#F0A88A}
+.hero-figs span{font-size:12px;color:#9FC0B2;letter-spacing:.03em}
+
+/* ---------- SECTIONS ---------- */
+section{padding:78px 0 8px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:10px}
+.sec-num{font-family:var(--serif);font-size:13px;font-weight:700;color:var(--clay);letter-spacing:.1em}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(26px,3.4vw,36px);line-height:1.12;letter-spacing:-.02em;margin:0;color:var(--green)}
+h3{font-family:var(--sans);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);font-weight:600;margin:38px 0 14px}
+p{margin:0 0 16px;max-width:74ch;color:var(--ink-2)}
+p strong{color:var(--ink);font-weight:600}
+.rule{height:1px;background:var(--line);margin:8px 0 30px}
+
+/* ---------- CARDS / GRID ---------- */
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:3px;padding:24px;box-shadow:var(--shadow)}
+.card.tight{padding:20px}
+.kpi{background:var(--paper-2);border:1px solid var(--line);border-left:3px solid var(--green-2);border-radius:2px;padding:18px 20px}
+.kpi.red{border-left-color:var(--clay)}
+.kpi.amber{border-left-color:var(--amber)}
+.kpi b{display:block;font-family:var(--serif);font-size:34px;font-weight:500;line-height:1;letter-spacing:-.02em;color:var(--green)}
+.kpi.red b{color:var(--clay)} .kpi.amber b{color:#A8761A}
+.kpi span{display:block;font-size:12.5px;color:var(--slate);margin-top:7px;line-height:1.35}
+.chart-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.chart-sub{font-size:12px;color:var(--slate);margin-bottom:16px}
+figcaption{font-size:11.5px;color:var(--slate);font-style:italic;margin-top:12px;line-height:1.5}
+figure{margin:0}
+
+/* ---------- CALLOUTS ---------- */
+.callout{border-left:3px solid var(--clay);background:var(--clay-wash);padding:20px 22px;border-radius:0 3px 3px 0;margin:26px 0}
+.callout.green{border-color:var(--green-2);background:var(--green-wash)}
+.callout.amber{border-color:var(--amber);background:var(--amber-wash)}
+.callout h4{margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--clay);font-weight:700}
+.callout.green h4{color:var(--green)} .callout.amber h4{color:#A8761A}
+.callout p{margin:0;font-size:14.6px;color:var(--ink-2)}
+
+/* ---------- TABLES ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.6px;margin:6px 0 4px}
+thead th{background:var(--green);color:#fff;text-align:left;font-weight:500;padding:11px 14px;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line);color:var(--ink-2)}
+tbody tr:nth-child(even){background:#FBFAF7}
+tbody tr:hover{background:var(--green-wash)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.total td{font-weight:700;color:var(--ink);background:#F0EEE6}
+.tag{display:inline-block;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.04em}
+.t-n1{background:var(--clay);color:#fff} .t-n2{background:#E08A5C;color:#4A1C0D}
+.t-n3{background:var(--amber-wash);color:#8A6113;border:1px solid #E3C57F}
+.t-n4{background:var(--green-wash);color:var(--green);border:1px solid var(--green-3)}
+
+/* ---------- CHART PRIMITIVES ---------- */
+.bars{display:flex;flex-direction:column;gap:13px}
+.bar-row{display:grid;grid-template-columns:minmax(96px,168px) 1fr auto;gap:14px;align-items:center;font-size:13px}
+.bar-row .lab{color:var(--ink-2);text-align:right;line-height:1.25}
+.bar-track{background:#EDEAE1;height:20px;border-radius:2px;overflow:hidden;position:relative;display:flex}
+.bar-fill{height:100%;width:0;transition:width 1.05s cubic-bezier(.22,.9,.3,1)}
+.bar-val{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;font-size:12.5px;min-width:66px}
+.bar-val i{font-style:normal;color:var(--slate);font-weight:400}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:var(--slate)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.cols{display:flex;align-items:flex-end;gap:12px;height:180px;padding-top:10px}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;height:100%}
+.col .stack{width:100%;max-width:74px;display:flex;flex-direction:column;justify-content:flex-end;height:0;transition:height 1s cubic-bezier(.22,.9,.3,1);border-radius:2px 2px 0 0;overflow:hidden}
+.col .cap{font-size:12px;color:var(--slate);text-align:center;line-height:1.25}
+.col .top{font-size:12.5px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+svg .anim-dash{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1.4s ease-out .1s}
+.on-view svg .anim-dash{stroke-dashoffset:0}
+.donut-wrap{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+.donut-mid{font-family:var(--serif)}
+
+/* ---------- FOOTER ---------- */
+footer{margin-top:80px;background:var(--green);color:#B9CFC6;padding:52px 0 60px}
+footer .wrap{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;align-items:flex-end}
+footer strong{display:block;font-family:var(--serif);font-size:20px;color:#fff;font-weight:400;margin-bottom:8px}
+footer p{color:#9FBBB0;font-size:13px;max-width:56ch;margin:0}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.9,.3,1)}
+.reveal.on-view{opacity:1;transform:none}
+
+@media(max-width:860px){
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .hero-figs{grid-template-columns:1fr 1fr}
+  .bar-row{grid-template-columns:minmax(80px,120px) 1fr auto}
+  header{padding-top:56px}
+}
+@media print{
+  nav{display:none} body{background:#fff} .reveal{opacity:1;transform:none}
+  section{page-break-inside:avoid;padding:30px 0}
+  header{padding-top:40px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">Afectación de vivienda ’26</div>
+    <a href="#resumen">Resumen</a>
+    <a href="#severidad">Severidad</a>
+    <a href="#vivienda">Vivienda</a>
+    <a href="#territorio">Territorio</a>
+    <a href="#familia">Familia y apoyos</a>
+    <a href="#operacion">Operación</a>
+    <a href="#prioridad">Priorización</a>
+    <a href="#calidad">Calidad del dato</a>
+    <a href="#cierre">Conclusiones</a>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Informe de caracterización · Gestión Humana</div>
+    <h1>Afectación de vivienda del <em>talento humano</em></h1>
+    <p class="lede">Análisis descriptivo de los reportes recibidos a través del formulario oficial de emergencia.</p>
+    <div class="meta-row">
+      <div><span>Fuente</span><strong>BASE_AFECTACIÓN_VIVIENDA · hoja FUENTE</strong></div>
+      <div><span>Registros</span><strong id="meta-total-registros">319</strong></div>
+      <div><span>Ventana</span><strong>11 – 18 de agosto de 2026</strong></div>
+      <div><span>Entidad</span><strong>Comfamiliar Risaralda</strong></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="hero-figs">
+      <div><b data-count="319">0</b><span>registros de afectación</span></div>
+      <div><b data-count="778">0</b><span>personas impactadas (est.)</span></div>
+      <div><b class="warn" data-count="160">0</b><span>viviendas inhabitables</span></div>
+      <div><b class="warn" data-count="47">0</b><span>sin lugar seguro</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- 1 RESUMEN -->
+<section id="resumen" class="reveal">
+  <div class="sec-head"><span class="sec-num">01</span><h2>Resumen ejecutivo</h2></div>
+  <div class="rule"></div>
+  <p>La base consolida los registros de afectación reportados. El análisis de habitabilidad de los inmuebles y criticidad permite clasificar los casos prioritarios.</p>
+  <div class="callout">
+    <h4>Lectura principal</h4>
+    <p>La respuesta prioriza la atención a personas sin lugar seguro y aquellos casos con pérdida de familiares o severidad extrema que requieren intervención psicosocial y física inmediata.</p>
+  </div>
+
+  <h3>Indicadores clave</h3>
+  <div class="grid g4" id="kpi-grid-container">
+    <div class="kpi" id="kpi-1"><b>0</b><span>Registros de afectación</span></div>
+    <div class="kpi" id="kpi-2"><b>0</b><span>Personas impactadas (estimado)</span></div>
+    <div class="kpi red" id="kpi-3"><b>0</b><span>Vivienda inhabitable</span></div>
+    <div class="kpi red" id="kpi-4"><b>0</b><span>Criticidad roja</span></div>
+    <div class="kpi amber" id="kpi-5"><b>0</b><span>Sin lugar seguro</span></div>
+    <div class="kpi amber" id="kpi-6"><b>0</b><span>Viven en arriendo</span></div>
+    <div class="kpi" id="kpi-7"><b>0</b><span>Requieren algún apoyo</span></div>
+    <div class="kpi" id="kpi-8"><b>0</b><span>Con familiares afectados</span></div>
+  </div>
+
+  <h3>Comportamiento del reporte en el tiempo</h3>
+  <figure class="card reveal" id="fig-dias">
+    <div class="chart-title">Registros recibidos por día</div>
+    <div class="chart-sub">11 al 18 de agosto de 2026</div>
+    <div id="area-dias"></div>
+    <figcaption>Muestra la distribución temporal de la carga de reportes a lo largo de la emergencia.</figcaption>
+  </figure>
+</section>
+
+<!-- 2 SEVERIDAD -->
+<section id="severidad" class="reveal">
+  <div class="sec-head"><span class="sec-num">02</span><h2>Severidad y nivel de criticidad</h2></div>
+  <div class="rule"></div>
+  <div class="grid g2">
+    <figure class="card">
+      <div class="chart-title">Nivel de afectación declarado</div>
+      <div class="chart-sub">Distribución porcentual</div>
+      <div class="donut-wrap" id="donut-sev"></div>
+    </figure>
+    <figure class="card">
+      <div class="chart-title">Nivel de criticidad asignado</div>
+      <div class="chart-sub">Clasificación operativa</div>
+      <div class="donut-wrap" id="donut-crit"></div>
+    </figure>
+  </div>
+  <p style="margin-top:26px">El nivel de criticidad asignado incorpora criterios adicionales al estado físico de los inmuebles, tales como el grupo familiar y las necesidades de apoyo inmediato del colaborador.</p>
+
+  <h3>Severidad por área organizacional</h3>
+  <figure class="card reveal">
+    <div class="chart-title">Registros por área, según nivel de afectación</div>
+    <div class="chart-sub">Barras apiladas · grave vs. menor</div>
+    <div class="bars" id="bars-area"></div>
+    <div class="legend"><span><i style="background:#B8452C"></i>Afectación grave</span><span><i style="background:#CE9327"></i>Afectación menor</span></div>
+  </figure>
+  <table>
+    <thead><tr><th>Área</th><th class="num">Registros</th><th class="num">Grave</th><th class="num">Menor</th><th class="num">% Grave</th><th class="num">% del total</th></tr></thead>
+    <tbody id="tb-area"></tbody>
+  </table>
+</section>
+
+<!-- 3 VIVIENDA -->
+<section id="vivienda" class="reveal">
+  <div class="sec-head"><span class="sec-num">03</span><h2>Condición habitacional</h2></div>
+  <div class="rule"></div>
+  <div class="grid g2">
+    <figure class="card">
+      <div class="chart-title">Tipo de tenencia</div>
+      <div class="chart-sub">Distribución de modalidades</div>
+      <div class="bars" id="bars-tenencia"></div>
+    </figure>
+    <figure class="card">
+      <div class="chart-title">Personas por hogar</div>
+      <div class="chart-sub">Tamaño declarado del núcleo</div>
+      <div class="cols" id="cols-hogar"></div>
+    </figure>
+  </div>
+  <p style="margin-top:26px">El tipo de tenencia de la vivienda define las rutas de apoyo aplicables. Los arrendatarios y aquellos hospedados en viviendas familiares requieren esquemas de relocalización o subsidio de arrendamientos temporales.</p>
+
+  <h3>Disponibilidad de lugar seguro</h3>
+  <div class="grid g2">
+    <figure class="card">
+      <div class="chart-title">¿Cuenta con un lugar seguro donde permanecer?</div>
+      <div class="chart-sub">En color intenso, los casos con afectación grave dentro de cada grupo</div>
+      <div class="cols" id="cols-seguro"></div>
+      <div class="legend"><span><i style="background:#B8452C"></i>Con afectación grave</span><span><i style="background:#DDD9CE"></i>Con afectación menor</span></div>
+    </figure>
+    <div class="card tight">
+      <div class="chart-title">El indicador más accionable de la base</div>
+      <div class="chart-sub">Casos de extrema urgencia habitacional</div>
+      <div class="grid" style="gap:12px">
+        <div class="kpi red" id="kpi-seguro-critico"><b>0</b><span>Sin lugar seguro y con afectación grave</span></div>
+        <div class="kpi amber" id="kpi-seguro-hogar"><b>0</b><span>En hogares multifamiliares (4+ personas)</span></div>
+      </div>
+      <p style="margin:16px 0 0;font-size:14px">Este subgrupo prioritario requiere atención y contacto nominal prioritario diario.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 TERRITORIO -->
+<section id="territorio" class="reveal">
+  <div class="sec-head"><span class="sec-num">04</span><h2>Distribución geográfica</h2></div>
+  <div class="rule"></div>
+  <figure class="card">
+    <div class="chart-title">Municipio de residencia</div>
+    <div class="chart-sub">Ubicación declarada</div>
+    <div class="bars" id="bars-muni"></div>
+  </figure>
+  <p style="margin-top:26px">Concentración y severidad de afectaciones por cabeceras municipales de la zona de influencia de la entidad.</p>
+  <table>
+    <thead><tr><th>Municipio / zona</th><th class="num">Registros</th><th class="num">Afectación grave</th><th class="num">% Grave</th></tr></thead>
+    <tbody id="tb-muni"></tbody>
+  </table>
+</section>
+
+<!-- 5 FAMILIA -->
+<section id="familia" class="reveal">
+  <div class="sec-head"><span class="sec-num">05</span><h2>Situación familiar y apoyos requeridos</h2></div>
+  <div class="rule"></div>
+  <div class="grid g2">
+    <figure class="card">
+      <div class="chart-title">Estado del grupo familiar</div>
+      <div class="chart-sub">Distribución de novedades familiares</div>
+      <div class="bars" id="bars-familia"></div>
+    </figure>
+    <figure class="card">
+      <div class="chart-title">Apoyos solicitados</div>
+      <div class="chart-sub">Requerimientos múltiples declarados</div>
+      <div class="bars" id="bars-apoyos"></div>
+    </figure>
+  </div>
+</section>
+
+<!-- 6 OPERACION -->
+<section id="operacion" class="reveal">
+  <div class="sec-head"><span class="sec-num">06</span><h2>Implicaciones para la continuidad operativa</h2></div>
+  <div class="rule"></div>
+  <figure class="card">
+    <div class="chart-title">Condiciones declaradas para desempeñar el trabajo</div>
+    <div class="chart-sub">Conectividad, herramientas y presencialidad</div>
+    <div class="cols" id="cols-continuidad" style="height:220px"></div>
+    <div class="legend"><span><i style="background:#14513F"></i>Sí</span><span><i style="background:#C4552F"></i>No</span></div>
+  </figure>
+  <p style="margin-top:26px">Cruce de disponibilidad de equipos, luz/conectividad y exigencias del cargo para la continuidad operativa.</p>
+  <table id="tb-operacion">
+    <thead><tr><th>Grupo operativo</th><th class="num">Personas</th><th class="num">% del total</th><th>Acción sugerida</th></tr></thead>
+    <tbody>
+      <!-- Se llenará dinámicamente -->
+    </tbody>
+  </table>
+
+  <h3>Vinculación con la entidad</h3>
+  <div class="grid g2">
+    <figure class="card">
+      <div class="chart-title">Resultado del cruce con bases institucionales</div>
+      <div class="chart-sub">Tipos de contrato</div>
+      <div class="bars" id="bars-estado"></div>
+    </figure>
+    <div class="card tight">
+      <div class="chart-title">Severidad según vinculación</div>
+      <div class="chart-sub">% Afectación grave</div>
+      <div class="bars" id="bars-estado-grave"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 PRIORIZACION -->
+<section id="prioridad" class="reveal">
+  <div class="sec-head"><span class="sec-num">07</span><h2>Grupos de priorización sugeridos</h2></div>
+  <div class="rule"></div>
+  <table id="tb-prioridades">
+    <thead><tr><th>Nivel</th><th>Criterio de agrupación</th><th class="num">Personas</th><th>Acción sugerida</th></tr></thead>
+    <tbody>
+      <!-- Se llenará dinámicamente -->
+    </tbody>
+  </table>
+</section>
+
+<!-- 8 CALIDAD -->
+<section id="calidad" class="reveal">
+  <div class="sec-head"><span class="sec-num">08</span><h2>Calidad de la información</h2></div>
+  <div class="rule"></div>
+  <p>Análisis de completitud y consistencia de los datos reportados para auditoría y asignación formal de auxilios.</p>
+  <table>
+    <thead><tr><th>Hallazgo</th><th class="num">Registros afectados</th><th class="num">% del total</th></tr></thead>
+    <tbody id="tb-calidad"></tbody>
+  </table>
+</section>
+
+<!-- 9 CIERRE -->
+<section id="cierre" class="reveal">
+  <div class="sec-head"><span class="sec-num">09</span><h2>Conclusiones y recomendaciones</h2></div>
+  <div class="rule"></div>
+  <div class="grid g2" id="conclusiones"></div>
+
+  <h3>Recomendaciones operativas</h3>
+  <table>
+    <thead><tr><th style="width:38px" class="num">#</th><th>Acción</th><th style="width:150px">Horizonte</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Activar la lista nominal de las personas sin lugar seguro, con responsable asignado y cierre verificado.</td><td>Inmediato (24–72 h)</td></tr>
+      <tr><td class="num">2</td><td>Definir y comunicar el paquete de ayudas por tipo de vinculación.</td><td>Semana 1</td></tr>
+      <tr><td class="num">3</td><td>Ejecutar el plan de entrega de apoyos de mercados/alimentos y contención psicosocial.</td><td>Semana 1–2</td></tr>
+      <tr><td class="num">4</td><td>Resolver la dotación de equipos tecnológicos y conectividad para el teletrabajo.</td><td>Semana 1–2</td></tr>
+      <tr><td class="num">5</td><td>Completar y depurar la base de datos (municipios, vinculaciones, sexo).</td><td>Semana 2</td></tr>
+      <tr><td class="num">6</td><td>Realizar barrido activo sobre vacíos de procesos organizacionales.</td><td>Semana 2–3</td></tr>
+      <tr><td class="num">7</td><td>Establecer un reporte de seguimiento periódico para auditar el avance de las intervenciones.</td><td>Permanente</td></tr>
+    </tbody>
+  </table>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <strong>Informe de caracterización · Afectación de vivienda</strong>
+      <p>Elaborado a partir de la base de reportes en vivo de Google Sheets. Cifras correspondientes a la información declarada por los reportantes.</p>
+    </div>
+    <p style="text-align:right">Comfamiliar Risaralda<br>Dirección de Gestión Humana<br><span id="date-footer">19 de agosto de 2026</span></p>
+  </div>
+</footer>
+
+<script>
+// Mock data original de respaldo en caso de que no haya localStorage
+const staticD = {
+  dias:[["11 ago",167],["12 ago",62],["13 ago",32],["14 ago",29],["15 ago",6],["16 ago",16],["17 ago",3],["18 ago",4]],
+  area:[["Servicios",44,62],["Clínica",49,38],["Administrativa",35,40],["Sin clasificar",25,11],["Ambulatoria",3,7],["Inactivos",4,1]],
+  tenencia:[["Arrendada",145],["Propia",99],["Familiar",65],["Otra",10]],
+  hogar:[["1",115],["2",69],["3",55],["4",40],["Más de 4",40]],
+  seguro:[["Cuenta con lugar seguro",120,152],["NO cuenta con lugar seguro",40,7]],
+  muni:[["Pereira",132,69,52.3],["Dosquebradas",72,30,41.7],["Otro / no clasificado",40,19,47.5],["Pereira (barrio reportado)",33,17,51.5],["Santa Rosa de Cabal",15,8,53.3],["Sin municipio identificado",13,13,100.0],["La Virginia",6,1,16.7],["Manizales",5,3,60.0],["Cartago",3,0,0.0]],
+  familia:[["Afectaciones leves",35],["Requieren apoyo psicosocial",13],["Pérdida de familiares",4],["Recibiendo atención médica",2],["Lesionados que requieren atención",2]],
+  apoyos:[["Alimentos",66],["Apoyo psicológico",24],["Trabajo social",16],["Apoyo jurídico",11],["Medicamentos",7]],
+  continuidad:[["Presencialidad\nobligatoria",189,130],["Condiciones óptimas\n(internet/energía)",171,148],["Herramientas de\ntrabajo completas",200,119]],
+  estado:[["Activo Comfamiliar",259],["Prestadores de Servicios",26],["Aprosalud",20],["No cruza con bases",14]],
+  estadoGrave:[["Prestadores de Servicios",76.9],["Aprosalud",60.0],["No cruza con bases",57.1],["Activo Comfamiliar",46.3]],
+  areaTabla:[["Servicios",106,44,62,"41,5 %","33,2 %"],["Clínica",87,49,38,"56,3 %","27,3 %"],["Administrativa",75,35,40,"46,7 %","23,5 %"],["Sin clasificar",36,25,11,"69,4 %","11,3 %"],["Ambulatoria",10,3,7,"30,0 %","3,1 %"],["Inactivos",5,4,1,"80,0 %","1,6 %"]],
+  calidad:[["Coordenadas GPS ausentes",235],["Campo “filtro” sin diligenciar",170],["Sexo sin dato o inválido",126],["Contrato sin dato",94],["Sin cruce con Buk",60],["Proceso / área marcados como “undefined”",36],["Municipio o barrio sin dato",13],["Registros duplicados por documento",2]],
+  conclusiones:[
+   ["La emergencia afectó a una población amplia y en condición severa.","319 personas reportaron afectación, con un alcance estimado de 778 incluyendo sus hogares. La mitad no puede habitar su vivienda y el 89,7 % está en criticidad roja."],
+   ["Existe un núcleo de 47 personas que requiere respuesta inmediata.","No cuentan con lugar seguro y 40 tienen afectación grave. Es donde la ayuda tiene mayor impacto marginal y la demora, el costo humano más alto."],
+   ["El perfil de tenencia obliga a diseñar ayudas diferenciadas.","Con 145 arrendatarios y 65 personas en vivienda familiar, dos tercios no acceden a soluciones de mejoramiento: necesitan liquidez y relocalización, no reconstrucción."],
+   ["La continuidad del servicio está en riesgo en las áreas asistenciales.","Clínica presenta la mayor severidad (56,3 %) y concentra cargos de presencialidad obligatoria. A la vez, 40 personas no pueden trabajar en ninguna modalidad."],
+   ["El personal no vinculado directamente está más afectado y menos cubierto.","Prestadores (76,9 % de afectación grave) y Aprosalud (60,0 %) superan al personal activo, pero suelen quedar fuera del alcance de los auxilios convencionales."],
+   ["La base necesita depuración para servir como soporte formal.","Vacíos en sexo, contrato, municipio y georreferenciación, junto con la ambigüedad de la pregunta de afectación, limitan su uso como evidencia formal."]]
+};
+
+const C = {green:"#14513F", green2:"#2E7C63", green3:"#7FB6A0", clay:"#B8452C", clay2:"#C4552F", amber:"#CE9327", slate:"#9AA6A3", line:"#DDD9CE"};
+const nf = n => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const pf = n => n.toFixed(1).replace(".", ",") + " %";
+
+// Cargar y calcular dinámicamente si hay datos en localStorage
+let rawReports = [];
+try {
+  rawReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports') || '[]');
+} catch(e) {
+  console.warn("Error leyendo de localStorage. Usando datos de respaldo.");
+}
+
+let D = staticD;
+let TOT = 319;
+
+function normalizeStr(str) {
+  if (!str) return '';
+  return str.toString().toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function getReportColumnAFValue(r) {
+  if (!r) return 'Activo Comfamiliar';
+  let val = (r.columnaAF || r.estadoAF || '').trim();
+  if (val) {
+    const norm = normalizeStr(val);
+    if (norm.includes('prestador')) return 'Prestadores de Servicios';
+    if (norm.includes('aprosalud')) return 'Aprosalud';
+    if (norm.includes('cruza') || norm.includes('base')) return 'No Cruza con bases de datos';
+    if (norm.includes('inactivo')) return 'Inactivo';
+    if (norm.includes('activo')) return 'Activo Comfamiliar';
+    return val;
+  }
+  const contrato = normalizeStr(r.contrato || '');
+  if (contrato.includes('pension')) return 'Pensionados';
+  if (contrato.includes('prestacion') || contrato.includes('contratista')) return 'Contratistas';
+  return 'Activo Comfamiliar';
+}
+
+if (rawReports && rawReports.length > 0) {
+  // Deduplicación por documento/cédula
+  const mapReports = new Map();
+  rawReports.forEach(r => {
+    const doc = String(r.documento || r.cedula || '').trim();
+    if (doc && !mapReports.has(doc)) {
+      mapReports.set(doc, r);
+    }
+  });
+  const reports = Array.from(mapReports.values());
+  TOT = reports.length;
+
+  // 1. Calcular días
+  const daysMap = {};
+  reports.forEach(r => {
+    let dateStr = 'Otro';
+    const ts = r.timestamp || r.fecha;
+    if (ts) {
+      const m = ts.match(/(\d+)\/(\d+)\/(\d+)/);
+      if (m) {
+        const day = parseInt(m[1]);
+        const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        dateStr = `${day} ${months[parseInt(m[2]) - 1]}`;
+      } else if (ts.includes('-')) {
+        const parts = ts.split('T')[0].split('-');
+        if (parts.length === 3) {
+          const day = parseInt(parts[2]);
+          const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+          dateStr = `${day} ${months[parseInt(parts[1]) - 1]}`;
+        }
+      }
+    }
+    daysMap[dateStr] = (daysMap[dateStr] || 0) + 1;
+  });
+  const dias = Object.entries(daysMap).sort((a,b) => {
+    const dayA = parseInt(a[0]);
+    const dayB = parseInt(b[0]);
+    return dayA - dayB;
+  });
+
+  // 2. Calcular áreas
+  const areaMap = {};
+  reports.forEach(r => {
+    const ar = r.proceso || 'Sin clasificar';
+    if (!areaMap[ar]) areaMap[ar] = { grave: 0, menor: 0 };
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    if (viv.includes('grave') || viv.includes('no me permiten')) {
+      areaMap[ar].grave++;
+    } else {
+      areaMap[ar].menor++;
+    }
+  });
+  const area = Object.entries(areaMap).map(([name, stats]) => [name, stats.grave, stats.menor]);
+
+  // 3. Tenencia
+  const tenenciaMap = {};
+  reports.forEach(r => {
+    const t = r.tipoVivienda || 'Otra';
+    tenenciaMap[t] = (tenenciaMap[t] || 0) + 1;
+  });
+  const tenencia = Object.entries(tenenciaMap).sort((a,b) => b[1] - a[1]);
+
+  // 4. Hogar
+  const hogarMap = {};
+  reports.forEach(r => {
+    let val = String(r.personasHogar || '1').trim();
+    if (val === '0' || !val) val = '1';
+    if (parseInt(val) >= 5) val = 'Más de 4';
+    hogarMap[val] = (hogarMap[val] || 0) + 1;
+  });
+  const hogar = ['1', '2', '3', '4', 'Más de 4'].map(k => [k, hogarMap[k] || 0]);
+
+  // 5. Seguro
+  let seguroSiGrave = 0, seguroSiMenor = 0;
+  let seguroNoGrave = 0, seguroNoMenor = 0;
+  reports.forEach(r => {
+    const ls = (r.lugarSeguro || '').toLowerCase().trim();
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    const isGrave = viv.includes('grave') || viv.includes('no me permiten');
+    if (ls === 'si') {
+      if (isGrave) seguroSiGrave++; else seguroSiMenor++;
+    } else {
+      if (isGrave) seguroNoGrave++; else seguroNoMenor++;
+    }
+  });
+  const seguro = [
+    ["Cuenta con lugar seguro", seguroSiGrave, seguroSiMenor],
+    ["NO cuenta con lugar seguro", seguroNoGrave, seguroNoMenor]
+  ];
+
+  // 6. Muni
+  const muniMap = {};
+  reports.forEach(r => {
+    let m = r.municipio || 'Sin municipio';
+    if (!muniMap[m]) muniMap[m] = { total: 0, grave: 0 };
+    muniMap[m].total++;
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    if (viv.includes('grave') || viv.includes('no me permiten')) muniMap[m].grave++;
+  });
+  const muni = Object.entries(muniMap).map(([name, stats]) => {
+    const pct = stats.total > 0 ? (stats.grave / stats.total * 100) : 0;
+    return [name, stats.total, stats.grave, pct];
+  }).sort((a,b) => b[1] - a[1]);
+
+  // 7. Familia
+  const famMap = {};
+  reports.forEach(r => {
+    const f = r.estadoFamilia || '';
+    if (f && !f.toLowerCase().includes('todos se encuentran bien')) {
+      famMap[f] = (famMap[f] || 0) + 1;
+    }
+  });
+  const familia = Object.entries(famMap).sort((a,b) => b[1] - a[1]);
+
+  // 8. Apoyos
+  const supportTypes = {
+    'Alimentos': ['aliment', 'kit', 'mercado', 'vivere', 'comida'],
+    'Apoyo psicológico': ['psico'],
+    'Trabajo social': ['social'],
+    'Apoyo jurídico': ['juri', 'legal'],
+    'Medicamentos': ['medicament', 'salud', 'receta']
+  };
+  const supportCounts = {};
+  Object.keys(supportTypes).forEach(k => supportCounts[k] = 0);
+  reports.forEach(r => {
+    const apText = normalizeStr(r.situacionYApoyo || '');
+    Object.entries(supportTypes).forEach(([name, keywords]) => {
+      const hasMatch = keywords.some(kw => apText.includes(kw));
+      if (hasMatch) supportCounts[name]++;
+    });
+  });
+  const apoyos = Object.entries(supportCounts).sort((a,b) => b[1] - a[1]);
+
+  // 9. Continuidad
+  let presSi = 0, presNo = 0;
+  let condSi = 0, condNo = 0;
+  let herrSi = 0, herrNo = 0;
+  reports.forEach(r => {
+    const pres = normalizeStr(r.presencialidadObligatoria || '');
+    const cond = normalizeStr(r.condicionesOptimas || '');
+    const herr = normalizeStr(r.herramientasTrabajo || r.herramientasTrabajoCompletas || '');
+
+    if (pres.includes('si')) presSi++; else presNo++;
+    if (cond.includes('si')) condSi++; else condNo++;
+    if (herr.includes('si') || herr.includes('completa')) herrSi++; else herrNo++;
+  });
+  const continuidad = [
+    ["Presencialidad\nobligatoria", presSi, presNo],
+    ["Condiciones óptimas\n(internet/energía)", condSi, condNo],
+    ["Herramientas de\ntrabajo completas", herrSi, herrNo]
+  ];
+
+  // 10. Estado
+  const contractMap = {};
+  reports.forEach(r => {
+    const c = getReportColumnAFValue(r);
+    contractMap[c] = (contractMap[c] || 0) + 1;
+  });
+  const estado = Object.entries(contractMap).sort((a,b) => b[1] - a[1]);
+
+  // 11. Estado Grave
+  const contractGraveMap = {};
+  reports.forEach(r => {
+    const c = getReportColumnAFValue(r);
+    if (!contractGraveMap[c]) contractGraveMap[c] = { total: 0, grave: 0 };
+    contractGraveMap[c].total++;
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    if (viv.includes('grave') || viv.includes('no me permiten')) contractGraveMap[c].grave++;
+  });
+  const estadoGrave = Object.entries(contractGraveMap).map(([name, stats]) => {
+    const pct = stats.total > 0 ? (stats.grave / stats.total * 100) : 0;
+    return [name, pct];
+  }).sort((a,b) => b[1] - a[1]);
+
+  // 12. Area Tabla
+  const areaTabla = Object.entries(areaMap).map(([name, stats]) => {
+    const tot = stats.grave + stats.menor;
+    const pctGrave = tot > 0 ? pf(stats.grave / tot * 100) : '0 %';
+    const pctTotal = reports.length > 0 ? pf(tot / reports.length * 100) : '0 %';
+    return [name, tot, stats.grave, stats.menor, pctGrave, pctTotal];
+  }).sort((a,b) => b[1] - a[1]);
+
+  // 13. Calidad
+  let gpsMissing = 0;
+  let filtroMissing = 0;
+  let sexInvalid = 0;
+  let contratoMissing = 0;
+  let bukMissing = 0;
+  let processUndefined = 0;
+  let muniMissing = 0;
+  let duplicatesCount = 0;
+
+  reports.forEach(r => {
+    const lat = parseFloat(r.latitud);
+    const lng = parseFloat(r.longitud);
+    if (isNaN(lat) || isNaN(lng)) gpsMissing++;
+
+    if (!r.filtro) filtroMissing++;
+
+    const sex = (r.sexo || '').toLowerCase();
+    if (!sex || sex.includes('/') || sex.length > 3) sexInvalid++;
+
+    if (!r.contrato) contratoMissing++;
+
+    const c = getReportColumnAFValue(r);
+    if (c === 'No cruza con bases de datos') bukMissing++;
+
+    const proc = (r.proceso || '').toLowerCase();
+    if (!proc || proc === 'undefined') processUndefined++;
+
+    if (!r.municipio) muniMissing++;
+  });
+  duplicatesCount = rawReports.length - reports.length;
+
+  const calidad = [
+    ["Coordenadas GPS ausentes", gpsMissing],
+    ["Campo “filtro” sin diligenciar", filtroMissing],
+    ["Sexo sin dato o inválido", sexInvalid],
+    ["Contrato sin dato", contratoMissing],
+    ["Sin cruce con Buk", bukMissing],
+    ["Proceso / área marcados como “undefined”", processUndefined],
+    ["Municipio o barrio sin dato", muniMissing],
+    ["Registros duplicados por documento", duplicatesCount]
+  ].filter(item => item[1] > 0);
+
+  // 14. Conclusiones
+  const totalImpactados = reports.reduce((sum, r) => sum + (parseInt(r.personasHogar) || 1), 0);
+  const totalInhabitables = reports.filter(r => (r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten')).length;
+  const totalSinLugarSeguro = reports.filter(r => (r.lugarSeguro || '').toLowerCase().trim() === 'no').length;
+
+  const conclusiones = [
+    ["La emergencia afectó a una población amplia y en condición severa.", `${TOT} personas reportaron afectación, con un alcance estimado de ${totalImpactados} incluyendo sus hogares. La mitad no puede habitar su vivienda y el ${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / TOT * 100)} está en criticidad roja.`],
+    ["Existe un núcleo de personas que requiere respuesta inmediata.", `No cuentan con lugar seguro y ${reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length} tienen además afectación grave. Es donde la ayuda tiene mayor impacto marginal y la demora, el costo humano más alto.`],
+    ["El perfil de tenencia obliga a diseñar ayudas diferenciadas.", `Con ${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} arrendatarios y ${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length} personas en vivienda familiar, la mayoría no acceden a soluciones de mejoramiento: necesitan apoyo para relocalización y alquiler temporal.`],
+    ["La continuidad del servicio está en riesgo en las áreas asistenciales.", `Las áreas operativas y de salud presentan alta severidad y concentran cargos de presencialidad obligatoria.`],
+    ["El personal no vinculado directamente está afectado.", `Los prestadores de servicios y contratistas externos presentan altos porcentajes de afectación.`],
+    ["La base necesita depuración para servir como soporte formal.", `Vacíos en georreferenciación, contratos y municipios limitan su uso como evidencia formal.`]
+  ];
+
+  D = {
+    dias, area, tenencia, hogar, seguro, muni, familia, apoyos, continuidad, estado, estadoGrave, areaTabla, calidad, conclusiones
+  };
+
+  // Actualizar metadatos en HTML
+  document.getElementById("meta-total-registros").textContent = `${rawReports.length} (${reports.length} únicos)`;
+  document.querySelector("header p.lede").textContent = `Análisis descriptivo de los ${reports.length} reportes únicos recibidos a través del formulario oficial de emergencia de Comfamiliar Risaralda.`;
+  
+  // Hero figures
+  document.querySelector(".hero-figs div:nth-child(1) b").textContent = reports.length;
+  document.querySelector(".hero-figs div:nth-child(2) b").textContent = totalImpactados;
+  document.querySelector(".hero-figs div:nth-child(3) b").textContent = totalInhabitables;
+  document.querySelector(".hero-figs div:nth-child(4) b").textContent = totalSinLugarSeguro;
+
+  document.querySelector(".hero-figs div:nth-child(1) b").dataset.count = reports.length;
+  document.querySelector(".hero-figs div:nth-child(2) b").dataset.count = totalImpactados;
+  document.querySelector(".hero-figs div:nth-child(3) b").dataset.count = totalInhabitables;
+  document.querySelector(".hero-figs div:nth-child(4) b").dataset.count = totalSinLugarSeguro;
+
+  // Texto Resumen Ejecutivo
+  document.querySelector("#resumen p").innerHTML = `La base consolida <strong>${reports.length} registros únicos</strong> de colaboradores y personal vinculado que reportaron afectación en su vivienda durante la emergencia. El <strong>${pf(totalInhabitables/reports.length*100)} (${totalInhabitables} personas)</strong> declara afectaciones graves que le impiden habitar el inmueble y el <strong>${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length / reports.length * 100)}</strong> fue clasificado en <strong>criticidad roja</strong>: no se trata de reportes menores, sino de una población mayoritariamente en condición de urgencia. Al ponderar por el tamaño declarado de cada hogar, la afectación alcanza a cerca de <strong>${totalImpactados} personas</strong>.`;
+  document.querySelector("#resumen p:nth-child(4)").innerHTML = `El grupo de atención inmediata está delimitado con precisión: <strong>${totalSinLugarSeguro} personas (${pf(totalSinLugarSeguro/reports.length*100)}) no cuentan con un lugar seguro</strong> y <strong>${reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length} de ellas tienen además afectación grave</strong>. A esto se suma que <strong>${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas viven en arriendo</strong> —el grupo más numeroso—, condición que cierra el acceso a soluciones patrimoniales y desplaza la necesidad hacia liquidez y relocalización.`;
+  
+  // KPIs Resumen
+  document.querySelector("#kpi-1 b").textContent = reports.length;
+  document.querySelector("#kpi-2 b").textContent = totalImpactados;
+  document.querySelector("#kpi-3 b").textContent = totalInhabitables;
+  document.querySelector("#kpi-3 span").textContent = `Vivienda inhabitable (${pf(totalInhabitables/reports.length*100)})`;
+  document.querySelector("#kpi-4 b").textContent = reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length;
+  document.querySelector("#kpi-4 span").textContent = `Criticidad roja (${pf(reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length/reports.length*100)})`;
+  document.querySelector("#kpi-5 b").textContent = totalSinLugarSeguro;
+  document.querySelector("#kpi-5 span").textContent = `Sin lugar seguro (${pf(totalSinLugarSeguro/reports.length*100)})`;
+  document.querySelector("#kpi-6 b").textContent = reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length;
+  document.querySelector("#kpi-6 span").textContent = `Viven en arriendo (${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)})`;
+  
+  const reqSupportCount = reports.filter(r => {
+    const apText = normalizeStr(r.situacionYApoyo || '');
+    return Object.values(supportTypes).some(keywords => keywords.some(kw => apText.includes(kw)));
+  }).length;
+  document.querySelector("#kpi-7 b").textContent = reqSupportCount;
+  document.querySelector("#kpi-7 span").textContent = `Requieren algún apoyo (${pf(reqSupportCount/reports.length*100)})`;
+  
+  const famAffectedCount = reports.filter(r => {
+    const f = r.estadoFamilia || '';
+    return f && !f.toLowerCase().includes('todos se encuentran bien');
+  }).length;
+  document.querySelector("#kpi-8 b").textContent = famAffectedCount;
+  document.querySelector("#kpi-8 span").textContent = `Con familiares afectados (${pf(famAffectedCount/reports.length*100)})`;
+
+  // KPIs Lugar Seguro
+  document.querySelector("#kpi-seguro-critico b").textContent = reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && ((r.afectacionVivienda || '').toLowerCase().includes('impiden') || (r.afectacionVivienda || '').toLowerCase().includes('no me permiten'))).length;
+  document.querySelector("#kpi-seguro-hogar b").textContent = reports.filter(r => (r.lugarSeguro || '').toLowerCase() === 'no' && (parseInt(r.personasHogar) >= 4)).length;
+
+  // Texto Condición Habitacional
+  document.querySelector("#vivienda p").innerHTML = `El <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas) habita en vivienda arrendada</strong> y el ${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length}) en vivienda familiar; solo el <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('prop')).length/reports.length*100)} es propietario</strong>. La tenencia condiciona el tipo de ayuda posible: quien arrienda no accede a subsidios de mejoramiento y su necesidad se traduce en <strong>apoyo para relocalización, depósito y canon</strong>.`;
+}
+
+// Renderizar funciones con D dinámico
+/* --- barras horizontales simples --- */
+function barras(el, data, color, opts={}){
+  const max = Math.max(...data.map(d=>d[1]));
+  el.innerHTML = data.map((d,i)=>{
+    const col = typeof color === "function" ? color(d,i) : color;
+    const pct = opts.pctOf ? ` <i>(${pf(d[1]/opts.pctOf*100)})</i>` : "";
+    const val = opts.isPct ? pf(d[1]) : nf(d[1]) + pct;
+    return `<div class="bar-row"><div class="lab">${d[0]}</div>
+      <div class="bar-track"><div class="bar-fill" data-w="${max>0 ? (d[1]/max*100) : 0}" style="background:${col}"></div></div>
+      <div class="bar-val">${val}</div></div>`;
+  }).join("");
+}
+/* --- barras apiladas (2 series) --- */
+function barrasApiladas(el, data, c1, c2){
+  const max = Math.max(...data.map(d=>d[1]+d[2]));
+  el.innerHTML = data.map(d=>{
+    const t = d[1]+d[2];
+    return `<div class="bar-row"><div class="lab">${d[0]}</div>
+      <div class="bar-track">
+        <div class="bar-fill" data-w="${max>0 ? (d[1]/max*100) : 0}" style="background:${c1}"></div>
+        <div class="bar-fill" data-w="${max>0 ? (d[2]/max*100) : 0}" style="background:${c2}"></div>
+      </div><div class="bar-val">${t} <i>(${pf(t/TOT*100)})</i></div></div>`;
+  }).join("");
+}
+/* --- columnas apiladas --- */
+function columnas(el, data, c1, c2, labelMode="total"){
+  const max = Math.max(...data.map(d=>d[1]+(d[2]||0)));
+  el.innerHTML = data.map(d=>{
+    const t = d[1]+(d[2]||0);
+    const top = labelMode==="total" ? nf(t) : "";
+    const s1 = t>0 ? (d[1]/t*100) : 0, s2 = t>0 ? ((d[2]||0)/t*100) : 0;
+    return `<div class="col">
+      <div class="top">${top}</div>
+      <div class="stack" data-h="${max>0 ? (t/max*100) : 0}">
+        ${d[2]!==undefined?`<div style="height:${s2}%;background:${c2}"></div>`:""}
+        <div style="height:${d[2]!==undefined?s1:100}%;background:${c1};display:flex;align-items:center;justify-content:center">
+          <span style="color:#fff;font-size:11.5px;font-weight:600">${d[2]!==undefined?d[1]:""}</span></div>
+      </div>
+      <div class="cap">${d[0].replace(/\n/g,"<br>")}</div></div>`;
+  }).join("");
+}
+/* --- donut --- */
+function donut(el, partes, centro, sub){
+  const tot = partes.reduce((a,b)=>a+b[1],0), r=54, cx=70, cy=70, circ=2*Math.PI*r;
+  let off = 0;
+  const arcs = partes.map(p=>{
+    const len = tot>0 ? (p[1]/tot*circ) : 0;
+    const s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${p[2]}" stroke-width="22"
+       stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off += len; return s;
+  }).join("");
+  el.innerHTML = `<svg viewBox="0 0 140 140" width="150" height="150">${arcs}
+      <text x="70" y="68" text-anchor="middle" class="donut-mid" font-size="24" fill="${C.green}" font-weight="600">${centro}</text>
+      <text x="70" y="86" text-anchor="middle" font-size="9.5" fill="#6C7B7A" font-family="Archivo">${sub}</text></svg>
+    <div style="flex:1;min-width:150px">${partes.map(p=>
+      `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid ${C.line};font-size:13px">
+        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p[2]};margin-right:8px"></i>${p[0]}</span>
+        <b style="font-variant-numeric:tabular-nums">${p[1]} · ${tot>0 ? pf(p[1]/tot*100) : '0 %'}</b></div>`).join("")}</div>`;
+}
+/* --- área / línea --- */
+function areaChart(el, data){
+  if (!data || data.length === 0) return;
+  const W=760,H=230,pl=40,pr=16,pt=18,pb=34;
+  const max = Math.max(...data.map(d=>d[1]))*1.15;
+  const x = i => pl + i*(W-pl-pr)/(data.length-1);
+  const y = v => H-pb - (max>0 ? (v/max*(H-pt-pb)) : 0);
+  const pts = data.map((d,i)=>[x(i),y(d[1])]);
+  const line = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area = line+` L ${x(data.length-1)} ${H-pb} L ${pl} ${H-pb} Z`;
+  const grid = [0,.25,.5,.75,1].map(f=>{
+    const v = max*f, yy=y(v);
+    return `<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" stroke="${C.line}" stroke-width="1"/>
+            <text x="${pl-8}" y="${yy+4}" text-anchor="end" font-size="10.5" fill="#8C9895" font-family="Archivo">${Math.round(v)}</text>`;
+  }).join("");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${C.green2}" stop-opacity=".38"/><stop offset="100%" stop-color="${C.green2}" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}
+    <path d="${area}" fill="url(#ag)"/>
+    <path d="${line}" fill="none" stroke="${C.green}" stroke-width="2.4" stroke-linejoin="round" class="anim-dash" style="--len:2200"/>
+    ${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff" stroke="${C.green}" stroke-width="2.2"/>
+      <text x="${p[0]}" y="${p[1]-13}" text-anchor="middle" font-size="11" font-weight="600" fill="${C.green}" font-family="Archivo">${data[i][1]}</text>
+      <text x="${p[0]}" y="${H-12}" text-anchor="middle" font-size="10.5" fill="#8C9895" font-family="Archivo">${data[i][0]}</text>`).join("")}
+  </svg>`;
+}
+
+/* ---------- render ---------- */
+areaChart(document.getElementById("area-dias"), D.dias);
+
+// Calcular total graves/menores
+const totalGrav = D.area.reduce((a,b)=>a+b[1],0);
+const totalMen = D.area.reduce((a,b)=>a+b[2],0);
+donut(document.getElementById("donut-sev"),
+  [["Afectación grave",totalGrav,C.clay],["Afectación menor",totalMen,C.amber]], (totalGrav+totalMen).toString(),"registros");
+
+const totalCritRed = D.seguro[1][1] + D.seguro[1][2]; // placeholder or recalculate
+const reportsCount = TOT;
+let critRed = 0, critAmb = 0;
+if (rawReports && rawReports.length > 0) {
+  const mapReports = new Map();
+  rawReports.forEach(r => {
+    const doc = String(r.documento || r.cedula || '').trim();
+    if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+  });
+  const reports = Array.from(mapReports.values());
+  critRed = reports.filter(r => (r.criticidad || '').toLowerCase() === 'rojo').length;
+  critAmb = reports.length - critRed;
+} else {
+  critRed = 286;
+  critAmb = 33;
+}
+donut(document.getElementById("donut-crit"),
+  [["Criticidad roja",critRed,C.clay],["Criticidad amarilla",critAmb,C.amber]], reportsCount > 0 ? pf(critRed/reportsCount*100) : "89,7%","nivel rojo");
+
+barrasApiladas(document.getElementById("bars-area"), D.area, C.clay, C.amber);
+barras(document.getElementById("bars-tenencia"), D.tenencia, (d,i)=>[C.clay2,C.green,C.green2,C.slate][i], {pctOf:TOT});
+columnas(document.getElementById("cols-hogar"), D.hogar, C.green2);
+columnas(document.getElementById("cols-seguro"), D.seguro, C.clay, C.line);
+columnas(document.getElementById("cols-continuidad"), D.continuidad, C.green, C.clay2);
+barras(document.getElementById("bars-muni"), D.muni.map(d=>[d[0],d[1]]), (d,i)=>i<2?C.green:C.green3, {pctOf:TOT});
+barras(document.getElementById("bars-familia"), D.familia, (d,i)=>[C.amber,"#3B7A99",C.clay,C.clay2,C.clay2][i]);
+barras(document.getElementById("bars-apoyos"), D.apoyos, (d,i)=>[C.clay2,"#3B7A99",C.green2,C.slate,C.amber][i]);
+barras(document.getElementById("bars-estado"), D.estado, (d,i)=>[C.green,C.green2,"#3B7A99",C.slate][i], {pctOf:TOT});
+barras(document.getElementById("bars-estado-grave"), D.estadoGrave, (d,i)=>i===0?C.clay:C.clay2, {isPct:true});
+
+// Tablas
+document.getElementById("tb-area").innerHTML = D.areaTabla.map(r=>
+  `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${r[5]}</td></tr>`).join("")
+  + `<tr class="total"><td>Total</td><td class="num">${TOT}</td><td class="num">${totalGrav}</td><td class="num">${totalMen}</td><td class="num">${TOT>0 ? pf(totalGrav/TOT*100) : '0 %'}</td><td class="num">100 %</td></tr>`;
+
+document.getElementById("tb-muni").innerHTML = D.muni.map(r=>
+  `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3].toFixed(1).replace(".",",")} %</td></tr>`).join("");
+
+document.getElementById("tb-calidad").innerHTML = D.calidad.map(r=>
+  `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${TOT>0 ? pf(r[1]/TOT*100) : '0 %'}</td></tr>`).join("");
+
+document.getElementById("conclusiones").innerHTML = D.conclusiones.map((c,i)=>
+  `<div class="card tight" style="border-left:3px solid ${i<2?C.clay:C.green2}">
+     <div class="chart-title" style="font-size:14px;margin-bottom:6px">${i+1}. ${c[0]}</div>
+     <p style="font-size:14px;margin:0">${c[1]}</p></div>`).join("");
+
+// Tabla de Operación e Implicaciones Continuidad
+let operacionRows = "";
+let presGraveCount = 0;
+let noHerrNoCondCount = 0;
+let noHerrOrNoCondCount = 0;
+let noPresNoCondCount = 0;
+
+if (rawReports && rawReports.length > 0) {
+  const mapReports = new Map();
+  rawReports.forEach(r => {
+    const doc = String(r.documento || r.cedula || '').trim();
+    if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+  });
+  const reports = Array.from(mapReports.values());
+  
+  reports.forEach(r => {
+    const pres = normalizeStr(r.presencialidadObligatoria || '');
+    const cond = normalizeStr(r.condicionesOptimas || '');
+    const herr = normalizeStr(r.herramientasTrabajo || r.herramientasTrabajoCompletas || '');
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    const isGrave = viv.includes('grave') || viv.includes('no me permiten');
+
+    if (pres.includes('si') && isGrave) presGraveCount++;
+    if (!cond.includes('si') && (!herr.includes('si') && !herr.includes('completa'))) noHerrNoCondCount++;
+    if (!cond.includes('si') || (!herr.includes('si') && !herr.includes('completa'))) noHerrOrNoCondCount++;
+    if (pres.includes('no') && !cond.includes('si')) noPresNoCondCount++;
+  });
+} else {
+  presGraveCount = 93;
+  noHerrOrNoCondCount = 178;
+  noHerrNoCondCount = 40;
+  noPresNoCondCount = 69;
+}
+
+operacionRows += `
+  <tr><td>Presencialidad obligatoria + afectación grave</td><td class="num">${presGraveCount}</td><td class="num">${TOT>0 ? pf(presGraveCount/TOT*100) : '0 %'}</td><td>Transporte, alimentación en sede y flexibilidad de turnos</td></tr>
+  <tr><td>Sin conectividad/energía o sin herramientas</td><td class="num">${noHerrOrNoCondCount}</td><td class="num">${TOT>0 ? pf(noHerrOrNoCondCount/TOT*100) : '0 %'}</td><td>Inventario de equipos y habilitación de puestos en sede</td></tr>
+  <tr style="background:var(--clay-wash)"><td><strong>Sin presencialidad, sin conectividad y sin herramientas</strong></td><td class="num"><strong>${noHerrNoCondCount}</strong></td><td class="num"><strong>${TOT>0 ? pf(noHerrNoCondCount/TOT*100) : '0 %'}</strong></td><td><strong>Imposibilitados para trabajar: prioridad de dotación</strong></td></tr>
+  <tr><td>Sin presencialidad y sin conectividad/energía</td><td class="num">${noPresNoCondCount}</td><td class="num">${TOT>0 ? pf(noPresNoCondCount/TOT*100) : '0 %'}</td><td>Habilitar puesto alterno o conectividad móvil</td></tr>
+`;
+document.querySelector("#tb-operacion tbody").innerHTML = operacionRows;
+
+// Tabla de Prioridades Sugeridas
+let prioridadesRows = "";
+let n1CriticoHogar = 0;
+let lossFamCount = 0;
+let rentGraveCount = 0;
+let noSafeHogarMult = 0;
+let foodRequestCount = 0;
+let missingDataCount = 0;
+
+if (rawReports && rawReports.length > 0) {
+  const mapReports = new Map();
+  rawReports.forEach(r => {
+    const doc = String(r.documento || r.cedula || '').trim();
+    if (doc && !mapReports.has(doc)) mapReports.set(doc, r);
+  });
+  const reports = Array.from(mapReports.values());
+  
+  reports.forEach(r => {
+    const ls = (r.lugarSeguro || '').toLowerCase().trim();
+    const viv = (r.afectacionVivienda || '').toLowerCase();
+    const isGrave = viv.includes('grave') || viv.includes('no me permiten');
+    const isArrendada = (r.tipoVivienda || '').toLowerCase().includes('arrend');
+    const numHogar = parseInt(r.personasHogar) || 1;
+    const estFam = (r.estadoFamilia || '').toLowerCase();
+    const apText = normalizeStr(r.situacionYApoyo || '');
+
+    if (ls === 'no' && isGrave) n1CriticoHogar++;
+    if (estFam.includes('perdi') || estFam.includes('fallec') || apText.includes('fallec') || apText.includes('duelo') || apText.includes('psico')) lossFamCount++;
+    if (isGrave && isArrendada) rentGraveCount++;
+    if (ls === 'no' && numHogar >= 4) noSafeHogarMult++;
+    if (apText.includes('aliment') || apText.includes('kit') || apText.includes('mercado')) foodRequestCount++;
+
+    const isMissing = !r.municipio || !r.proceso || (r.proceso || '').toLowerCase() === 'undefined';
+    if (isMissing) missingDataCount++;
+  });
+} else {
+  n1CriticoHogar = 40;
+  lossFamCount = 17;
+  rentGraveCount = 70;
+  noSafeHogarMult = 19;
+  foodRequestCount = 66;
+  missingDataCount = 60;
+}
+
+prioridadesRows += `
+  <tr><td><span class="tag t-n1">N1 Crítico</span></td><td>Afectación grave y sin lugar seguro</td><td class="num">${n1CriticoHogar}</td><td>Alojamiento temporal inmediato, kit de emergencia y verificación domiciliaria en 24–48 h</td></tr>
+  <tr><td><span class="tag t-n1">N1 Crítico</span></td><td>Pérdida de familiares o apoyo psicosocial requerido</td><td class="num">${lossFamCount}</td><td>Acompañamiento psicosocial nominal, licencias y auxilios aplicables</td></tr>
+  <tr><td><span class="tag t-n2">N2 Alto</span></td><td>Afectación grave en vivienda arrendada</td><td class="num">${rentGraveCount}</td><td>Apoyo económico para relocalización y asesoría jurídica del contrato</td></tr>
+  <tr><td><span class="tag t-n2">N2 Alto</span></td><td>Sin lugar seguro en hogares de 4 o más personas</td><td class="num">${noSafeHogarMult}</td><td>Alojamiento familiar y articulación con entidades territoriales</td></tr>
+  <tr><td><span class="tag t-n3">N3 Medio</span></td><td>Solicitud de apoyo alimentario</td><td class="num">${foodRequestCount}</td><td>Entrega de mercados o bonos con cronograma definido</td></tr>
+  <tr><td><span class="tag t-n3">N3 Medio</span></td><td>Presencialidad obligatoria con afectación grave</td><td class="num">${presGraveCount}</td><td>Transporte, alimentación en sede y flexibilidad de turnos</td></tr>
+  <tr><td><span class="tag t-n4">N4 Operativo</span></td><td>Sin presencialidad, sin conectividad y sin herramientas</td><td class="num">${noHerrNoCondCount}</td><td>Préstamo de equipos o habilitación de puesto en sede</td></tr>
+  <tr><td><span class="tag t-n4">N4 Operativo</span></td><td>Registros sin área, sin municipio o sin cruce con Buk</td><td class="num">≈ ${missingDataCount}</td><td>Depuración de datos y contacto de verificación</td></tr>
+`;
+document.querySelector("#tb-prioridades tbody").innerHTML = prioridadesRows;
+
+// Establecer fecha del footer
+const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
+document.getElementById("date-footer").textContent = new Date().toLocaleDateString("es-CO", optionsDate);
+
+
+/* ---------- animaciones ---------- */
+const io = new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting) return;
+  e.target.classList.add("on-view");
+  e.target.querySelectorAll(".bar-fill").forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+"%",60*i));
+  e.target.querySelectorAll(".stack").forEach((s,i)=>setTimeout(()=>s.style.height=s.dataset.h+"%",70*i));
+  io.unobserve(e.target);
+}),{threshold:.12});
+document.querySelectorAll("section, figure.card, .card").forEach(el=>io.observe(el));
+
+/* red de seguridad: si algo impide el observador, muestra igual las barras */
+setTimeout(()=>{document.querySelectorAll(".bar-fill").forEach(b=>{if(!b.style.width)b.style.width=b.dataset.w+"%"});
+ document.querySelectorAll(".stack").forEach(s=>{if(!s.style.height)s.style.height=s.dataset.h+"%"});
+ document.querySelectorAll(".reveal").forEach(r=>r.classList.add("on-view"));},2600);
+
+document.querySelectorAll("[data-count]").forEach(el=>{
+  const end = +el.dataset.count; let t0=null;
+  const step = t => { if(!t0) t0=t; const p=Math.min((t-t0)/1100,1);
+    el.textContent = Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+});
+
+const links = [...document.querySelectorAll("nav a")];
+const secs = links.map(a=>document.querySelector(a.getAttribute("href")));
+const io2 = new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){ links.forEach(l=>l.classList.remove("on"));
+    links[secs.indexOf(e.target)].classList.add("on"); }
+}),{rootMargin:"-45% 0px -50% 0px"});
+secs.forEach(s=>s && io2.observe(s));
+</script>
+</body>
+</html>
