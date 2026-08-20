@@ -1622,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendientes = 0;
 
     state.reports.forEach(r => {
-      if (!isNeedSupport(r)) return;
+      if (categoryKey !== 'leve' && !isNeedSupport(r)) return;
       let isMatch = false;
       if (categoryKey === 'vivienda') {
         const viv = (r.afectacionVivienda || '').toLowerCase();
