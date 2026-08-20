@@ -878,6 +878,7 @@ if (rawReports && rawReports.length > 0) {
   document.getElementById("vivienda-p1").innerHTML = `El <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('arrend')).length} personas) habita en vivienda arrendada</strong> y el ${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length/reports.length*100)} (${reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('famil')).length}) en vivienda familiar; solo el <strong>${pf(reports.filter(r => (r.tipoVivienda || '').toLowerCase().includes('prop')).length/reports.length*100)} es propietario</strong>. La tenencia condiciona el tipo de ayuda posible: quien arrienda no accede a subsidios de mejoramiento y su necesidad se traduce en <strong>apoyo para relocalización, depósito y canon</strong>.`;
 
   // 15. Calcular Gestión
+  const housingCases = reports;
   let housingAtendidos = 0;
   let housingProceso = 0;
   let housingPendientes = 0;
