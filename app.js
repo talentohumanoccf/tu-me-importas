@@ -1922,7 +1922,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `
           <div style="background:#FFF; padding:8px 10px; border-radius:8px; border:1px solid ${borderColor}; box-shadow:0 2px 4px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between; min-height:85px;">
-            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${areaName}">${icon} ${areaName}</span>
+            <span style="font-size:0.75rem; color:${subColor}; font-weight:800; display:block; line-height:1.25;" title="${areaName}">${icon} ${areaName}</span>
             <div style="margin:4px 0; display:flex; align-items:baseline; gap:4px;">
               <b style="font-size:1.25rem; color:${textColor};">${formatNumber(count)}</b> 
               <span style="font-size:0.72rem; color:${subColor}; font-weight:700;">pers.</span>
