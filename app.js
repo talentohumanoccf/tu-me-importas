@@ -1857,7 +1857,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (afAtendidasTotalBadge) {
-        afAtendidasTotalBadge.textContent = `${formatNumber(totalAFResolved)} ATENDIDOS (${Math.round((totalAFResolved / Math.max(total, 1)) * 100)}% COBERTURA GENERAL)`;
+        afAtendidasTotalBadge.textContent = `${formatNumber(totalAFResolved)} PERSONAS ATENDIDAS (${Math.round((totalAFResolved / Math.max(total, 1)) * 100)}% COBERTURA GENERAL)`;
       }
 
       const entries = Object.entries(mapAFAll).sort((a, b) => {
@@ -1956,6 +1956,42 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TOTAL DE INTERVENCIONES: suma de los "Intervenidos" de las fichas de arriba.
+    // Una misma persona puede sumar varias (psicología + alimentos + vivienda...),
+    // por eso el total supera al número de personas atendidas.
+    //
+    // Va DESPUÉS del renderizado de las fichas y dentro de try/catch a propósito:
+    // si algo fallara aquí, las tarjetas ya están pintadas y el resto de
+    // updateKPIs() sigue corriendo. Es un bloque puramente aditivo.
+    // ─────────────────────────────────────────────────────────────────────────
+    try {
+      const resumenIntervenciones = document.getElementById('kpi-af-intervenciones-resumen');
+      if (resumenIntervenciones) {
+        // Mismas categorías que las fichas renderizadas arriba: el total es la suma
+        // de sus "Intervenidos", así que cuadra con lo que se ve en pantalla.
+        const clavesIntervencion = [
+          'psicologico', 'leve', 'familiar', 'alimentos',
+          'vivienda', 'social', 'medicamentos', 'juridico'
+        ];
+
+        const totalIntervenciones = clavesIntervencion.reduce((acc, key) => {
+          const m = getConfrontationMetrics(key) || {};
+          return acc + (m.totalIntervenidos || 0);
+        }, 0);
+
+        resumenIntervenciones.innerHTML = `
+          <div style="display:inline-flex; align-items:baseline; gap:6px; background:#ECFDF5; border:1px solid #6EE7B7; border-radius:8px; padding:5px 12px;">
+            <span style="font-size:0.95rem;">🤝</span>
+            <b style="font-size:1.35rem; color:#065F46; font-weight:900; letter-spacing:-0.5px;">${formatNumber(totalIntervenciones)}</b>
+            <span style="font-size:0.78rem; color:#047857; font-weight:800;">intervenciones realizadas</span>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.warn('[KPI] No se pudo calcular el total de intervenciones:', err);
+    }
 
     // Actualización de la tarjeta KPI de novedades
     const elNovedadesTotal = document.getElementById('kpi-novedades-total');
