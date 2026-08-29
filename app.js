@@ -1949,7 +1949,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Renderizado dinámico de las fichas KPI unificadas con el diseño avanzado de confrontación
     renderUnifiedKPICard('kpi-card-psicologico', 'psicologico', 'Apoyo Psicológico', '🧠', '#003366');
-    renderUnifiedKPICard('kpi-card-leve', 'leve', 'Pueden Requerir Apoyo Psicológico', '🧠', '#D97706');
+    renderUnifiedKPICard('kpi-card-leve', 'leve', 'Pueden Requerir algún tipo de Apoyo', '🧠', '#D97706');
     renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Afectación de Vivienda', '🏠', '#DC2626');
