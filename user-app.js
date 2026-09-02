@@ -159,6 +159,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // La sección 2 es obligatoria porque es lo ÚNICO que enruta la novedad hacia
+    // una disciplina: el texto libre no lo lee nadie. Quien solo actualiza datos
+    // tiene su propia opción, para no obligarlo a inventar una necesidad.
+    if (state.novedadNeeds.length === 0) {
+      alert('⚠️ Indica qué apoyo necesitas con esta novedad.\n\nSi solo estás actualizando información, marca "Solo actualizo información".');
+      const bloqueNeeds = document.querySelector('.touch-option-btn[data-group="novNeeds"]');
+      if (bloqueNeeds) bloqueNeeds.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     const emp = state.employee || {};
     const cachedReports = JSON.parse(localStorage.getItem('comfamiliar_cached_remote_reports')) || [];
     const localReports = JSON.parse(localStorage.getItem('comfamiliar_emergency_reports')) || [];

@@ -81,11 +81,11 @@
           
           <div class="question-block" style="margin-top:15px;">
             <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">1. Describe detalladamente qué ocurrió o cuál es tu nueva situación: <span class="req-star">*</span></label>
-            <textarea id="user-novedad-texto" class="form-input-mobile" rows="4" style="padding:10px; width:100%; border:1px solid #F59E0B; border-radius:8px; resize:vertical; font-family:inherit; box-sizing:border-box;" placeholder="Ej: Se cayó una pared de mi casa por la lluvia de anoche. Necesitamos apoyo con alimentos y reubicación..."></textarea>
+            <textarea id="user-novedad-texto" class="form-input-mobile" rows="4" style="padding:10px; width:100%; border:1px solid #F59E0B; border-radius:8px; resize:vertical; font-family:inherit; box-sizing:border-box;" placeholder="Ej: Se cayó una pared de mi casa por la lluvia de anoche y aparecieron grietas en el techo..."></textarea>
           </div>
 
           <div class="question-block">
-            <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">2. ¿Qué apoyos necesitas prioritariamente con esta novedad? (Selecciona los que apliquen):</label>
+            <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">2. ¿Qué apoyos necesitas prioritariamente con esta novedad? <span class="req-star">*</span><br><span style="font-weight:600; font-size:0.74rem; color:var(--text-muted);">Selecciona los que apliquen. Si solo estás actualizando información, marca la última opción.</span></label>
             <div class="touch-options-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:6px; display:grid;">
               <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Apoyo Psicológico" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">🧠</div>
@@ -99,10 +99,14 @@
                 <div class="touch-icon" style="font-size:1rem; margin:0;">💊</div>
                 <div style="font-size:0.72rem; font-weight:700;">Medicamentos</div>
               </button>
+              <!-- CERRADO 2026-09-02: la linea de apoyo alimentario dejo de recibir
+                   solicitudes nuevas. Para reabrirla basta con descomentar este bloque;
+                   no hay logica en user-app.js que dependa de este valor.
               <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Alimentos" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">📦</div>
                 <div style="font-size:0.72rem; font-weight:700;">Alimentos</div>
               </button>
+              -->
               <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Vivienda" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">🏠</div>
                 <div style="font-size:0.72rem; font-weight:700;">Vivienda / Refugio</div>
@@ -110,6 +114,14 @@
               <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Apoyo Jurídico" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">⚖️</div>
                 <div style="font-size:0.72rem; font-weight:700;">Apoyo Jurídico</div>
+              </button>
+              <!-- Salida explicita: 7 de las 20 novedades sin chip eran solo
+                   actualizaciones ("todo en buen estado", "actualizo mi ubicacion").
+                   Sin esta opcion, hacer obligatoria la seccion 2 las obligaria a
+                   inventar una necesidad e inflaria las bolsas de las disciplinas. -->
+              <button type="button" class="touch-option-btn" data-group="novNeeds" data-value="No requiero apoyo" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="touch-icon" style="font-size:1rem; margin:0;">ℹ️</div>
+                <div style="font-size:0.72rem; font-weight:700;">Solo actualizo información</div>
               </button>
             </div>
           </div>
@@ -211,10 +223,13 @@
                 <div class="touch-icon">💊</div>
                 <div class="touch-title">Requiero apoyo con medicamentos</div>
               </button>
+              <!-- CERRADO 2026-09-02: la linea de apoyo alimentario dejo de recibir
+                   solicitudes nuevas. Para reabrirla basta con descomentar este bloque.
               <button type="button" class="touch-option-btn danger" data-group="situacionYApoyo" data-value="Requiero apoyo con alimentos">
                 <div class="touch-icon">📦</div>
                 <div class="touch-title">Requiero apoyo con alimentos</div>
               </button>
+              -->
             </div>
           </div>
 
