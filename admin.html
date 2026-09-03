@@ -265,18 +265,34 @@
             <div id="kpi-card-psicologico" class="kpi-card" style="border-left: 5px solid #003366; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
             <!-- TARJETA: PUEDEN REQUERIR APOYO PSICOLÓGICO (CENSO AMARILLO) -->
             <div id="kpi-card-leve" class="kpi-card" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: PERDIDA / AFECTACION FAMILIAR -->
-            <div id="kpi-card-familiar" class="kpi-card" style="border-left: 5px solid #B91C1C; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SOLICITARON KITS DE ALIMENTOS -->
-            <div id="kpi-card-alimentos" class="kpi-card" style="border-left: 5px solid #00A88F; background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: AFECTACIÓN DE VIVIENDA -->
-            <div id="kpi-card-vivienda" class="kpi-card" style="border-left: 5px solid #DC2626; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SOLICITARON TRABAJO SOCIAL -->
-            <div id="kpi-card-social" class="kpi-card" style="border-left: 5px solid #F59E0B; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: SOLICITARON MEDICAMENTOS / SALUD -->
-            <div id="kpi-card-medicamentos" class="kpi-card" style="border-left: 5px solid #E63946; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
             <!-- TARJETA: GESTIÓN JURÍDICA -->
             <div id="kpi-card-juridico" class="kpi-card" style="border-left: 5px solid #7C3AED; background: linear-gradient(180deg, #FFFFFF 0%, #F5F3FF 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 GRUPO: EQUIPO DE TRABAJO SOCIAL
+                 Las cinco fichas de adentro son las mismas de siempre y conservan
+                 sus ids (kpi-card-social, -alimentos, -medicamentos, -vivienda,
+                 -familiar), así que el renderizado en app.js no cambia. El
+                 contenedor solo las envuelve para mostrar que las gestiona un
+                 mismo equipo.
+                 ═══════════════════════════════════════════════════════════════ -->
+            <div class="kpi-group">
+              <div class="kpi-group-header">
+                <span class="kpi-group-title">Trabajo Social</span>
+              </div>
+              <div class="kpi-group-grid">
+                <!-- TARJETA: SOLICITARON TRABAJO SOCIAL -->
+                <div id="kpi-card-social" class="kpi-card" style="border-left: 5px solid #F59E0B; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+                <!-- TARJETA: SOLICITARON KITS DE ALIMENTOS -->
+                <div id="kpi-card-alimentos" class="kpi-card" style="border-left: 5px solid #00A88F; background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+                <!-- TARJETA: SOLICITARON MEDICAMENTOS / SALUD -->
+                <div id="kpi-card-medicamentos" class="kpi-card" style="border-left: 5px solid #E63946; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+                <!-- TARJETA: AFECTACIÓN DE VIVIENDA -->
+                <div id="kpi-card-vivienda" class="kpi-card" style="border-left: 5px solid #DC2626; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+                <!-- TARJETA: PERDIDA / AFECTACION FAMILIAR -->
+                <div id="kpi-card-familiar" class="kpi-card" style="border-left: 5px solid #B91C1C; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -224,6 +224,43 @@ body {
 .kpi-info { border-left: 5px solid #6366F1; }
 .kpi-info .kpi-value { color: #4F46E5; }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   AGRUPADOR DE FICHAS KPI
+   Envuelve varias .kpi-card bajo un mismo encabezado para dejar claro que las
+   gestiona un mismo equipo. Ocupa el ancho completo de la .kpi-grid que lo
+   contiene y mantiene su propia grilla interna, así que las tarjetas de adentro
+   siguen siendo las mismas y conservan sus ids.
+   ───────────────────────────────────────────────────────────────────────────── */
+.kpi-group {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #FFFDF7 0%, #FFFFFF 100%);
+  padding: 12px 14px 14px 14px;
+  box-shadow: var(--shadow-sm);
+  border-top: 4px solid #F59E0B;
+}
+
+.kpi-group-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kpi-group-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #92400E;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.kpi-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
 .kpi-header {
   font-size: 0.8rem;
   font-weight: 700;

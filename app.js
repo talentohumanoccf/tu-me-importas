@@ -1665,7 +1665,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function renderUnifiedKPICard(containerId, catKey, name, icon, color) {
+  // El parámetro `subtitle` es opcional: si no se pasa, el encabezado se pinta
+  // exactamente igual que antes.
+  function renderUnifiedKPICard(containerId, catKey, name, icon, color, subtitle) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -1677,11 +1679,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendientes = metrics.pendientes;
     const pctCobertura = metrics.pct;
 
+    const titleBlock = subtitle
+      ? `<strong style="color:var(--primary); font-size:0.92rem; display:flex; flex-direction:column; align-items:flex-start; gap:1px; font-weight:800; line-height:1.2;">
+          <span style="display:flex; align-items:center; gap:6px;"><span>${icon}</span> ${name}</span>
+          <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em;">${subtitle}</span>
+        </strong>`
+      : `<strong style="color:var(--primary); font-size:0.92rem; display:flex; align-items:center; gap:6px; font-weight:800;">
+          <span>${icon}</span> ${name}
+        </strong>`;
+
     container.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <strong style="color:var(--primary); font-size:0.92rem; display:flex; align-items:center; gap:6px; font-weight:800;">
-          <span>${icon}</span> ${name}
-        </strong>
+        ${titleBlock}
         <span style="background:${pctCobertura >= 80 ? '#D1FAE5' : pctCobertura >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pctCobertura >= 80 ? '#065F46' : pctCobertura >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">
           ${pctCobertura}% Cobertura
         </span>
@@ -1953,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Afectación de Vivienda', '🏠', '#DC2626');
-    renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B');
+    renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B', 'Atención y Orientación');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
 
