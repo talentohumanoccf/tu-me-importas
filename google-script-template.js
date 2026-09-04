@@ -48,6 +48,16 @@ function doGet(e) {
       return ContentService.createTextOutput(dedupMsg).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 2.7 ACCIÓN: REGISTRAR ACCESO DE ADMINISTRADOR
+    if (action === "logAdminAccess" && params.adminName) {
+      var logMsg = JSON.stringify(registrarAccesoAdmin(ss, params.adminName));
+      if (callback) {
+        return ContentService.createTextOutput(callback + "(" + logMsg + ")")
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      return ContentService.createTextOutput(logMsg).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // 3. ACCIÓN: RECIBIR Y GUARDAR NUEVO REPORTE DE NOVEDAD (ESCRIBE EN NOVEDADES_SST)
     if (action === "submitNovelty" || action === "saveNovelty") {
       var sheetNovelties = obtenerOCrearHojaNovedades(ss);
@@ -143,31 +153,47 @@ function doPost(e) {
 function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) {
   var cache = CacheService.getScriptCache();
   var cachedData = cache.get("comfamiliar_all_reports_v6");
-  
+
   if (cachedData) {
     return cachedData;
   }
 
   var reportsArray = obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss);
   var donationsData = obtenerDatosDonacionesYKardex(ss);
-  
-  // Lectura segura del módulo externo de pólizas
+
+  // Lectura del módulo externo de pólizas.
+  //
+  // DESACTIVADA: el libro externo (1-uwcpJM34PYCdozczlwF37uQlf0YSQDvqqCHu1p4qB8)
+  // dejó de ser accesible para la cuenta que ejecuta el script. SpreadsheetApp
+  // .openById lanza "You do not have permission to access the requested document"
+  // y esa falla de autorización aborta TODA la petición del web app, no solo esta
+  // lectura: el try/catch no alcanza a contenerla. Por eso fallaban getAllReports
+  // y getDonations mientras ping y getReport, que no pasan por aquí, respondían.
+  //
+  // Para reactivarla: restablecer el acceso al libro y poner esta bandera en true.
+  var POLIZAS_HABILITADO = false;
+
   var polizasData = { status: "error", totalSiniestros: 0, grave: 0, moderado: 0, leve: 0 };
-  try {
-    var pData = obtenerEstadisticasPolizasExternas();
-    if (pData) {
-      polizasData = pData;
+  if (POLIZAS_HABILITADO) {
+    try {
+      var pData = obtenerEstadisticasPolizasExternas();
+      if (pData) {
+        polizasData = pData;
+      }
+    } catch (pErr) {
+      console.log("Error al cargar estadísticas de pólizas en live stream: " + pErr.toString());
     }
-  } catch (pErr) {
-    console.log("Error al cargar estadísticas de pólizas en live stream: " + pErr.toString());
   }
 
+  // El listado se envia UNA sola vez. Antes iba duplicado como 'reports' y como
+  // 'data', lo que llevaba la respuesta a ~7 MB y la sacaba del limite de tamano
+  // de Apps Script. El frontend lee 'reports' (app.js:1536); 'data' solo se usa
+  // en la accion getReport, que devuelve un unico registro por otra rama.
   var payload = JSON.stringify({
     status: "success",
     timestamp: new Date().toISOString(),
     total: reportsArray.length,
     reports: reportsArray,
-    data: reportsArray,
     donations: donationsData,
     polizas: polizasData
   });
@@ -225,7 +251,7 @@ function obtenerDatosDonacionesYKardex(ss) {
     if (shKardex && shKardex.getLastRow() >= 2) {
       var dataK = shKardex.getDataRange().getValues();
       var headersK = dataK[0].map(function(h) { return String(h).toLowerCase().trim(); });
-      
+
       // ESQUEMA OFICIAL DE 5 COLUMNAS DE KARDEX:
       // Col A (0): Articulo | Col B (1): Clasificador | Col C (2): Entradas | Col D (3): Salidas | Col E (4): Stock
       var idxClas = headersK.indexOf("clasificador") >= 0 ? headersK.indexOf("clasificador") : 1;
@@ -430,7 +456,7 @@ function procesarYGuardarReporte(reportSheet, data, callback) {
     } else {
       reportSheet.appendRow(rowValues);
     }
-    
+
     limpiarCacheReportes();
 
     var responseObj = {
@@ -458,6 +484,20 @@ function procesarYGuardarReporte(reportSheet, data, callback) {
   }
 }
 
+/**
+ * De la columna "Gestion Interdisciplinar" solo se conservan las etiquetas
+ * [DISCIPLINA:ESTADO], que es lo unico que usa el tablero. El texto largo
+ * (profesional, numero de atenciones, motivo de cierre) se descarta a proposito:
+ * enviarlo completo agregaba ~113 KB a la respuesta y la sacaba del limite de
+ * tamano de Apps Script, que ya venia con muy poco margen.
+ */
+function extraerEtiquetasDisciplina(valor) {
+  var texto = String(valor || '');
+  if (!texto) return '';
+  var etiquetas = texto.match(/\[[A-Za-z0-9_]+:[A-Za-z0-9_]+\]/g);
+  return etiquetas ? etiquetas.join(' || ') : '';
+}
+
 // LECTURA PURA DE LA ENCUESTA COMBINADA CON GESTION_SST Y NOVEDADES_SST
 function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
   if (!sheetReportes) return [];
@@ -466,10 +506,27 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
 
   var lastColR = Math.min(sheetReportes.getLastColumn(), 35);
   var dataR = sheetReportes.getRange(2, 1, lastRowR - 1, lastColR).getValues();
-  
+
   var mapaGestion = {};
   if (sheetGestion && sheetGestion.getLastRow() >= 2) {
-    var dataG = sheetGestion.getRange(2, 1, sheetGestion.getLastRow() - 1, 12).getValues();
+    // Se lee la hoja completa (antes solo llegaba hasta la columna L) para poder
+    // incluir "Gestion Interdisciplinar", donde el modulo de disciplinas deja el
+    // cierre de cada disciplina con el formato [DISCIPLINA:ESTADO].
+    var lastColG = Math.max(sheetGestion.getLastColumn(), 12);
+
+    // La columna se ubica por su encabezado y no por su posicion, para que no se
+    // lea la columna equivocada si alguien inserta una columna en la hoja.
+    var headersG = sheetGestion.getRange(1, 1, 1, lastColG).getValues()[0];
+    var idxInter = -1;
+    for (var h = 0; h < headersG.length; h++) {
+      if (String(headersG[h] || '').toLowerCase().indexOf('interdiscipl') !== -1) {
+        idxInter = h;
+        break;
+      }
+    }
+    if (idxInter === -1 && lastColG >= 13) idxInter = 12; // respaldo: columna M
+
+    var dataG = sheetGestion.getRange(2, 1, sheetGestion.getLastRow() - 1, lastColG).getValues();
     for (var g = 0; g < dataG.length; g++) {
       var docG = String(dataG[g][1]).trim();
       if (docG) {
@@ -477,7 +534,8 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
           status: String(dataG[g][8] || 'pendiente'),
           notes: String(dataG[g][9] || ''),
           updatedAt: String(dataG[g][10] || ''),
-          operator: String(dataG[g][11] || 'Operador SST')
+          operator: String(dataG[g][11] || 'Operador SST'),
+          interdisciplinar: extraerEtiquetasDisciplina(idxInter >= 0 ? dataG[g][idxInter] : '')
         };
       }
     }
@@ -528,10 +586,11 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
       var mgmtNotesVal = gObj ? gObj.notes : '';
       var mgmtUpdatedAtVal = gObj ? gObj.updatedAt : '';
       var mgmtOperatorVal = gObj ? gObj.operator : 'Operador SST';
+      var mgmtInterVal = gObj ? (gObj.interdisciplinar || '') : '';
 
       var columnaAFVal = r.length >= 32 ? String(r[31] || '') : '';
 
-      reports.push({
+      var repObj = {
         id: 'rep-' + i,
         timestamp: r[0] ? String(r[0]) : '',
         documento: docR,
@@ -566,13 +625,21 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
         criticidad: String(r[27] || 'verde').toLowerCase(),
         origen: String(r[28] || 'Google Sheets'),
         columnaAF: columnaAFVal,
-        
+
         gestionStatus: mgmtStatusVal,
         gestionNotes: mgmtNotesVal,
         gestionUpdatedAt: mgmtUpdatedAtVal,
         gestionOperator: mgmtOperatorVal,
         novedades: mapaNovedades[docR] || []
-      });
+      };
+
+      // Solo se incluye cuando hay algo que informar. Mandarlo vacio en los ~2.600
+      // reportes sin gestion interdisciplinar costaba unos 83 KB de respuesta.
+      if (mgmtInterVal) {
+        repObj.gestionInterdisciplinar = mgmtInterVal;
+      }
+
+      reports.push(repObj);
     }
   }
 
@@ -658,7 +725,7 @@ function buscarFilaPorDocumento(sheet, documentoTarget) {
 function combinarNotasDeFilas(filas) {
   var notasSet = [];
   var operadoresSet = [];
-  
+
   var ultimaFila = filas[filas.length - 1];
   var latestStatus = String(ultimaFila[8] || "pendiente").trim();
   var latestTimestamp = String(ultimaFila[0] || "").trim();
@@ -948,9 +1015,10 @@ function obtenerEstadisticasPolizasExternas() {
 }
 
 function obtenerOCrearHojaNovedades(ss) {
-  var sheet = ss.getSheetByName("NOVEDADES_SST");
+  var activeSs = ss || SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = activeSs.getSheetByName("NOVEDADES_SST");
   if (!sheet) {
-    sheet = ss.insertSheet("NOVEDADES_SST");
+    sheet = activeSs.insertSheet("NOVEDADES_SST");
   }
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
@@ -999,7 +1067,7 @@ function procesarYGuardarNovedad(noveltySheet, data, callback) {
 
     // Registrar novedad en el histórico cronológico
     noveltySheet.appendRow(rowValues);
-    
+
     // Limpiar caché del tablero
     limpiarCacheReportes();
 
@@ -1025,5 +1093,25 @@ function procesarYGuardarNovedad(noveltySheet, data, callback) {
         .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
     return ContentService.createTextOutput(JSON.stringify(errObj)).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function registrarAccesoAdmin(ss, adminName) {
+  try {
+    var activeSs = ss || SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = activeSs.getSheetByName("LOGS_ACCESO_SST");
+    if (!sheet) {
+      sheet = activeSs.insertSheet("LOGS_ACCESO_SST");
+      sheet.appendRow(["Timestamp", "Nombre Administrador", "Acción"]);
+      var headerRange = sheet.getRange(1, 1, 1, 3);
+      headerRange.setBackground("#1E293B");
+      headerRange.setFontColor("#FFFFFF");
+      headerRange.setFontWeight("bold");
+      sheet.setFrozenRows(1);
+    }
+    sheet.appendRow([new Date(), adminName, "Ingreso al Tablero de Gestión"]);
+    return { status: "success", message: "Acceso registrado correctamente." };
+  } catch (err) {
+    return { status: "error", message: err.toString() };
   }
 }

@@ -198,38 +198,58 @@ document.addEventListener('DOMContentLoaded', () => {
     return categories;
   }
 
+  // Traduce cualquier texto de estado a las tres claves internas.
+  function normalizeMgmtWord(rawValue) {
+    const rawStatus = normalizeStr(rawValue);
+    if (
+      rawStatus.includes('resuelt') ||
+      rawStatus.includes('finaliz') ||
+      rawStatus.includes('atend') ||
+      rawStatus.includes('entregad') ||
+      rawStatus.includes('cerrad') ||
+      rawStatus.includes('complet') ||
+      rawStatus.includes('listo') ||
+      rawStatus.includes('solucion')
+    ) {
+      return 'resuelto';
+    }
+    if (
+      rawStatus.includes('proces') ||
+      rawStatus.includes('gestion') ||
+      rawStatus.includes('atencion') ||
+      rawStatus.includes('tramit') ||
+      rawStatus.includes('contac') ||
+      rawStatus.includes('revision') ||
+      rawStatus.includes('seguimien')
+    ) {
+      return 'proceso';
+    }
+    return 'pendiente';
+  }
+
+  const MGMT_RANK = { pendiente: 0, proceso: 1, resuelto: 2 };
+
   function getNormalizedSubMgmtStatus(r, subKey) {
     const doc = String(r.documento || r.cedula).trim();
     const mgmt = state.supportManagement[doc] || {};
-    
-    if (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].status) {
-      const rawStatus = normalizeStr(mgmt.subMgmt[subKey].status);
-      if (
-        rawStatus.includes('resuelt') || 
-        rawStatus.includes('finaliz') || 
-        rawStatus.includes('atend') || 
-        rawStatus.includes('entregad') || 
-        rawStatus.includes('cerrad') || 
-        rawStatus.includes('complet') || 
-        rawStatus.includes('listo') ||
-        rawStatus.includes('solucion')
-      ) {
-        return 'resuelto';
-      }
-      if (
-        rawStatus.includes('proces') || 
-        rawStatus.includes('gestion') || 
-        rawStatus.includes('atencion') || 
-        rawStatus.includes('tramit') || 
-        rawStatus.includes('contac') || 
-        rawStatus.includes('revision') ||
-        rawStatus.includes('seguimien')
-      ) {
-        return 'proceso';
-      }
-      return 'pendiente';
+
+    // 1) Lo que registró SST para esa disciplina; si no hay, el estado global.
+    const base = (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].status)
+      ? normalizeMgmtWord(mgmt.subMgmt[subKey].status)
+      : getNormalizedMgmtStatus(r);
+
+    // 2) Lo que el módulo interdisciplinar dejó en la columna "Gestión Interdisciplinar".
+    //    Regla SOLO AVANZA: el módulo puede adelantar el estado de la disciplina
+    //    (pendiente -> proceso -> resuelto) pero nunca devolverlo. Así un cierre
+    //    hecho en el módulo se refleja aquí, y un cierre que SST ya hizo no se
+    //    reabre porque el módulo siga con el caso en curso.
+    const interRaw = mgmt.subMgmtInter && mgmt.subMgmtInter[subKey] && mgmt.subMgmtInter[subKey].status;
+    if (interRaw) {
+      const interSt = normalizeMgmtWord(interRaw);
+      if (MGMT_RANK[interSt] > MGMT_RANK[base]) return interSt;
     }
-    return getNormalizedMgmtStatus(r);
+
+    return base;
   }
 
   function parseCombinedNotesToSubMgmt(notesStr, reqCategories = null) {
@@ -833,6 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
       operator: operatorVal || 'Operador SST',
       updatedAt: nowStr,
       subMgmt: parsedSub || existing.subMgmt || {},
+      subMgmtInter: existing.subMgmtInter || {}, // solo lectura: se conserva tal cual
       isDirty: false // Sincronizado / No sucio
     };
 
@@ -1360,6 +1381,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const localMgmt = state.supportManagement[doc];
       const reqCategories = getReportSubCategories(r).map(c => c.key);
       const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
+      // Se guarda aparte del subMgmt de SST: es solo de lectura y no debe mezclarse
+      // con lo que la app escribe de vuelta en las notas de GESTION_SST.
+      const parsedInter = parseCombinedNotesToSubMgmt(r.gestionInterdisciplinar) || {};
 
       const activeEl = document.activeElement;
       let activeDoc = '';
@@ -1380,7 +1404,8 @@ document.addEventListener('DOMContentLoaded', () => {
           notes: sanitizeNotes(r.gestionNotes || ''),
           updatedAt: r.gestionUpdatedAt || '',
           operator: r.gestionOperator || 'Operador SST',
-          subMgmt: parsedSub || (localMgmt ? localMgmt.subMgmt : {}) || {}
+          subMgmt: parsedSub || (localMgmt ? localMgmt.subMgmt : {}) || {},
+          subMgmtInter: parsedInter
         };
       } else if (!state.supportManagement[doc]) {
         state.supportManagement[doc] = {
@@ -1388,10 +1413,12 @@ document.addEventListener('DOMContentLoaded', () => {
           notes: sanitizeNotes(r.gestionNotes || ''),
           updatedAt: r.gestionUpdatedAt || '',
           operator: r.gestionOperator || 'Operador SST',
-          subMgmt: parsedSub || {}
+          subMgmt: parsedSub || {},
+          subMgmtInter: parsedInter
         };
-      } else if (parsedSub) {
-        state.supportManagement[doc].subMgmt = parsedSub;
+      } else {
+        if (parsedSub) state.supportManagement[doc].subMgmt = parsedSub;
+        state.supportManagement[doc].subMgmtInter = parsedInter;
       }
 
       return r;
@@ -1487,7 +1514,8 @@ document.addEventListener('DOMContentLoaded', () => {
           notes: sanitizeNotes(r.gestionNotes || ''),
           operator: r.gestionOperator || 'Operador SST',
           updatedAt: r.gestionUpdatedAt || new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }),
-          subMgmt: parsedSub || {}
+          subMgmt: parsedSub || {},
+          subMgmtInter: parseCombinedNotesToSubMgmt(r.gestionInterdisciplinar) || {}
         };
 
         homologatedCount++;
