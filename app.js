@@ -402,6 +402,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cat.includes('med')) return ap.includes('medicament') || ap.includes('salud') || ap.includes('receta');
     if (cat.includes('aliment')) return ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado') || ap.includes('vivere') || ap.includes('comida');
     if (cat.includes('juri')) return ap.includes('juri') || ap.includes('legal');
+    // Vivienda no se declara como texto en la solicitud, sino en la pregunta de
+    // afectación. Se usa el mismo criterio de la ficha KPI (getConfrontationMetrics)
+    // para que el filtro del Centro de Gestión devuelva exactamente esos casos.
+    if (cat.includes('viv')) {
+      const viv = normalizeStr(r.afectacionVivienda || '');
+      return viv.includes('impiden') || viv.includes('no me permiten');
+    }
     if (cat.includes('famili') || cat.includes('perdi')) {
       const estFam = normalizeStr(r.estadoFamilia || '');
       const hasFamSupportText = ap.includes('famili') || ap.includes('perdi') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo');
