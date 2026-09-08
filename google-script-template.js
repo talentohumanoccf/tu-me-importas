@@ -498,6 +498,116 @@ function extraerEtiquetasDisciplina(valor) {
   return etiquetas ? etiquetas.join(' || ') : '';
 }
 
+var RANGO_ESTADO_DISC = { PENDIENTE: 0, PROCESO: 1, RESUELTO: 2 };
+
+/**
+ * Normaliza el nombre de la disciplina a una de las cinco claves del tablero.
+ *
+ * Se ancla al INICIO de la cadena y no busca subcadenas, para que los matices
+ * que usa el modulo no terminen en la ficha equivocada: "Trabajo Social
+ * (vivienda inhabitable)", "(perdida familiar)" y "(un familiar requiere
+ * atencion)" son trabajo social; "Psicologia (apoyo familiar)" y
+ * "(criticidad alta)" son psicologia. Si aparece una disciplina que no se
+ * reconoce se devuelve vacio y se ignora: preferimos no contarla que contarla
+ * en el lugar equivocado.
+ */
+function claveDisciplina(valor) {
+  // Se escriben los acentos como \u para que el codigo sobreviva al copiar y
+  // pegar en el editor de Apps Script.
+  var t = String(valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  if (!t) return '';
+  if (t.indexOf('psico') === 0) return 'PSICOLOGIA';
+  if (t.indexOf('trabajo social') === 0 || t.indexOf('social') === 0) return 'SOCIAL';
+  if (t.indexOf('aliment') === 0) return 'ALIMENTOS';
+  if (t.indexOf('medicament') === 0) return 'MEDICAMENTOS';
+  if (t.indexOf('juri') === 0) return 'JURIDICO';
+  return '';
+}
+
+/**
+ * Lee la hoja GESTION_DETALLE, donde el modulo interdisciplinar deja una fila
+ * por persona y disciplina. Es una fuente mas completa que la columna M de
+ * GESTION_SST: al momento de escribir esto tenia 436 pares contra 305, con 132
+ * estados por disciplina que la app nunca habia visto (78 de ellos cerrados).
+ *
+ * Devuelve { documento: { CLAVE_DISCIPLINA: 'RESUELTO' | 'PROCESO' | 'PENDIENTE' } }
+ */
+function leerGestionDetalle(ss) {
+  var mapa = {};
+  try {
+    if (!ss) return mapa;
+    var sh = ss.getSheetByName('GESTION_DETALLE');
+    if (!sh || sh.getLastRow() < 2) return mapa;
+
+    // Las columnas se ubican por encabezado para no depender de su posicion.
+    var lastCol = sh.getLastColumn();
+    var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    var iDoc = -1, iDis = -1, iEst = -1;
+    for (var h = 0; h < headers.length; h++) {
+      var head = String(headers[h] || '').toLowerCase();
+      if (iDoc === -1 && head.indexOf('documento') !== -1) iDoc = h;
+      if (iDis === -1 && head.indexOf('disciplina') !== -1) iDis = h;
+      if (iEst === -1 && head.indexOf('estado') !== -1) iEst = h;
+    }
+    if (iDoc === -1 || iDis === -1 || iEst === -1) {
+      console.log('GESTION_DETALLE sin los encabezados esperados, se omite.');
+      return mapa;
+    }
+
+    var estados = { 'cerrado': 'RESUELTO', 'en_proceso': 'PROCESO', 'devuelto': 'PENDIENTE' };
+    var data = sh.getRange(2, 1, sh.getLastRow() - 1, lastCol).getValues();
+
+    for (var i = 0; i < data.length; i++) {
+      var doc = String(data[i][iDoc]).trim();
+      if (!doc) continue;
+      var clave = claveDisciplina(data[i][iDis]);
+      if (!clave) continue;
+      var est = estados[String(data[i][iEst] || '').toLowerCase().trim()] || 'PENDIENTE';
+      if (!mapa[doc]) mapa[doc] = {};
+      // Si dos filas caen en la misma clave (por ejemplo "Trabajo Social" y
+      // "Trabajo Social (vivienda inhabitable)"), gana la mas avanzada.
+      if (!mapa[doc][clave] || RANGO_ESTADO_DISC[est] > RANGO_ESTADO_DISC[mapa[doc][clave]]) {
+        mapa[doc][clave] = est;
+      }
+    }
+  } catch (err) {
+    console.log('No se pudo leer GESTION_DETALLE: ' + err.toString());
+  }
+  return mapa;
+}
+
+/**
+ * Une las dos fuentes de gestion interdisciplinar en las etiquetas
+ * [DISCIPLINA:ESTADO] que el tablero ya sabe leer.
+ *
+ * La columna M de GESTION_SST manda cuando tiene entrada para esa disciplina:
+ * ademas del writeback del modulo, lleva correcciones que el equipo hace a mano
+ * y cierres registrados desde tu-me-importas que no existen en GESTION_DETALLE.
+ * Lo que no este ahi se completa con GESTION_DETALLE.
+ */
+function combinarInterdisciplinar(colM, detallePersona) {
+  var etiquetas = {};
+
+  if (detallePersona) {
+    for (var d in detallePersona) {
+      etiquetas[d] = detallePersona[d];
+    }
+  }
+
+  var encontradas = String(colM || '').match(/\[[A-Za-z0-9_]+:[A-Za-z0-9_]+\]/g) || [];
+  for (var i = 0; i < encontradas.length; i++) {
+    var partes = encontradas[i].replace(/\[/g, '').replace(/\]/g, '').split(':');
+    var clave = claveDisciplina(partes[0]) || String(partes[0] || '').toUpperCase();
+    etiquetas[clave] = String(partes[1] || '').toUpperCase();
+  }
+
+  var salida = [];
+  for (var c in etiquetas) {
+    salida.push('[' + c + ':' + etiquetas[c] + ']');
+  }
+  return salida.join(' || ');
+}
+
 // LECTURA PURA DE LA ENCUESTA COMBINADA CON GESTION_SST Y NOVEDADES_SST
 function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
   if (!sheetReportes) return [];
@@ -540,6 +650,9 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
       }
     }
   }
+
+  // Detalle por disciplina que escribe el modulo interdisciplinar
+  var mapaDetalle = leerGestionDetalle(ss);
 
   // Cargar novedades de la hoja NOVEDADES_SST
   var mapaNovedades = {};
@@ -586,7 +699,8 @@ function obtenerTodosLosReportesConGestion(sheetReportes, sheetGestion, ss) {
       var mgmtNotesVal = gObj ? gObj.notes : '';
       var mgmtUpdatedAtVal = gObj ? gObj.updatedAt : '';
       var mgmtOperatorVal = gObj ? gObj.operator : 'Operador SST';
-      var mgmtInterVal = gObj ? (gObj.interdisciplinar || '') : '';
+      var mgmtInterVal = combinarInterdisciplinar(
+        gObj ? gObj.interdisciplinar : '', mapaDetalle[docR]);
 
       var columnaAFVal = r.length >= 32 ? String(r[31] || '') : '';
 
