@@ -142,7 +142,44 @@ document.addEventListener('DOMContentLoaded', () => {
     return text;
   }
 
+  // Solo lo que la persona DECLARÓ marcando una opción: las 7 de la encuesta
+  // ("Requiero apoyo con alimentos"...) y las de "Requerimientos Adicionales"
+  // de cada novedad. Deja fuera el relato libre, que es lo que hacía aparecer
+  // gente en la ficha equivocada: quien contaba que había perdido a un amigo
+  // "por caída de escombro" terminaba en Kits de Alimentos.
+  function getDeclaredNeeds(r) {
+    let text = normalizeStr(r.situacionYApoyo || r.apoyo || r.necesidad || r.situacion || r._nApoyo || '');
+    if (r.novedades && r.novedades.length > 0) {
+      r.novedades.forEach(nov => {
+        text += ' , ' + normalizeStr(nov.requerimientos || nov.novedadNeeds || '');
+      });
+    }
+    return text;
+  }
+
+  // Requerimientos declarados en las novedades, sin la declaración inicial.
+  // "No requiero apoyo" es la salida explícita del formulario y no cuenta.
+  function getNoveltyNeeds(r) {
+    if (!r.novedades || r.novedades.length === 0) return '';
+    let text = '';
+    r.novedades.forEach(nov => {
+      text += ' , ' + normalizeStr(nov.requerimientos || nov.novedadNeeds || '');
+    });
+    return text
+      .split(',')
+      .map(x => x.trim())
+      .filter(x => x && !x.includes('no requiero'))
+      .join(', ');
+  }
+
   function isNeedSupport(r) {
+    // Una novedad con requerimiento declarado pesa más que la declaración
+    // inicial. getApoyoText concatena todo el historial, así que un "estoy bien
+    // y seguro" del 14 de agosto seguía vetando a la persona aunque semanas
+    // después reportara que se le cayó el techo. Quien estaba bien ese día pudo
+    // dejar de estarlo.
+    if (getNoveltyNeeds(r)) return true;
+
     const ap = getApoyoText(r);
     return (ap.length > 0 && !ap.includes('estoy bien y seguro')) || matchesCategory(r, 'familiar');
   }
@@ -413,15 +450,26 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function matchesCategory(r, category) {
+    // `dec` es lo declarado marcando una opción; `ap` incluye además el relato
+    // libre. Las cinco disciplinas que se enrutan por formulario usan `dec`, para
+    // que la app y el módulo interdisciplinar lean exactamente lo mismo. Solo
+    // `familiar` sigue usando `ap`: es la única categoría sin opción propia en
+    // ninguno de los dos formularios, así que quitarle el texto la dejaría ciega.
+    const dec = getDeclaredNeeds(r);
     const ap = getApoyoText(r);
     const cat = normalizeStr(category);
 
     if (cat === 'all') return true;
-    if (cat.includes('psico')) return ap.includes('psico');
-    if (cat.includes('social')) return ap.includes('social');
-    if (cat.includes('med')) return ap.includes('medicament') || ap.includes('salud') || ap.includes('receta');
-    if (cat.includes('aliment')) return ap.includes('aliment') || ap.includes('kit') || ap.includes('mercado') || ap.includes('vivere') || ap.includes('comida');
-    if (cat.includes('juri')) return ap.includes('juri') || ap.includes('legal');
+    if (cat.includes('psico')) return dec.includes('psico');
+    // "Vivienda" era una opción de la novedad sin ficha ni equipo propio; las
+    // solicitudes de vivienda las atiende Trabajo Social, igual que en el módulo
+    // interdisciplinar, donde se registran como "Trabajo Social (vivienda
+    // inhabitable)". La opción se retiró del formulario el 2026-09-08, pero
+    // quienes ya la habían marcado siguen contando aquí.
+    if (cat.includes('social')) return dec.includes('social') || dec.includes('vivienda');
+    if (cat.includes('med')) return dec.includes('medicament') || dec.includes('salud') || dec.includes('receta');
+    if (cat.includes('aliment')) return dec.includes('aliment') || dec.includes('kit') || dec.includes('mercado') || dec.includes('vivere') || dec.includes('comida');
+    if (cat.includes('juri')) return dec.includes('juri') || dec.includes('legal');
     // Vivienda no se declara como texto en la solicitud, sino en la pregunta de
     // afectación. Se usa el mismo criterio de la ficha KPI (getConfrontationMetrics)
     // para que el filtro del Centro de Gestión devuelva exactamente esos casos.

@@ -80,7 +80,11 @@
           <p style="font-size:0.78rem; color:#B45309; margin-top:4px; font-weight:600;">Utiliza este espacio para reportarle a SST cualquier novedad o cambio crítico de tu estado actual.</p>
           
           <div class="question-block" style="margin-top:15px;">
-            <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">1. Describe detalladamente qué ocurrió o cuál es tu nueva situación: <span class="req-star">*</span></label>
+            <!-- OPCIONAL DESDE 2026-09-08: siendo obligatoria, 47 de 136 respuestas
+                 tenian 20 caracteres o menos ("M", "...", "Ninguno") o repetian lo ya
+                 marcado en la seccion 2. El enrutamiento depende de esa seccion, no de
+                 este texto, asi que obligar solo producia ruido. -->
+            <label style="font-weight:800; color:var(--text-dark); display:block; margin-bottom:6px;">1. Describe qué ocurrió o cuál es tu nueva situación: <span style="font-weight:600; font-size:0.74rem; color:var(--text-muted);">(opcional, pero nos ayuda a entender mejor tu caso)</span></label>
             <textarea id="user-novedad-texto" class="form-input-mobile" rows="4" style="padding:10px; width:100%; border:1px solid #F59E0B; border-radius:8px; resize:vertical; font-family:inherit; box-sizing:border-box;" placeholder="Ej: Se cayó una pared de mi casa por la lluvia de anoche y aparecieron grietas en el techo..."></textarea>
           </div>
 
@@ -94,6 +98,7 @@
               <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Trabajo Social" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">🤝</div>
                 <div style="font-size:0.72rem; font-weight:700;">Trabajo Social</div>
+                <div style="font-size:0.64rem; font-weight:600; opacity:0.85; line-height:1.15; margin-top:2px;">Atención y Orientación</div>
               </button>
               <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Medicamentos" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">💊</div>
@@ -107,10 +112,24 @@
                 <div style="font-size:0.72rem; font-weight:700;">Alimentos</div>
               </button>
               -->
+              <!-- RETIRADA 2026-09-08: "Vivienda / Refugio" no correspondia a ningun
+                   equipo ni tenia ficha propia en el tablero, asi que quien la elegia
+                   quedaba contado sin lugar donde gestionarlo. Las solicitudes de
+                   vivienda las atiende Trabajo Social -el modulo interdisciplinar ya
+                   las registra como "Trabajo Social (vivienda inhabitable)"-, por eso
+                   ahora ese boton lleva la descripcion que lo indica.
+                   La ficha "Afectacion de Vivienda" del tablero no cambia: mide la
+                   condicion declarada en la encuesta, no una solicitud.
+                   Las 12 personas que ya la habian elegido no se pierden: app.js mapea
+                   el requerimiento "Vivienda" a la ficha de Trabajo Social.
+                   Para reabrirla basta con descomentar este bloque; no hay logica en
+                   user-app.js que dependa de este valor.
               <button type="button" class="touch-option-btn danger" data-group="novNeeds" data-value="Vivienda" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">🏠</div>
                 <div style="font-size:0.72rem; font-weight:700;">Vivienda / Refugio</div>
               </button>
+              -->
+
               <button type="button" class="touch-option-btn warning" data-group="novNeeds" data-value="Apoyo Jurídico" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">⚖️</div>
                 <div style="font-size:0.72rem; font-weight:700;">Apoyo Jurídico</div>
@@ -122,6 +141,12 @@
               <button type="button" class="touch-option-btn" data-group="novNeeds" data-value="No requiero apoyo" style="padding:8px; min-height:auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div class="touch-icon" style="font-size:1rem; margin:0;">ℹ️</div>
                 <div style="font-size:0.72rem; font-weight:700;">Solo actualizo información</div>
+                <!-- La segunda linea se agrego el 2026-09-08: las 4 personas que habian
+                     elegido esta opcion describian danos reales ("agrietamiento de
+                     paredes del apto, desalojo"). Leian solo la primera frase, que si
+                     describe lo que estaban haciendo, y no veian que lo que se guarda
+                     es "No requiero apoyo" y las deja fuera del tablero. -->
+                <div style="font-size:0.64rem; font-weight:600; opacity:0.85; line-height:1.15; margin-top:2px;">No requiero apoyo por ahora</div>
               </button>
             </div>
           </div>

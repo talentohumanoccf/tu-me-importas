@@ -152,12 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('⚠️ Por favor ingresa primero tu número de documento.');
       return;
     }
+    // El texto libre dejo de ser obligatorio: obligarlo producia respuestas como
+    // "M", "..." o el mismo apoyo ya marcado en la seccion 2 (47 de 136 novedades
+    // tenian 20 caracteres o menos). Quien tenga algo que contar lo escribe; el
+    // enrutamiento no depende de aqui sino de la seccion 2, que si es obligatoria.
     const textVal = novedadTexto ? novedadTexto.value.trim() : '';
-    if (!textVal) {
-      alert('⚠️ Por favor describe detalladamente tu nueva situación.');
-      if (novedadTexto) novedadTexto.focus();
-      return;
-    }
 
     // La sección 2 es obligatoria porque es lo ÚNICO que enruta la novedad hacia
     // una disciplina: el texto libre no lo lee nadie. Quien solo actualiza datos
