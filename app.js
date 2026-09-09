@@ -157,6 +157,25 @@ document.addEventListener('DOMContentLoaded', () => {
     return text;
   }
 
+  // Marca de las novedades que NO reportó la persona, sino que se registraron de
+  // forma retroactiva para incorporar una gestión que se hizo por fuera de la app
+  // (por ejemplo la de medicamentos, que Farmacia llevaba en un archivo aparte).
+  // Cuentan para todo lo demás -entran al universo y a su ficha, que es el motivo
+  // de registrarlas- pero no son alertas: nadie reportó una situación nueva.
+  const MARCA_NOVEDAD_RETROACTIVA = 'se ingresa como novedad para ajustar los datos';
+
+  function esNovedadRetroactiva(nov) {
+    return normalizeStr(nov && (nov.novedad || nov.novedadTexto) || '')
+      .includes(MARCA_NOVEDAD_RETROACTIVA);
+  }
+
+  // Solo las novedades que la persona reportó de verdad. Es lo que debe contar la
+  // tarjeta de alertas y el filtro de novedades del Centro de Gestión.
+  function tieneNovedadReportada(r) {
+    if ((r.situacionYApoyo || '').includes('[NOVEDAD]')) return true;
+    return !!(r.novedades || []).some(nov => !esNovedadRetroactiva(nov));
+  }
+
   // Requerimientos declarados en las novedades, sin la declaración inicial.
   // "No requiero apoyo" es la salida explícita del formulario y no cuenta.
   function getNoveltyNeeds(r) {
@@ -2088,7 +2107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Actualización de la tarjeta KPI de novedades
     const elNovedadesTotal = document.getElementById('kpi-novedades-total');
     if (elNovedadesTotal) {
-      const noveltyCount = state.reports.filter(r => (r.situacionYApoyo || '').includes('[NOVEDAD]') || (r.novedades && r.novedades.length > 0)).length;
+      const noveltyCount = state.reports.filter(r => tieneNovedadReportada(r)).length;
       elNovedadesTotal.textContent = formatNumber(noveltyCount);
     }
 
@@ -2298,7 +2317,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (statusFilter === 'mis_casos') {
         matchStatus = st === 'proceso' && mgmt.operator === currentOperator;
       } else if (statusFilter === 'novedad') {
-        matchStatus = (r.situacionYApoyo || '').includes('[NOVEDAD]') || (r.novedades && r.novedades.length > 0);
+        matchStatus = tieneNovedadReportada(r);
       } else if (statusFilter === 'resuelto') {
         matchStatus = st === 'resuelto';
       } else if (statusFilter === 'all') {
