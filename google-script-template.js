@@ -1007,6 +1007,20 @@ function desduplicarHojaGestionSST() {
   if (lastRow < 3) return "No hay suficientes filas para consolidar";
 
   var data = sheetGestion.getRange(2, 1, lastRow - 1, sheetGestion.getLastColumn()).getValues();
+
+  // Ubicacion de "Gestion Interdisciplinar" para poder fusionarla en vez de
+  // pisarla. Antes esta funcion escribia la fila maestra completa con los
+  // valores de la PRIMERA fila duplicada, cuya columna M suele venir vacia,
+  // asi que borraba el estado por disciplina que escribe el modulo.
+  var encabezados = sheetGestion.getRange(1, 1, 1, sheetGestion.getLastColumn()).getValues()[0];
+  var colInter = -1;
+  for (var e = 0; e < encabezados.length; e++) {
+    if (String(encabezados[e] || '').toLowerCase().indexOf('interdiscipl') !== -1) {
+      colInter = e;
+      break;
+    }
+  }
+
   var mapByDoc = {};
 
   for (var i = 0; i < data.length; i++) {
@@ -1033,7 +1047,35 @@ function desduplicarHojaGestionSST() {
       var merged = combinarNotasDeFilas(item.rows);
       var masterRowIndex = item.indices[0];
 
-      var masterRowValues = item.rows[0];
+      var masterRowValues = item.rows[0].slice();
+
+      // Se rescata de las filas duplicadas todo dato que la fila maestra no
+      // tenga. Sin esto la consolidacion perdia informacion, porque escribia la
+      // fila completa con los valores de la primera duplicada aunque otra
+      // trajera el dato. Se recorre de la mas reciente a la mas antigua.
+      for (var col = 0; col < masterRowValues.length; col++) {
+        if (col === 8 || col === 9 || col === 11) continue; // se calculan aparte
+        if (String(masterRowValues[col] || '').trim() !== '') continue;
+        for (var f = item.rows.length - 1; f >= 1; f--) {
+          if (String(item.rows[f][col] || '').trim() !== '') {
+            masterRowValues[col] = item.rows[f][col];
+            break;
+          }
+        }
+      }
+
+      // "Gestion Interdisciplinar" no se elige, se fusiona: cada fila puede traer
+      // disciplinas distintas y hay que conservarlas todas. Si una disciplina
+      // aparece en varias filas gana la ultima, que es la mas reciente.
+      if (colInter >= 0) {
+        var interJuntas = '';
+        for (var q = 0; q < item.rows.length; q++) {
+          var v = String(item.rows[q][colInter] || '').trim();
+          if (v) interJuntas += (interJuntas ? ' || ' : '') + v;
+        }
+        masterRowValues[colInter] = combinarInterdisciplinar(interJuntas, null);
+      }
+
       masterRowValues[8] = merged.combinedStatus;
       masterRowValues[9] = merged.combinedNotes;
       masterRowValues[11] = merged.combinedOperator;
