@@ -285,27 +285,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const MGMT_RANK = { pendiente: 0, proceso: 1, resuelto: 2 };
 
-  function getNormalizedSubMgmtStatus(r, subKey) {
+  // Estado REGISTRADO de una disciplina, o null si nadie la registró.
+  //
+  // Antes, cuando una disciplina no tenía registro propio, esta función devolvía
+  // el estado global de la persona. Eso creaba un circuito: el estado global se
+  // calcula sumando las disciplinas atendidas (ver saveSupportCase) y luego se
+  // le devolvía a las que nadie había tocado. Así, una persona con psicología y
+  // medicamentos cerrados aparecía como "atendida" también en alimentos y en
+  // jurídica, donde nadie había hecho nada. El flujo ahora va en una sola
+  // dirección: etiquetas de la columna J y del módulo -> disciplina -> persona.
+  function getRegisteredSubStatus(r, subKey) {
     const doc = String(r.documento || r.cedula).trim();
     const mgmt = state.supportManagement[doc] || {};
 
-    // 1) Lo que registró SST para esa disciplina; si no hay, el estado global.
-    const base = (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].status)
+    // Lo que SST registró para esa disciplina (etiqueta [DISCIPLINA:ESTADO] en la columna J).
+    const sst = (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].status)
       ? normalizeMgmtWord(mgmt.subMgmt[subKey].status)
-      : getNormalizedMgmtStatus(r);
+      : null;
 
-    // 2) Lo que el módulo interdisciplinar dejó en la columna "Gestión Interdisciplinar".
-    //    Regla SOLO AVANZA: el módulo puede adelantar el estado de la disciplina
-    //    (pendiente -> proceso -> resuelto) pero nunca devolverlo. Así un cierre
-    //    hecho en el módulo se refleja aquí, y un cierre que SST ya hizo no se
-    //    reabre porque el módulo siga con el caso en curso.
+    // Lo que el módulo interdisciplinar dejó en la columna "Gestión Interdisciplinar".
     const interRaw = mgmt.subMgmtInter && mgmt.subMgmtInter[subKey] && mgmt.subMgmtInter[subKey].status;
-    if (interRaw) {
-      const interSt = normalizeMgmtWord(interRaw);
-      if (MGMT_RANK[interSt] > MGMT_RANK[base]) return interSt;
+    const inter = interRaw ? normalizeMgmtWord(interRaw) : null;
+
+    // Si SST registró la disciplina, manda SST y el módulo solo puede adelantarla:
+    // un cierre hecho en el módulo se refleja, pero un cierre que SST ya hizo no
+    // se reabre porque el módulo siga con el caso en curso.
+    if (sst) return (inter && MGMT_RANK[inter] > MGMT_RANK[sst]) ? inter : sst;
+
+    // Si SST no registró nada, manda el módulo, aunque sea un estado menor: es
+    // el único que sabe si el caso sigue abierto o si lo devolvió sin resolver.
+    return inter;
+  }
+
+  function getNormalizedSubMgmtStatus(r, subKey) {
+    return getRegisteredSubStatus(r, subKey) || 'pendiente';
+  }
+
+  // Los cuatro cubos con los que se lee una ficha.
+  //
+  // El cuarto, 'otras', es el que faltaba: separa a quien nadie ha tocado por
+  // ningún frente de quien sí está en gestión, solo que esta necesidad concreta
+  // todavía no la ha tomado nadie. Meter los dos en "pendiente" exagera el
+  // abandono; meterlos en "en gestión" es lo que hacía la herencia y ocultaba
+  // necesidades sin atender.
+  function getFichaBucket(r, subKey) {
+    const st = getRegisteredSubStatus(r, subKey);
+    if (st === 'resuelto') return 'atendido';
+    if (st === 'proceso') return 'proceso';
+    // Un 'pendiente' explícito significa que el módulo devolvió el caso sin
+    // resolverlo: esta disciplina no lo tiene abierto. Sigue hacia la misma
+    // pregunta que los que no tienen registro, ¿está la persona en gestión por
+    // otro frente?, para no reportar como abandonado a quien no lo está.
+
+    // ¿Hay gestión registrada en alguna otra disciplina? Se revisan TODAS las
+    // registradas, no solo las que la persona declaró: el módulo puede haberla
+    // atendido por un frente que ella nunca pidió (psicología por criticidad
+    // alta, por ejemplo). Mirar solo lo declarado dejaba a esa gente como "sin
+    // contacto" teniendo un profesional asignado.
+    const doc = String(r.documento || r.cedula).trim();
+    const mgmt = state.supportManagement[doc] || {};
+    const registradas = new Set([].concat(
+      Object.keys(mgmt.subMgmt || {}),
+      Object.keys(mgmt.subMgmtInter || {})
+    ));
+
+    for (const otraKey of registradas) {
+      if (otraKey === subKey) continue;
+      const otro = getRegisteredSubStatus(r, otraKey);
+      if (otro === 'proceso' || otro === 'resuelto') return 'otras';
     }
 
-    return base;
+    return 'pendiente';
   }
 
   function parseCombinedNotesToSubMgmt(notesStr, reqCategories = null) {
@@ -315,7 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasAnyBrackets = false;
 
     parts.forEach(p => {
-      const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?\]\s*(.*?)(?:\s*\((.*?)\))?$/i);
+      // La bandera 's' es necesaria: sin ella el punto no cruza saltos de línea
+      // y, como el patrón termina anclado en $, cualquier observación escrita en
+      // varios renglones no coincidía y la etiqueta se perdía entera. Notas como
+      // "[ALIMENTOS: RESUELTO] Misma dirección\nRequiere solo alimentos" quedaban
+      // invisibles para el tablero y la disciplina aparecía sin gestión.
+      const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?\]\s*(.*?)(?:\s*\((.*?)\))?$/is);
       if (match) {
         hasAnyBrackets = true;
         const rawKey = match[1].toLowerCase().trim();
@@ -818,6 +873,25 @@ document.addEventListener('DOMContentLoaded', () => {
         let subStatus = selectEl.value;
         const subNotes = sanitizeNotes(notesEl.value);
 
+        // "Guardar Todo" solo persiste las tarjetas que el operador tocó.
+        //
+        // Lo que una tarjeta muestra no siempre es un registro: puede ser el
+        // estado global de la persona prestado a una disciplina que nadie
+        // atendió, o el estado que el módulo interdisciplinar dejó en la
+        // columna M. Guardar eso lo convertiría en una etiqueta real de SST en
+        // la columna J, y a partir de ahí SST manda sobre el módulo, que ya no
+        // podría mover ese estado aunque reabra el caso.
+        //
+        // Las tarjetas que ya tienen etiqueta propia tampoco se reescriben si
+        // nadie las tocó: conservan el valor guardado en vez del que se está
+        // mostrando, que puede venir del módulo.
+        //
+        // El botón propio de cada tarjeta (saveSubSupportCase) sí guarda
+        // siempre: ahí la intención del operador es explícita.
+        const estadoTocado = selectEl.value !== (selectEl.dataset.inicial || '');
+        const notasTocadas = notesEl.value !== notesEl.defaultValue;
+        if (!estadoTocado && !notasTocadas) return;
+
         if (subStatus === 'pendiente' && subNotes.length > 0) {
           subStatus = 'proceso';
           selectEl.value = 'proceso';
@@ -833,7 +907,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    if (!anyChanges) return;
+    if (!anyChanges) {
+      showToast('No hay cambios para guardar. Para dejar registro de una atención, cambia el estado o escribe una observación en su tarjeta.', 'info');
+      return;
+    }
 
     // Localizar el botón de guardar y deshabilitarlo con estado de cargando
     const btn = document.getElementById('mgmt-save-btn-' + doc);
@@ -1572,7 +1649,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isDirty) return; // Proteger si hay cambios locales no guardados
       if (state.isTypingActive && isUserEditingThisDoc) return; // Proteger mientras se escribe
 
-      if (r.gestionStatus || r.gestionNotes) {
+      // Hay 64 personas que no tienen fila en GESTION_SST y que sin embargo el
+      // módulo interdisciplinar ya atendió. Si esta condición no mira la columna
+      // de gestión interdisciplinar, esa gestión no se homologa y sus fichas
+      // quedan en pendiente. La ruta de carga normal (onLiveReportsReceived) ya
+      // las contempla; esta se había quedado atrás.
+      if (r.gestionStatus || r.gestionNotes || r.gestionInterdisciplinar) {
         const reqCategories = getReportSubCategories(r).map(c => c.key);
         const parsedSub = parseCombinedNotesToSubMgmt(r.gestionNotes, reqCategories);
 
@@ -1718,9 +1800,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getConfrontationMetrics(categoryKey) {
+    // 'vivienda', 'leve' y 'familiar' no son disciplinas, son segmentos de
+    // población: no hay un equipo propio detrás de esas etiquetas. A esas
+    // personas las atiende psicología o trabajo social, y la tarjeta solo suma
+    // cuando la disciplina que corresponda las atiende. Por eso su estado es el
+    // de la persona y no tienen el cubo "en otras disciplinas": por definición
+    // TODAS estarían ahí, y el dato no diría nada.
+    //
+    // La comparación va aquí dentro y no en una constante del módulo a
+    // propósito: checkAuthentication() llama a esta función durante el arranque
+    // (app.js:1058), antes de que se inicialicen las constantes declaradas más
+    // abajo, y un `const` externo revienta con "Cannot access before
+    // initialization" y deja el tablero en blanco.
+    const esSegmento = (categoryKey === 'vivienda' || categoryKey === 'leve' || categoryKey === 'familiar');
+
     let solicitados = 0;
     let intervencionAtendida = 0;
     let intervencionEnProceso = 0;
+    let enOtras = 0;
     let pendientes = 0;
 
     state.reports.forEach(r => {
@@ -1737,33 +1834,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isMatch) {
         solicitados++;
-        const st = getNormalizedSubMgmtStatus(r, categoryKey);
 
-        if (st === 'resuelto') {
-          intervencionAtendida++;
-        } else if (st === 'proceso') {
-          intervencionEnProceso++;
-        } else {
-          pendientes++;
+        if (esSegmento) {
+          const st = getNormalizedMgmtStatus(r);
+          if (st === 'resuelto') intervencionAtendida++;
+          else if (st === 'proceso') intervencionEnProceso++;
+          else pendientes++;
+          return;
+        }
+
+        switch (getFichaBucket(r, categoryKey)) {
+          case 'atendido': intervencionAtendida++; break;
+          case 'proceso': intervencionEnProceso++; break;
+          case 'otras': enOtras++; break;
+          default: pendientes++;
         }
       }
     });
 
-    const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
-    
-    const finalIntervenidos = totalIntervenidos;
-    const finalPendientes = pendientes;
-    const finalAtendidas = intervencionAtendida;
-    const finalEnProceso = intervencionEnProceso;
-    const pct = solicitados > 0 ? Math.round((finalIntervenidos / solicitados) * 100) : 100;
-    
-    return { 
-      solicitados, 
-      totalIntervenidos: finalIntervenidos, 
-      intervencionAtendida: finalAtendidas, 
-      intervencionEnProceso: finalEnProceso, 
-      pendientes: finalPendientes, 
-      pct 
+    // "Intervenidos" cuenta también los apoyos transversales: esas personas SÍ
+    // están siendo atendidas, solo que por otra disciplina. Dejarlas fuera haría
+    // ver como no intervenido a alguien que tiene un profesional asignado. Lo
+    // que no entra son los pendientes, que son los que nadie ha tocado por
+    // ningún frente.
+    const totalIntervenidos = intervencionAtendida + intervencionEnProceso + enOtras;
+    const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
+
+    return {
+      solicitados,
+      totalIntervenidos,
+      intervencionAtendida,
+      intervencionEnProceso,
+      enOtras,
+      pendientes,
+      pct
     };
   }
 
@@ -1778,8 +1882,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalIntervenidos = metrics.totalIntervenidos;
     const intervencionAtendida = metrics.intervencionAtendida;
     const intervencionEnProceso = metrics.intervencionEnProceso;
+    const enOtras = metrics.enOtras || 0;
     const pendientes = metrics.pendientes;
     const pctCobertura = metrics.pct;
+    // Las tarjetas de segmento (vivienda, criticidad leve, afectación familiar)
+    // no tienen equipo propio, así que no se les pinta la línea "en otras
+    // disciplinas": siempre sería el total y no aporta nada.
+    const esSegmentoPoblacion = (catKey === 'vivienda' || catKey === 'leve' || catKey === 'familiar');
 
     const titleBlock = subtitle
       ? `<strong style="color:var(--primary); font-size:0.92rem; display:flex; flex-direction:column; align-items:flex-start; gap:1px; font-weight:800; line-height:1.2;">
@@ -1813,9 +1922,24 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="background:linear-gradient(90deg, ${color} 0%, #059669 100%); width:${Math.max(pctCobertura, 3)}%; height:100%;"></div>
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted); font-weight:700; flex-wrap:wrap; gap:4px;">
-        <span>${catKey === 'leve' ? `🟢 Gestionados con Red de Apoyo: <b style="color:#059669;">${intervencionAtendida}</b>` : `🟢 Atendidos: <b style="color:#059669;">${intervencionAtendida}</b>`} | 🟡 En Proceso: <b style="color:#D97706;">${intervencionEnProceso}</b></span>
-        <span>🔴 Pendientes: <b style="color:#DC2626;">${pendientes}</b></span>
+      <div style="display:flex; flex-direction:column; gap:3px; font-size:0.72rem; color:var(--text-muted); font-weight:700;">
+        <div style="display:flex; justify-content:space-between; gap:8px;">
+          <span>${catKey === 'leve' ? '🟢 Gestionados con Red de Apoyo' : '🟢 Atendidos'}</span>
+          <b style="color:#059669;">${intervencionAtendida}</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:8px;">
+          <span>🟡 En Proceso</span>
+          <b style="color:#D97706;">${intervencionEnProceso}</b>
+        </div>
+        ${esSegmentoPoblacion ? '' : `
+        <div style="display:flex; justify-content:space-between; gap:8px;" title="Apoyos transversales: la persona sí está siendo atendida, pero por otra disciplina. Esta necesidad concreta todavía no la ha tomado nadie.">
+          <span>🟣 Apoyos transversales</span>
+          <b style="color:#6D28D9;">${enOtras}</b>
+        </div>`}
+        <div style="display:flex; justify-content:space-between; gap:8px;">
+          <span>🔴 Pendientes</span>
+          <b style="color:#DC2626;">${pendientes}</b>
+        </div>
       </div>
     `;
 
@@ -2154,121 +2278,85 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderManagementDashboard(forceRender = false) {
     const tbody = document.getElementById('mgmt-reports-tbody');
     
-    let countPsico = 0, countPsicoPend = 0, countPsicoProc = 0, countPsicoRes = 0;
-    let countFamiliar = 0, countFamiliarPend = 0, countFamiliarProc = 0, countFamiliarRes = 0;
-    let countSocial = 0, countSocialPend = 0, countSocialProc = 0, countSocialRes = 0;
-    let countMeds = 0, countMedsPend = 0, countMedsProc = 0, countMedsRes = 0;
-    let countAlimentos = 0, countAlimentosPend = 0, countAlimentosProc = 0, countAlimentosRes = 0;
-    let countJuridico = 0, countJuridicoPend = 0, countJuridicoProc = 0, countJuridicoRes = 0;
-    let countOtros = 0, countOtrosPend = 0, countOtrosProc = 0, countOtrosRes = 0;
-    let globalPend = 0, globalProc = 0, globalRes = 0;
+    // Las siete fichas del tablero. El conteo se hace en una sola pasada con
+    // getFichaBucket, para que todas usen exactamente el mismo criterio.
+    const FICHAS_KPI = [
+      { key: 'psicologico',  title: 'Apoyo Psicológico',             icon: '🧠' },
+      { key: 'familiar',     title: 'Pérdida / Afectación Familiar', icon: '🤍' },
+      { key: 'social',       title: 'Trabajo Social',                icon: '🤝' },
+      { key: 'medicamentos', title: 'Medicamentos / Salud',          icon: '💊' },
+      { key: 'alimentos',    title: 'Kits de Alimentos',             icon: '📦' },
+      { key: 'juridico',     title: 'Gestión Jurídica',              icon: '⚖️' },
+      { key: 'general',      title: 'Vivienda / Apoyos Especiales',  icon: '🏠' }
+    ];
+
+    const conteoFichas = {};
+    FICHAS_KPI.forEach(f => {
+      conteoFichas[f.key] = { total: 0, atendido: 0, proceso: 0, otras: 0, pendiente: 0 };
+    });
 
     state.reports.forEach(r => {
-      if (isNeedSupport(r)) {
-        const st = getNormalizedMgmtStatus(r);
-        if (st === 'resuelto') globalRes++;
-        else if (st === 'proceso') globalProc++;
-        else globalPend++;
-
-        const hasPsico = matchesCategory(r, 'psicologico');
-        const hasSocial = matchesCategory(r, 'social');
-        const hasMeds = matchesCategory(r, 'medicamentos');
-        const hasAlim = matchesCategory(r, 'alimentos');
-        const hasFamiliar = matchesCategory(r, 'familiar');
-        const hasJuridico = matchesCategory(r, 'juridico');
-
-        if (hasPsico) {
-          countPsico++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'psicologico');
-          if (subSt === 'resuelto') countPsicoRes++;
-          else if (subSt === 'proceso') countPsicoProc++;
-          else countPsicoPend++;
-        }
-        if (hasFamiliar) {
-          countFamiliar++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'familiar');
-          if (subSt === 'resuelto') countFamiliarRes++;
-          else if (subSt === 'proceso') countFamiliarProc++;
-          else countFamiliarPend++;
-        }
-        if (hasSocial) {
-          countSocial++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'social');
-          if (subSt === 'resuelto') countSocialRes++;
-          else if (subSt === 'proceso') countSocialProc++;
-          else countSocialPend++;
-        }
-        if (hasMeds) {
-          countMeds++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'medicamentos');
-          if (subSt === 'resuelto') countMedsRes++;
-          else if (subSt === 'proceso') countMedsProc++;
-          else countMedsPend++;
-        }
-        if (hasAlim) {
-          countAlimentos++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'alimentos');
-          if (subSt === 'resuelto') countAlimentosRes++;
-          else if (subSt === 'proceso') countAlimentosProc++;
-          else countAlimentosPend++;
-        }
-        if (hasJuridico) {
-          countJuridico++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'juridico');
-          if (subSt === 'resuelto') countJuridicoRes++;
-          else if (subSt === 'proceso') countJuridicoProc++;
-          else countJuridicoPend++;
-        }
-        if (!hasPsico && !hasSocial && !hasMeds && !hasAlim && !hasFamiliar && !hasJuridico) {
-          countOtros++;
-          const subSt = getNormalizedSubMgmtStatus(r, 'general');
-          if (subSt === 'resuelto') countOtrosRes++;
-          else if (subSt === 'proceso') countOtrosProc++;
-          else countOtrosPend++;
-        }
-      }
+      if (!isNeedSupport(r)) return;
+      // getReportSubCategories ya decide en qué fichas aparece la persona, e
+      // incluye 'general' solo cuando no encaja en ninguna otra.
+      getReportSubCategories(r).forEach(cat => {
+        const c = conteoFichas[cat.key];
+        if (!c) return;
+        c.total++;
+        c[getFichaBucket(r, cat.key)]++;
+      });
     });
 
     // Actualización de contadores ejecutivos eliminada por simplificación.
 
     const visualChartsContainer = document.getElementById('mgmt-visual-charts-container');
     if (visualChartsContainer) {
-      const renderActivityChart = (title, icon, total, pend, proc, res) => {
-        const pPend = total > 0 ? Math.round((pend / total) * 100) : 0;
-        const pProc = total > 0 ? Math.round((proc / total) * 100) : 0;
-        const pRes = total > 0 ? Math.round((res / total) * 100) : 0;
+      // Cuatro cubos, no tres. "En otras" son personas que sí están siendo
+      // atendidas, pero por otro frente: esta necesidad concreta todavía no la
+      // ha tomado nadie. Antes se sumaban a "en gestión" y desaparecían.
+      const renderActivityChart = (f) => {
+        const c = conteoFichas[f.key];
+        const total = c.total;
+        // Una ficha sin nadie no se pinta. "Vivienda / Apoyos Especiales" quedó
+        // en cero cuando la categoría 'vivienda' se sacó de la gestión por
+        // tarjetas, y mostraba una tarjeta vacía que no significaba nada.
+        if (total === 0) return '';
+        const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
+        const pRes = pct(c.atendido);
+        const pProc = pct(c.proceso);
+        const pOtras = pct(c.otras);
+        const pPend = pct(c.pendiente);
+        const gestionadas = c.atendido + c.proceso;
 
         return `
           <div class="analytics-card" style="padding:14px; background:#FFF; border:1px solid var(--border);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:var(--primary); font-size:0.92rem;">${icon} ${title}</strong>
+              <strong style="color:var(--primary); font-size:0.92rem;">${f.icon} ${f.title}</strong>
               <span style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px;">Total: ${total} Casos</span>
             </div>
-            
-            <div class="mgmt-progress-bar-bg" title="Pendientes: ${pPend}%, En Gestión: ${pProc}%, Resueltos: ${pRes}%">
-              <div class="mgmt-progress-seg-pend" style="width:${pPend}%;"></div>
-              <div class="mgmt-progress-seg-proc" style="width:${pProc}%;"></div>
+
+            <div class="mgmt-progress-bar-bg" title="Atendidos: ${pRes}% · En gestión: ${pProc}% · En gestión por otra disciplina: ${pOtras}% · Sin contacto: ${pPend}%">
               <div class="mgmt-progress-seg-res" style="width:${pRes}%;"></div>
+              <div class="mgmt-progress-seg-proc" style="width:${pProc}%;"></div>
+              <div class="mgmt-progress-seg-otras" style="width:${pOtras}%;"></div>
+              <div class="mgmt-progress-seg-pend" style="width:${pPend}%;"></div>
             </div>
 
             <div class="mgmt-chart-legend">
-              <span style="color:#92400E;">🟡 ${pend} Pend. (${pPend}%)</span>
-              <span style="color:#075985;">🔵 ${proc} Proc. (${pProc}%)</span>
-              <span style="color:#065F46;">🟢 ${res} Res. (${pRes}%)</span>
+              <span style="color:#065F46;" title="Esta disciplina registró la atención y la cerró">🟢 ${c.atendido} Atendidos (${pRes}%)</span>
+              <span style="color:#075985;" title="Esta disciplina tiene el caso abierto">🔵 ${c.proceso} En gestión (${pProc}%)</span>
+              <span style="color:#6D28D9;" title="Apoyos transversales: la persona está en gestión por otra disciplina, pero esta necesidad todavía no la ha tomado nadie">🟣 ${c.otras} Transversales (${pOtras}%)</span>
+              <span style="color:#92400E;" title="Nadie ha registrado gestión de esta persona por ningún frente">🟡 ${c.pendiente} Sin contacto (${pPend}%)</span>
+            </div>
+
+            <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); border-top:1px dashed var(--border); padding-top:5px;">
+              Gestión registrada de esta disciplina: <b style="color:var(--primary);">${gestionadas} de ${total}</b> (${pct(gestionadas)}%)
             </div>
           </div>
         `;
       };
 
-      visualChartsContainer.innerHTML = `
-        ${renderActivityChart('Apoyo Psicológico', '🧠', countPsico, countPsicoPend, countPsicoProc, countPsicoRes)}
-        ${renderActivityChart('Pérdida / Afectación Familiar', '🤍', countFamiliar, countFamiliarPend, countFamiliarProc, countFamiliarRes)}
-        ${renderActivityChart('Trabajo Social', '🤝', countSocial, countSocialPend, countSocialProc, countSocialRes)}
-        ${renderActivityChart('Medicamentos / Salud', '💊', countMeds, countMedsPend, countMedsProc, countMedsRes)}
-        ${renderActivityChart('Kits de Alimentos', '📦', countAlimentos, countAlimentosPend, countAlimentosProc, countAlimentosRes)}
-        ${renderActivityChart('Gestión Jurídica', '⚖️', countJuridico, countJuridicoPend, countJuridicoProc, countJuridicoRes)}
-        ${renderActivityChart('Vivienda / Apoyos Especiales', '🏠', countOtros, countOtrosPend, countOtrosProc, countOtrosRes)}
-      `;
+      visualChartsContainer.innerHTML = FICHAS_KPI.map(renderActivityChart).join('');
     }
 
     if (!tbody) return;
@@ -2472,10 +2560,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:4px;">
-              <strong style="color:var(--primary); font-size:0.84rem; display:flex; align-items:center; gap:4px;">
+              <strong style="color:var(--primary); font-size:0.84rem; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
                 <span>${cat.icon}</span> ${cat.name}
+                ${getFichaBucket(r, cat.key) === 'otras'
+                  ? `<span title="Esta persona está siendo atendida por otra disciplina, pero esta necesidad todavía no la ha tomado nadie" style="background:#F3E8FF; color:#6D28D9; border:1px solid #DDD6FE; font-size:0.66rem; font-weight:800; padding:1px 6px; border-radius:8px;">🟣 apoyo transversal</span>`
+                  : ''}
               </strong>
-              <select id="mgmt-sub-select-${doc}-${cat.key}" class="mgmt-status-select ${subSt}" style="padding:3px 8px; font-size:0.78rem; width:auto; border-radius:6px;">
+              <select id="mgmt-sub-select-${doc}-${cat.key}" class="mgmt-status-select ${subSt}" data-inicial="${subSt}" style="padding:3px 8px; font-size:0.78rem; width:auto; border-radius:6px;">
                 <option value="pendiente" ${subSt === 'pendiente' ? 'selected' : ''}>🟡 Pendiente</option>
                 <option value="proceso" ${subSt === 'proceso' ? 'selected' : ''}>🔵 En Gestión</option>
                 <option value="resuelto" ${subSt === 'resuelto' ? 'selected' : ''}>🟢 Atendido / Resuelto</option>

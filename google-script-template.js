@@ -163,15 +163,29 @@ function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) 
 
   // Lectura del módulo externo de pólizas.
   //
-  // DESACTIVADA: el libro externo (1-uwcpJM34PYCdozczlwF37uQlf0YSQDvqqCHu1p4qB8)
+  // ANTECEDENTE: el libro externo (1-uwcpJM34PYCdozczlwF37uQlf0YSQDvqqCHu1p4qB8)
   // dejó de ser accesible para la cuenta que ejecuta el script. SpreadsheetApp
   // .openById lanza "You do not have permission to access the requested document"
   // y esa falla de autorización aborta TODA la petición del web app, no solo esta
-  // lectura: el try/catch no alcanza a contenerla. Por eso fallaban getAllReports
-  // y getDonations mientras ping y getReport, que no pasan por aquí, respondían.
+  // lectura: el try/catch de abajo NO alcanza a contenerla. Por eso fallaban
+  // getAllReports y getDonations mientras ping y getReport, que no pasan por
+  // aquí, seguían respondiendo.
   //
-  // Para reactivarla: restablecer el acceso al libro y poner esta bandera en true.
-  var POLIZAS_HABILITADO = false;
+  // Recordar que el web app corre con executeAs USER_DEPLOYING: quien despliega
+  // es quien debe tener acceso al libro de pólizas, no quien consulta.
+  //
+  // INTERRUPTOR DE EMERGENCIA, sin volver a desplegar: si el libro vuelve a
+  // quedar inaccesible y el tablero deja de cargar, crear la propiedad de script
+  // POLIZAS_HABILITADO con el valor "false" (Configuración del proyecto ->
+  // Propiedades del script) y limpiar la caché con limpiarCacheReportes(). El
+  // tablero vuelve en el acto, sin tocar el código y sin nuevo despliegue.
+  var POLIZAS_HABILITADO = true;
+  try {
+    var flagPolizas = PropertiesService.getScriptProperties().getProperty("POLIZAS_HABILITADO");
+    if (String(flagPolizas).toLowerCase() === "false") POLIZAS_HABILITADO = false;
+  } catch (fErr) {
+    // Si la propiedad no se puede leer, se conserva el valor por defecto.
+  }
 
   var polizasData = { status: "error", totalSiniestros: 0, grave: 0, moderado: 0, leve: 0 };
   if (POLIZAS_HABILITADO) {
@@ -1104,6 +1118,74 @@ function desduplicarHojaGestionSST() {
  * MÓDULO INTEGRADO: LECTURA EXTERNA DE POLIZAS Y ESTADÍSTICAS DE SINIESTROS
  * =========================================================================
  */
+/**
+ * Comprobación de acceso al libro de pólizas. EJECUTAR ESTA FUNCIÓN ANTES DE
+ * DESPLEGAR, desde el editor, con la MISMA cuenta que va a publicar el web app.
+ *
+ * No escribe nada. Si el acceso falla, el error se ve aquí de forma aislada, sin
+ * arriesgar el tablero: una falla de autorización dentro de doGet no se puede
+ * atrapar y tumba toda la respuesta.
+ *
+ * Qué esperar en el registro:
+ *   - "ACCESO OK" seguido del nombre del libro y las hojas que encontró.
+ *   - Un aviso por cada hoja a la que le falte alguna de las tres columnas que
+ *     se leen: Radicado_Aseguradora, Nivel_Afectacion_Terremoto,
+ *     Observaciones_Siniestro. Si faltan las tres, esa hoja aporta cero.
+ *   - Los totales que vería el tablero.
+ */
+function probarAccesoPolizas() {
+  var ID = "1-uwcpJM34PYCdozczlwF37uQlf0YSQDvqqCHu1p4qB8";
+  var ss;
+  try {
+    ss = SpreadsheetApp.openById(ID);
+  } catch (err) {
+    Logger.log("SIN ACCESO: " + err.toString());
+    Logger.log("");
+    Logger.log("La cuenta que ejecuta no puede abrir el libro de pólizas.");
+    Logger.log("NO despliegues con POLIZAS_HABILITADO en true hasta resolverlo.");
+    return "sin acceso";
+  }
+
+  Logger.log("ACCESO OK");
+  Logger.log("Libro: " + ss.getName());
+  Logger.log("Ejecutando como: " + Session.getEffectiveUser().getEmail());
+  Logger.log("");
+
+  var hojas = ss.getSheets();
+  Logger.log("Hojas encontradas: " + hojas.length);
+  for (var s = 0; s < hojas.length; s++) {
+    var h = hojas[s];
+    var filas = Math.max(h.getLastRow() - 1, 0);
+    var falta = [];
+    if (h.getLastRow() >= 1 && h.getLastColumn() >= 1) {
+      var enc = h.getRange(1, 1, 1, h.getLastColumn()).getValues()[0];
+      var esperadas = ["Radicado_Aseguradora", "Nivel_Afectacion_Terremoto", "Observaciones_Siniestro"];
+      for (var e = 0; e < esperadas.length; e++) {
+        if (enc.indexOf(esperadas[e]) === -1) falta.push(esperadas[e]);
+      }
+    }
+    Logger.log("   " + h.getName() + "  ->  " + filas + " filas de datos" +
+               (falta.length ? "   FALTAN COLUMNAS: " + falta.join(", ") : ""));
+    // Si a la hoja le falta alguna columna, mostrar las que sí tiene: puede que
+    // los datos existan con otro nombre y se estén ignorando en silencio.
+    if (falta.length && h.getLastRow() >= 1 && h.getLastColumn() >= 1) {
+      var todas = h.getRange(1, 1, 1, h.getLastColumn()).getValues()[0];
+      Logger.log("      columnas reales: " + todas.join(" | "));
+    }
+  }
+
+  Logger.log("");
+  var r = obtenerEstadisticasPolizasExternas();
+  Logger.log("Resultado que recibiría el tablero:");
+  Logger.log("   estado ........... " + r.status);
+  Logger.log("   total siniestros . " + r.totalSiniestros);
+  Logger.log("   graves ........... " + r.grave);
+  Logger.log("   moderados ........ " + r.moderado);
+  Logger.log("   leves ............ " + r.leve);
+  Logger.log("   por hoja ......... " + JSON.stringify(r.porHoja));
+  return r.status;
+}
+
 function obtenerEstadisticasPolizasExternas() {
   try {
     var ssPolizas = SpreadsheetApp.openById("1-uwcpJM34PYCdozczlwF37uQlf0YSQDvqqCHu1p4qB8");
