@@ -1936,7 +1936,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </strong>`;
 
     container.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <!-- Nombre arriba y cobertura debajo. Enfrentados en la misma línea, los
+           nombres largos ("Pueden Requerir algún tipo de Apoyo") aplastaban la
+           insignia y cada tarjeta partía el título por un lado distinto. -->
+      <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:10px;">
         ${titleBlock}
         <span style="background:${pctCobertura >= 80 ? '#D1FAE5' : pctCobertura >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pctCobertura >= 80 ? '#065F46' : pctCobertura >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">
           ${pctCobertura}% Cobertura
