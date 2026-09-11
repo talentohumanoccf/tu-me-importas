@@ -4,6 +4,11 @@
  * Preservación de Estado Local y Prevención de Sobreescritura del DOM
  */
 
+// Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
+// vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
+// Debe coincidir con el ?v= del <script> en admin.html.
+const APP_VERSION = '20260911_1530';
+
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
   window.VALID_PINS = window.VALID_PINS || ['2026', 'comfamiliar2026', 'comfamiliar 2026', 'sst2026', 'admin', 'admin2026', '1234', 'comfamiliar'];
@@ -482,8 +487,13 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.setItem('comfamiliar_main_page', newPage);
       renderTable();
     } else if (type === 'mgmt') {
-      const supportReports = state.reports.filter(r => isNeedSupport(r));
-      const totalItems = supportReports.length;
+      // El total tiene que ser el de la lista YA FILTRADA, no el de toda la
+      // poblacion. Contando sobre el total, "siguiente" llevaba a una pagina
+      // que no existe dentro del filtro y el render la devolvia al limite:
+      // el usuario veia que la pagina retrocedia sola.
+      const totalItems = (state.pagination.mgmtTotalItems != null)
+        ? state.pagination.mgmtTotalItems
+        : state.reports.filter(r => isNeedSupport(r)).length;
       const pageSizeVal = state.pagination.mgmtPageSize;
       const pageSize = pageSizeVal === 'all' ? totalItems : Number(pageSizeVal || 25);
       const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -561,6 +571,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.supportManagement[doc].notes = combinedNotesStr;
     state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
+    // Sello del guardado local. La sincronizacion corre cada 25 segundos y la
+    // escritura en la hoja va por JSONP, que puede tardar varios segundos; si
+    // entremedio llegaba una respuesta preparada ANTES del guardado, pisaba el
+    // valor recien puesto y el operador veia que su cambio se revertia. Al
+    // guardar dos veces si quedaba, porque la segunda ya ganaba la carrera.
+    state.supportManagement[doc].guardadoEn = Date.now();
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
 
     if (state.googleSheetsUrl && navigator.onLine) {
@@ -568,6 +584,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderDashboard(true);
+
+    // Al redibujar, la fila puede quedar en otra posicion o salirse del filtro
+    // activo (por ejemplo si se estaba filtrando por "Pendientes"). Se devuelve
+    // la vista al caso trabajado para no obligar a buscarlo otra vez.
+    requestAnimationFrame(() => {
+      const fila = document.getElementById('mgmt-row-' + doc);
+      if (fila) {
+        fila.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        showToast('El caso salió del filtro activo por su nuevo estado. Cambia el filtro para volver a verlo.', 'info');
+      }
+    });
+
     showToast(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente.`, 'success');
   };
 
@@ -994,6 +1023,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.supportManagement[doc].notes = combinedNotesStr;
     state.supportManagement[doc].isDirty = false; // Guardado / Sincronizado
+    // Sello del guardado local. La sincronizacion corre cada 25 segundos y la
+    // escritura en la hoja va por JSONP, que puede tardar varios segundos; si
+    // entremedio llegaba una respuesta preparada ANTES del guardado, pisaba el
+    // valor recien puesto y el operador veia que su cambio se revertia. Al
+    // guardar dos veces si quedaba, porque la segunda ya ganaba la carrera.
+    state.supportManagement[doc].guardadoEn = Date.now();
     
     updateLocalManagementState(doc, globalStatus, combinedNotesStr, currentOperator, nowStr);
 
@@ -1046,7 +1081,8 @@ document.addEventListener('DOMContentLoaded', () => {
       updatedAt: nowStr,
       subMgmt: parsedSub || existing.subMgmt || {},
       subMgmtInter: existing.subMgmtInter || {}, // solo lectura: se conserva tal cual
-      isDirty: false // Sincronizado / No sucio
+      isDirty: false, // Sincronizado / No sucio
+      guardadoEn: Date.now() // protege el cambio de la carrera con la sincronizacion
     };
 
     localStorage.setItem('comfamiliar_support_management', JSON.stringify(state.supportManagement));
@@ -1346,6 +1382,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const versionBadge = document.getElementById('app-version-badge');
+  if (versionBadge) versionBadge.textContent = 'v' + APP_VERSION;
+
   function checkAuthentication() {
     if (state.isAuthenticated) {
       loginScreen.style.display = 'none';
@@ -1589,7 +1628,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const isUserEditingThisDoc = (doc === activeDoc);
 
+      // No se pisa a quien acaba de guardar: la hoja puede responder todavia
+      // con el valor anterior y le revertiria el cambio en pantalla.
+      const RECIEN_GUARDADO_MS = 30000;
       const isDirty = localMgmt && localMgmt.isDirty;
+      const recienGuardado = localMgmt && localMgmt.guardadoEn &&
+        (Date.now() - localMgmt.guardadoEn) < RECIEN_GUARDADO_MS;
+      if (recienGuardado) return r;
+
       if (r.gestionStatus && !state.isTypingActive && !isUserEditingThisDoc && !isDirty) {
         state.supportManagement[doc] = {
           status: r.gestionStatus,
@@ -1696,6 +1742,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isDirty) return; // Proteger si hay cambios locales no guardados
       if (state.isTypingActive && isUserEditingThisDoc) return; // Proteger mientras se escribe
+      // Misma proteccion que en la carga en vivo: no pisar un guardado reciente.
+      if (localMgmt && localMgmt.guardadoEn && (Date.now() - localMgmt.guardadoEn) < 30000) return;
 
       // Hay 64 personas que no tienen fila en GESTION_SST y que sin embargo el
       // módulo interdisciplinar ya atendió. Si esta condición no mira la columna
@@ -2407,11 +2455,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const isEditingText = activeEl && (
       activeEl.tagName === 'TEXTAREA' || 
       activeEl.tagName === 'INPUT' || 
+      activeEl.tagName === 'SELECT' ||
       (activeEl.classList && activeEl.classList.contains('mgmt-notes-textarea'))
     );
 
-    if (!forceRender && (isEditingText || state.isTypingActive)) {
-      console.log('🛡️ INMUNIDAD DE ESCRITURA ACTIVADA: El usuario está redactando observaciones. Se protege el texto en pantalla y se pospone la actualización del DOM.');
+    // Tampoco se redibuja mientras el operador tiene el foco dentro de la tabla
+    // de gestion, aunque no este escribiendo: la sincronizacion cada 25 segundos
+    // le reemplazaba la fila que estaba trabajando y tenia que buscar el caso
+    // otra vez.
+    const estaEnLaTabla = !!(activeEl && tbody && tbody.contains(activeEl));
+
+    if (!forceRender && (isEditingText || estaEnLaTabla || state.isTypingActive)) {
+      console.log('🛡️ Inmunidad activada: el operador está trabajando en la tabla. Se pospone la actualización del DOM.');
       return;
     }
 
@@ -2494,6 +2549,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const totalItems = supportReports.length;
+    // Lo necesita changePage para no ofrecer paginas fuera del filtro.
+    state.pagination.mgmtTotalItems = totalItems;
 
     if (totalItems === 0) {
       let emptyMsg = '';
@@ -2623,7 +2680,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
 
       return `
-        <tr style="${rowStyle}">
+        <tr id="mgmt-row-${doc}" style="${rowStyle}">
           <td style="vertical-align:top; padding:12px; width:28%;">
             <div style="font-weight:800; color:var(--primary); font-size:0.95rem; margin-bottom:2px;">${r.nombre || 'Colaborador'}</div>
             <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:8px;">💳 <b>CC:</b> ${doc}</div>
