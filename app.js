@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260911_1530';
+const APP_VERSION = '20260911_1814';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -204,6 +204,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // dejar de estarlo.
     if (getNoveltyNeeds(r)) return true;
 
+    // Una vivienda inhabitable es un hecho objetivo, no una solicitud. Hay 212
+    // personas que respondieron "estoy bien y seguro" el dia del sismo y siguen
+    // sin poder volver a su casa; sin esta condicion no entraban al Centro de
+    // Gestion y su caso no se podia trabajar.
+    if (matchesCategory(r, 'vivienda')) return true;
+
     const ap = getApoyoText(r);
     return (ap.length > 0 && !ap.includes('estoy bien y seguro')) || matchesCategory(r, 'familiar');
   }
@@ -247,10 +253,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (matchesCategory(r, 'medicamentos')) categories.push({ key: 'medicamentos', name: 'Medicamentos / Salud', icon: '💊', color: '#E63946' });
     if (matchesCategory(r, 'social')) categories.push({ key: 'social', name: 'Trabajo Social', icon: '🤝', color: '#F59E0B' });
     if (matchesCategory(r, 'juridico')) categories.push({ key: 'juridico', name: 'Apoyo Jurídico', icon: '⚖️', color: '#8B5CF6' });
-    // Removido de gestión SST por solicitud (se maneja fuera del flujo operacional de tarjetas)
-    // if (r.lugarSeguro === 'No' || (r.afectacionVivienda && r.afectacionVivienda.toLowerCase().includes('impiden'))) {
-    //   categories.push({ key: 'vivienda', name: 'Sin Lugar Seguro / Vivienda', icon: '🏠', color: '#DC2626' });
-    // }
+    // Vivienda se abrio como disciplina propia el 11/09/2026. Su gestion es el
+    // acompanamiento habitacional y los subsidios, distinta de la atencion y
+    // orientacion que presta Trabajo Social sobre la misma persona.
+    if (matchesCategory(r, 'vivienda')) {
+      categories.push({ key: 'vivienda', name: 'Vivienda Inhabitable', icon: '🏠', color: '#DC2626' });
+    }
 
     if (categories.length === 0) {
       categories.push({ key: 'general', name: 'Seguimiento General SST', icon: '📋', color: '#64748B' });
@@ -341,16 +349,51 @@ document.addEventListener('DOMContentLoaded', () => {
   // Se declara como función y no como constante a propósito: checkAuthentication()
   // llega hasta aquí durante el arranque, antes de que se inicialicen las
   // constantes del módulo, y un `const` reventaría dejando el tablero en blanco.
+  // Huella barata de una cadena larga (djb2). Sirve para saber si el HTML que
+  // acabamos de generar es igual al que ya está en pantalla, sin guardar el
+  // texto completo en memoria.
+  function huellaTexto(txt) {
+    let h = 5381;
+    for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
+    return h + ':' + txt.length;
+  }
+
+  // Escribe una tabla solo si su contenido cambió.
+  //
+  // La sincronización corre cada 25 segundos y antes reemplazaba el tbody
+  // siempre, aunque el HTML fuera idéntico. Eso movía el scroll, borraba el
+  // resaltado de Ctrl+F y hacía perder de vista el caso que el operador estaba
+  // mirando, sobre todo con "mostrar todo" y cientos de filas. Si nada cambió,
+  // ahora no se toca el DOM; y cuando sí cambió, se conserva la posición.
+  function pintarTablaSiCambio(tbody, html, clave) {
+    const firma = huellaTexto(html);
+    if (state.firmasTablas && state.firmasTablas[clave] === firma && tbody.children.length > 0) {
+      return false;
+    }
+    if (!state.firmasTablas) state.firmasTablas = {};
+    const y = window.scrollY;
+    tbody.innerHTML = html;
+    state.firmasTablas[clave] = firma;
+    if (window.scrollY !== y) window.scrollTo({ top: y });
+    return true;
+  }
+
   function esFichaDeSegmento(key) {
-    return key === 'vivienda' || key === 'leve' || key === 'familiar';
+    return key === 'leve' || key === 'familiar';
   }
 
   function getFichaBucket(r, subKey) {
-    // Un segmento no tiene estado propio que consultar: vale el de la persona.
+    // Un segmento no tiene estado propio que consultar: vale el de la persona,
+    // DERIVADO de sus disciplinas y no leido de la columna I. Esa columna es un
+    // valor guardado que queda desfasado en cuanto aparece un frente nuevo: al
+    // abrir Vivienda, once personas seguian marcadas como resueltas en la
+    // columna I teniendo su vivienda abierta, y la tarjeta las daba por
+    // cerradas. No hay recursion posible: getRolledUpMgmtStatus excluye los
+    // segmentos de su calculo.
     if (esFichaDeSegmento(subKey)) {
-      const global = getNormalizedMgmtStatus(r);
-      if (global === 'resuelto') return 'atendido';
-      if (global === 'proceso') return 'proceso';
+      const persona = getRolledUpMgmtStatus(r);
+      if (persona === 'resuelto') return 'atendido';
+      if (persona === 'proceso') return 'proceso';
       return 'pendiente';
     }
 
@@ -1895,6 +1938,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Desglose de una ficha por tipo de vinculacion. Vivienda lo necesita porque
+  // el programa de subsidios cubre a la contratacion directa, pero el universo
+  // de afectados incluye prestadores, Aprosalud y otras vinculaciones: la
+  // tarjeta muestra a todos y resalta el subgrupo de Comfamiliar dentro.
+  function getDesglosePorVinculacion(categoryKey) {
+    const grupos = {};
+    let total = 0, intervenidos = 0, totalCom = 0, intervCom = 0;
+
+    state.reports.forEach(r => {
+      if (!isNeedSupport(r)) return;
+      if (!matchesCategory(r, categoryKey)) return;
+
+      const grupo = getReportColumnAFValue(r);
+      if (!grupos[grupo]) grupos[grupo] = { total: 0, atendido: 0, proceso: 0, pendiente: 0 };
+
+      const bucket = getFichaBucket(r, categoryKey);
+      const gestionado = (bucket === 'atendido' || bucket === 'proceso');
+      const esComfamiliar = normalizeStr(grupo).includes('activo comfamiliar');
+
+      grupos[grupo].total++;
+      if (bucket === 'atendido') grupos[grupo].atendido++;
+      else if (bucket === 'proceso') grupos[grupo].proceso++;
+      else grupos[grupo].pendiente++;
+
+      total++;
+      if (gestionado) intervenidos++;
+      if (esComfamiliar) {
+        totalCom++;
+        if (gestionado) intervCom++;
+      }
+    });
+
+    return { grupos, total, intervenidos, totalCom, intervCom };
+  }
+
   function getConfrontationMetrics(categoryKey) {
     let solicitados = 0;
     let intervencionAtendida = 0;
@@ -1951,6 +2029,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderUnifiedKPICard(containerId, catKey, name, icon, color, subtitle) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    if (catKey === 'vivienda') {
+      renderViviendaKPICard(container, name, icon, color);
+      return;
+    }
 
     const metrics = getConfrontationMetrics(catKey);
     const solicitados = metrics.solicitados;
@@ -2048,6 +2131,83 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
+  }
+
+  // Tarjeta propia de Vivienda.
+  //
+  // Se separa de renderUnifiedKPICard porque necesita mostrar dos cosas a la
+  // vez: el universo completo de afectados y, dentro de el, el subgrupo de
+  // contratacion directa, que es el que cubre el programa de subsidios. Meter
+  // eso en la tarjeta generica habria obligado a que las otras siete cargaran
+  // con un desglose que no usan.
+  function renderViviendaKPICard(container, name, icon, color) {
+    const d = getDesglosePorVinculacion('vivienda');
+    const total = d.total;
+    const pct = total > 0 ? Math.round((d.intervenidos / total) * 100) : 100;
+    const pctCom = d.totalCom > 0 ? Math.round((d.intervCom / d.totalCom) * 100) : 100;
+
+    let atendidos = 0, proceso = 0, pendientes = 0;
+    Object.keys(d.grupos).forEach(g => {
+      atendidos += d.grupos[g].atendido;
+      proceso += d.grupos[g].proceso;
+      pendientes += d.grupos[g].pendiente;
+    });
+
+    const fondo = pct >= 80 ? '#D1FAE5' : pct >= 40 ? '#FEF3C7' : '#FEE2E2';
+    const tinta = pct >= 80 ? '#065F46' : pct >= 40 ? '#92400E' : '#991B1B';
+
+    // El desglose completo por vinculacion estiraba la tarjeta y descuadraba
+    // toda la fila del tablero. Como el subgrupo de Comfamiliar ya va en la
+    // cabecera y en las dos cajas, aqui basta con el resto agregado en una
+    // linea; el detalle grupo por grupo queda en el tooltip.
+    const otros = Object.entries(d.grupos)
+      .filter(([g]) => !normalizeStr(g).includes('activo comfamiliar'));
+    const otrosTotal = otros.reduce((a, [, v]) => a + v.total, 0);
+    const otrosGest = otros.reduce((a, [, v]) => a + v.atendido + v.proceso, 0);
+    const detalleOtros = otros
+      .map(([g, v]) => g + ': ' + v.total + ' afectados, ' + (v.atendido + v.proceso) + ' en gestión')
+      .join(String.fromCharCode(10));
+
+    container.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:10px;">
+        <strong style="color:var(--primary); font-size:0.92rem; display:flex; align-items:center; gap:6px; font-weight:800;">
+          <span>${icon}</span> ${name}
+        </strong>
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+          <span style="background:${fondo}; color:${tinta}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pct}% Cobertura</span>
+          <span title="Cobertura sobre los colaboradores con contratación directa, que es el alcance del programa de subsidios" style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pctCom}% en activos Comfamiliar</span>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px; font-size:0.85rem;">
+        <div style="background:rgba(0,51,102,0.05); padding:6px 8px; border-radius:6px;">
+          <span style="color:var(--text-muted); font-size:0.7rem; display:block; font-weight:700;">📋 Solicitados</span>
+          <b style="color:var(--primary); font-size:1.2rem;">${total.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:var(--text-muted);">Casos</span>
+          <span style="display:block; font-size:0.68rem; color:var(--text-muted); font-weight:700; margin-top:1px;">${d.totalCom.toLocaleString('es-CO')} activos Comfamiliar</span>
+        </div>
+        <div style="background:rgba(5,150,105,0.08); padding:6px 8px; border-radius:6px;">
+          <span style="color:#065F46; font-size:0.7rem; display:block; font-weight:700;">✅ Intervenidos</span>
+          <b style="color:#059669; font-size:1.2rem;">${d.intervenidos.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:#065F46;">Casos</span>
+          <span style="display:block; font-size:0.68rem; color:#047857; font-weight:700; margin-top:1px;">${d.intervCom.toLocaleString('es-CO')} activos Comfamiliar</span>
+        </div>
+      </div>
+
+      <div style="background:#E2E8F0; height:6px; border-radius:3px; overflow:hidden; margin-bottom:8px; width:100%;">
+        <div style="background:linear-gradient(90deg, ${color} 0%, #059669 100%); width:${Math.max(pct, 3)}%; height:100%;"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:3px; font-size:0.72rem; color:var(--text-muted); font-weight:700;">
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🟢 Atendidos</span><b style="color:#059669;">${atendidos}</b></div>
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🟡 En Proceso</span><b style="color:#D97706;">${proceso}</b></div>
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🔴 Pendientes</span><b style="color:#DC2626;">${pendientes}</b></div>
+      </div>
+
+      ${otrosTotal > 0 ? `
+      <div style="margin-top:6px; border-top:1px dashed var(--border); padding-top:5px; display:flex; justify-content:space-between; gap:8px; font-size:0.7rem; color:var(--text-muted); font-weight:700;" title="${detalleOtros}">
+        <span>👥 Otras vinculaciones</span>
+        <b style="color:var(--text-main);">${otrosTotal} afectados · ${otrosGest} en gestión</b>
+      </div>` : ''}
+    `;
   }
 
   function getReportColumnAFValue(r) {
@@ -2261,7 +2421,7 @@ document.addEventListener('DOMContentLoaded', () => {
       elTopGruposValue.textContent = `${uniqueAFSet.size} Grupos / Procesos`;
     }
     if (elTopGruposSubtext) {
-      elTopGruposSubtext.textContent = `(${formatNumber(total)} personas clasificadas en Col. AF)`;
+      elTopGruposSubtext.textContent = `(${total.toLocaleString('es-CO')} personas clasificadas en Col. AF)`;
     }
 
     // Renderizado dinámico de las fichas KPI unificadas con el diseño avanzado de confrontación
@@ -2269,7 +2429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-leve', 'leve', 'Pueden Requerir algún tipo de Apoyo', '🧠', '#D97706');
     renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
-    renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Afectación de Vivienda', '🏠', '#DC2626');
+    renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Vivienda Inhabitable', '🏠', '#DC2626');
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B', 'Atención y Orientación');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
@@ -2286,10 +2446,15 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const resumenIntervenciones = document.getElementById('kpi-af-intervenciones-resumen');
       if (resumenIntervenciones) {
-        // Mismas categorías que las fichas renderizadas arriba: el total es la suma
-        // de sus "Intervenidos", así que cuadra con lo que se ve en pantalla.
+        // Pérdida / Afectación Familiar queda FUERA del total. No tiene equipo
+        // propio: a esas personas las atendió psicología o trabajo social, y su
+        // "intervenido" sale del estado de la persona, así que sumarla seria
+        // contar dos veces la misma atención.
+        //
+        // "Pueden Requerir algún tipo de Apoyo" sigue dentro por decisión del
+        // equipo, aunque comparte la misma naturaleza de segmento.
         const clavesIntervencion = [
-          'psicologico', 'leve', 'familiar', 'alimentos',
+          'psicologico', 'leve', 'alimentos',
           'vivienda', 'social', 'medicamentos', 'juridico'
         ];
 
@@ -2312,9 +2477,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Actualización de la tarjeta KPI de novedades
     const elNovedadesTotal = document.getElementById('kpi-novedades-total');
+    const elNovedadesDesglose = document.getElementById('kpi-novedades-desglose');
     if (elNovedadesTotal) {
-      const noveltyCount = state.reports.filter(r => tieneNovedadReportada(r)).length;
-      elNovedadesTotal.textContent = formatNumber(noveltyCount);
+      // La tarjeta muestra TODAS las novedades y las desglosa por origen. Antes
+      // solo contaba las que reportó el colaborador y dejaba fuera, sin decirlo,
+      // las que cargó el equipo desde archivos externos. Ocultar un dato para
+      // que la cifra no se vea inflada obliga a explicarlo cada vez que alguien
+      // compara contra la hoja; mostrarlo con su origen no.
+      const reportadas = state.reports.filter(r => tieneNovedadReportada(r)).length;
+      const conAlguna = state.reports.filter(r =>
+        (r.novedades && r.novedades.length > 0) ||
+        String(r.situacionYApoyo || '').includes('[NOVEDAD]')
+      ).length;
+      const registradas = Math.max(conAlguna - reportadas, 0);
+
+      elNovedadesTotal.textContent = formatNumber(conAlguna);
+      if (elNovedadesDesglose) {
+        elNovedadesDesglose.innerHTML = registradas > 0
+          ? `🔔 <b>${formatNumber(reportadas)}</b> reportadas por el colaborador` +
+            `<br>📋 <b>${formatNumber(registradas)}</b> registradas por el equipo desde archivos externos`
+          : `🔔 <b>${formatNumber(reportadas)}</b> reportadas por el colaborador`;
+      }
     }
 
     // 4. ACTUALIZACIÓN DE TARJETA KPI DE POLIZAS DE MANERA DEFENSIVA Y PROTEGIDA
@@ -2362,6 +2545,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Las siete fichas del tablero. El conteo se hace en una sola pasada con
     // getFichaBucket, para que todas usen exactamente el mismo criterio.
+    // Esta lista es independiente de las tarjetas del Tablero Principal: si se
+    // abre una disciplina nueva hay que agregarla aquí también, o sus graficas
+    // no aparecen. Vivienda se agrego el 11/09/2026 al abrirse como disciplina.
     const FICHAS_KPI = [
       { key: 'psicologico',  title: 'Apoyo Psicológico',             icon: '🧠' },
       { key: 'familiar',     title: 'Pérdida / Afectación Familiar', icon: '🤍' },
@@ -2369,7 +2555,8 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'medicamentos', title: 'Medicamentos / Salud',          icon: '💊' },
       { key: 'alimentos',    title: 'Kits de Alimentos',             icon: '📦' },
       { key: 'juridico',     title: 'Gestión Jurídica',              icon: '⚖️' },
-      { key: 'general',      title: 'Vivienda / Apoyos Especiales',  icon: '🏠' }
+      { key: 'vivienda',     title: 'Vivienda Inhabitable',          icon: '🏠' },
+      { key: 'general',      title: 'Seguimiento General SST',       icon: '📋' }
     ];
 
     const conteoFichas = {};
@@ -2580,7 +2767,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updatePaginationUI('mgmt', startIndex + 1, endIndex, totalItems, currentPage, totalPages);
 
-    tbody.innerHTML = pageItems.map(r => {
+    const htmlFilas = pageItems.map(r => {
       const doc = String(r.documento || r.cedula).trim();
       const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', operator: r.gestionOperator || 'Operador SST', updatedAt: r.gestionUpdatedAt || '' };
       const st = getRolledUpMgmtStatus(r);
@@ -2722,6 +2909,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+
+    pintarTablaSiCambio(tbody, htmlFilas, 'gestion');
   }
 
   function exportManagementMatrixToExcel() {
@@ -3059,7 +3248,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updatePaginationUI('main', startIndex + 1, endIndex, totalItems, currentPage, totalPages);
 
-    tbody.innerHTML = pageItems.map(r => {
+    const htmlFilas = pageItems.map(r => {
       const criticidadBadge = r.criticidad === 'rojo' 
         ? '<span class="badge-status badge-rojo">🔴 URGENTE</span>'
         : r.criticidad === 'amarillo'
@@ -3118,6 +3307,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+
+    pintarTablaSiCambio(tbody, htmlFilas, 'principal');
   }
 
   function initLeafletMap() {
