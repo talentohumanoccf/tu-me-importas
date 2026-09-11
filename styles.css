@@ -629,9 +629,9 @@ body {
 }
 
 .badge-kpi-pend {
-  background: #FFFBEB;
-  color: #92400E;
-  border: 1px solid #FCD34D;
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
   padding: 4px 6px;
   border-radius: 6px;
   font-weight: 800;
@@ -643,9 +643,9 @@ body {
 }
 
 .badge-kpi-proc {
-  background: #F0F9FF;
-  color: #0369A1;
-  border: 1px solid #7DD3FC;
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FCD34D;
   padding: 4px 6px;
   border-radius: 6px;
   font-weight: 800;
@@ -684,13 +684,13 @@ body {
 }
 
 .mgmt-progress-seg-pend {
-  background: #F59E0B;
+  background: #DC2626;
   height: 100%;
   transition: width 0.4s ease;
 }
 
 .mgmt-progress-seg-proc {
-  background: #0284C7;
+  background: #F59E0B;
   height: 100%;
   transition: width 0.4s ease;
 }
@@ -701,22 +701,16 @@ body {
   transition: width 0.4s ease;
 }
 
-/* Personas en gestión por otra disciplina, cuya necesidad de esta ficha todavía
-   no ha tomado nadie. Va entre "en gestión" y "sin contacto" a propósito: no es
-   abandono, pero tampoco es atención de este frente. */
-.mgmt-progress-seg-otras {
-  background: #8B5CF6;
-  height: 100%;
-  transition: width 0.4s ease;
-}
-
+/* Misma lectura que las fichas KPI: una linea por estado, etiqueta a la
+   izquierda y cifra a la derecha. Verde atendido, ambar en proceso, rojo
+   pendiente, igual que en el Tablero Principal. */
 .mgmt-chart-legend {
   display: flex;
-  justify-content: space-between;
-  gap: 6px;
+  flex-direction: column;
+  gap: 3px;
   font-size: 0.72rem;
   font-weight: 700;
-  margin-top: 4px;
-  flex-wrap: wrap;
+  color: var(--text-muted);
+  margin-top: 6px;
 }
 

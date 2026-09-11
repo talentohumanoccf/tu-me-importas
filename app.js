@@ -328,7 +328,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // todavía no la ha tomado nadie. Meter los dos en "pendiente" exagera el
   // abandono; meterlos en "en gestión" es lo que hacía la herencia y ocultaba
   // necesidades sin atender.
+  // Vivienda, criticidad leve y afectación familiar son segmentos de población,
+  // no disciplinas: no hay un equipo propio detrás de esas etiquetas. A esas
+  // personas las atiende psicología o trabajo social, y la ficha solo suma
+  // cuando la disciplina que corresponda las atiende.
+  //
+  // Se declara como función y no como constante a propósito: checkAuthentication()
+  // llega hasta aquí durante el arranque, antes de que se inicialicen las
+  // constantes del módulo, y un `const` reventaría dejando el tablero en blanco.
+  function esFichaDeSegmento(key) {
+    return key === 'vivienda' || key === 'leve' || key === 'familiar';
+  }
+
   function getFichaBucket(r, subKey) {
+    // Un segmento no tiene estado propio que consultar: vale el de la persona.
+    if (esFichaDeSegmento(subKey)) {
+      const global = getNormalizedMgmtStatus(r);
+      if (global === 'resuelto') return 'atendido';
+      if (global === 'proceso') return 'proceso';
+      return 'pendiente';
+    }
+
     const st = getRegisteredSubStatus(r, subKey);
     if (st === 'resuelto') return 'atendido';
     if (st === 'proceso') return 'proceso';
@@ -1800,20 +1820,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getConfrontationMetrics(categoryKey) {
-    // 'vivienda', 'leve' y 'familiar' no son disciplinas, son segmentos de
-    // población: no hay un equipo propio detrás de esas etiquetas. A esas
-    // personas las atiende psicología o trabajo social, y la tarjeta solo suma
-    // cuando la disciplina que corresponda las atiende. Por eso su estado es el
-    // de la persona y no tienen el cubo "en otras disciplinas": por definición
-    // TODAS estarían ahí, y el dato no diría nada.
-    //
-    // La comparación va aquí dentro y no en una constante del módulo a
-    // propósito: checkAuthentication() llama a esta función durante el arranque
-    // (app.js:1058), antes de que se inicialicen las constantes declaradas más
-    // abajo, y un `const` externo revienta con "Cannot access before
-    // initialization" y deja el tablero en blanco.
-    const esSegmento = (categoryKey === 'vivienda' || categoryKey === 'leve' || categoryKey === 'familiar');
-
     let solicitados = 0;
     let intervencionAtendida = 0;
     let intervencionEnProceso = 0;
@@ -1835,14 +1841,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isMatch) {
         solicitados++;
 
-        if (esSegmento) {
-          const st = getNormalizedMgmtStatus(r);
-          if (st === 'resuelto') intervencionAtendida++;
-          else if (st === 'proceso') intervencionEnProceso++;
-          else pendientes++;
-          return;
-        }
-
+        // getFichaBucket ya distingue los segmentos de las disciplinas, así que
+        // las siete fichas y el Centro de Gestión cuentan con el mismo criterio.
         switch (getFichaBucket(r, categoryKey)) {
           case 'atendido': intervencionAtendida++; break;
           case 'proceso': intervencionEnProceso++; break;
@@ -1852,12 +1852,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // "Intervenidos" cuenta también los apoyos transversales: esas personas SÍ
-    // están siendo atendidas, solo que por otra disciplina. Dejarlas fuera haría
-    // ver como no intervenido a alguien que tiene un profesional asignado. Lo
-    // que no entra son los pendientes, que son los que nadie ha tocado por
-    // ningún frente.
-    const totalIntervenidos = intervencionAtendida + intervencionEnProceso + enOtras;
+    // "Intervenidos" y la cobertura miden lo que ESTA disciplina gestionó. Los
+    // apoyos transversales no entran: que a la persona la esté acompañando otro
+    // equipo no es trabajo de este. Contarlos aquí subía la cobertura de
+    // jurídica al 93% teniendo solo 16 de 27 casos cerrados por jurídica.
+    const totalIntervenidos = intervencionAtendida + intervencionEnProceso;
     const pct = solicitados > 0 ? Math.round((totalIntervenidos / solicitados) * 100) : 100;
 
     return {
@@ -1885,10 +1884,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const enOtras = metrics.enOtras || 0;
     const pendientes = metrics.pendientes;
     const pctCobertura = metrics.pct;
-    // Las tarjetas de segmento (vivienda, criticidad leve, afectación familiar)
-    // no tienen equipo propio, así que no se les pinta la línea "en otras
-    // disciplinas": siempre sería el total y no aporta nada.
-    const esSegmentoPoblacion = (catKey === 'vivienda' || catKey === 'leve' || catKey === 'familiar');
+
+    const esSegmentoPoblacion = esFichaDeSegmento(catKey);
+
+    // Lo que esta disciplina no ha tomado. Los apoyos transversales van aquí
+    // dentro: que otra disciplina esté acompañando a la persona no adelanta la
+    // cola de este equipo.
+    const pendientesDisciplina = enOtras + pendientes;
+
+    // El desglose ya no se pinta, pero se conserva en el tooltip: sirve para
+    // distinguir una carga de trabajo de gente que nadie ha contactado.
+    const detallePendientes = esSegmentoPoblacion
+      ? 'Casos que todavía no ha tomado nadie'
+      : `Casos que esta disciplina todavía no ha tomado. De ellos, ${enOtras} están siendo atendidos por otra disciplina y ${pendientes} no han sido contactados por ningún frente.`;
 
     const titleBlock = subtitle
       ? `<strong style="color:var(--primary); font-size:0.92rem; display:flex; flex-direction:column; align-items:flex-start; gap:1px; font-weight:800; line-height:1.2;">
@@ -1931,14 +1939,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>🟡 En Proceso</span>
           <b style="color:#D97706;">${intervencionEnProceso}</b>
         </div>
-        ${esSegmentoPoblacion ? '' : `
-        <div style="display:flex; justify-content:space-between; gap:8px;" title="Apoyos transversales: la persona sí está siendo atendida, pero por otra disciplina. Esta necesidad concreta todavía no la ha tomado nadie.">
-          <span>🟣 Apoyos transversales</span>
-          <b style="color:#6D28D9;">${enOtras}</b>
-        </div>`}
-        <div style="display:flex; justify-content:space-between; gap:8px;">
+        <div style="display:flex; justify-content:space-between; gap:8px;" title="${detallePendientes}">
           <span>🔴 Pendientes</span>
-          <b style="color:#DC2626;">${pendientes}</b>
+          <b style="color:#DC2626;">${pendientesDisciplina}</b>
         </div>
       </div>
     `;
@@ -2327,6 +2330,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const pOtras = pct(c.otras);
         const pPend = pct(c.pendiente);
         const gestionadas = c.atendido + c.proceso;
+        // Lo que esta disciplina no ha tomado, con los transversales adentro.
+        const pendientesDisc = c.otras + c.pendiente;
 
         return `
           <div class="analytics-card" style="padding:14px; background:#FFF; border:1px solid var(--border);">
@@ -2335,22 +2340,27 @@ document.addEventListener('DOMContentLoaded', () => {
               <span style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px;">Total: ${total} Casos</span>
             </div>
 
-            <div class="mgmt-progress-bar-bg" title="Atendidos: ${pRes}% · En gestión: ${pProc}% · En gestión por otra disciplina: ${pOtras}% · Sin contacto: ${pPend}%">
+            <div class="mgmt-progress-bar-bg" title="Atendidos: ${pRes}% · En proceso: ${pProc}% · Pendientes: ${pct(pendientesDisc)}%">
               <div class="mgmt-progress-seg-res" style="width:${pRes}%;"></div>
               <div class="mgmt-progress-seg-proc" style="width:${pProc}%;"></div>
-              <div class="mgmt-progress-seg-otras" style="width:${pOtras}%;"></div>
-              <div class="mgmt-progress-seg-pend" style="width:${pPend}%;"></div>
+              <div class="mgmt-progress-seg-pend" style="width:${pct(pendientesDisc)}%;"></div>
             </div>
 
             <div class="mgmt-chart-legend">
-              <span style="color:#065F46;" title="Esta disciplina registró la atención y la cerró">🟢 ${c.atendido} Atendidos (${pRes}%)</span>
-              <span style="color:#075985;" title="Esta disciplina tiene el caso abierto">🔵 ${c.proceso} En gestión (${pProc}%)</span>
-              <span style="color:#6D28D9;" title="Apoyos transversales: la persona está en gestión por otra disciplina, pero esta necesidad todavía no la ha tomado nadie">🟣 ${c.otras} Transversales (${pOtras}%)</span>
-              <span style="color:#92400E;" title="Nadie ha registrado gestión de esta persona por ningún frente">🟡 ${c.pendiente} Sin contacto (${pPend}%)</span>
+              <span style="display:flex; justify-content:space-between; gap:8px;" title="Esta disciplina registró la atención y la cerró">
+                <span>🟢 Atendidos</span><b style="color:#059669;">${c.atendido}</b>
+              </span>
+              <span style="display:flex; justify-content:space-between; gap:8px;" title="Esta disciplina tiene el caso abierto">
+                <span>🟡 En Proceso</span><b style="color:#D97706;">${c.proceso}</b>
+              </span>
+              <span style="display:flex; justify-content:space-between; gap:8px;" title="Casos que esta disciplina todavía no ha tomado. De ellos, ${c.otras} están siendo atendidos por otra disciplina y ${c.pendiente} no han sido contactados por ningún frente.">
+                <span>🔴 Pendientes</span><b style="color:#DC2626;">${pendientesDisc}</b>
+              </span>
             </div>
 
-            <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); border-top:1px dashed var(--border); padding-top:5px;">
-              Gestión registrada de esta disciplina: <b style="color:var(--primary);">${gestionadas} de ${total}</b> (${pct(gestionadas)}%)
+            <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted); border-top:1px dashed var(--border); padding-top:5px; display:flex; justify-content:space-between; gap:8px;">
+              <span>Cobertura de esta disciplina</span>
+              <b style="color:var(--primary);">${gestionadas} de ${total} (${pct(gestionadas)}%)</b>
             </div>
           </div>
         `;
