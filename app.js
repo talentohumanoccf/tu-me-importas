@@ -378,6 +378,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'pendiente';
   }
 
+  // Estado de la PERSONA, derivado de sus disciplinas.
+  //
+  // getNormalizedMgmtStatus lee la columna I, que es un valor guardado y puede
+  // quedar desfasado: cuando se registra una disciplina desde fuera del
+  // aplicativo, la columna I no se entera y la tarjeta termina diciendo "en
+  // gestión" arriba y "atendido" abajo. La fórmula de abajo es la misma que ya
+  // usa la app al guardar (saveSubSupportCase y saveSupportCase), solo que
+  // aplicada también al mostrar, para que el encabezado y las sub-tarjetas
+  // nunca se contradigan.
+  //
+  // Las fichas de segmento y 'general' quedan fuera del cálculo: no tienen
+  // estado propio que aportar, y su bucket sale justamente de la columna I.
+  // Si una persona no tiene ninguna disciplina real, se conserva su estado
+  // guardado, que es el único dato que existe sobre ella.
+  function getRolledUpMgmtStatus(r) {
+    const reales = getReportSubCategories(r)
+      .filter(cat => cat.key !== 'general' && !esFichaDeSegmento(cat.key));
+
+    if (!reales.length) return getNormalizedMgmtStatus(r);
+
+    const buckets = reales.map(cat => getFichaBucket(r, cat.key));
+    if (buckets.every(b => b === 'atendido')) return 'resuelto';
+    // 'otras' cuenta como gestión: la persona tiene un profesional asignado,
+    // aunque sea por una necesidad distinta de la que estamos mirando.
+    if (buckets.some(b => b === 'atendido' || b === 'proceso' || b === 'otras')) return 'proceso';
+    return 'pendiente';
+  }
+
   function parseCombinedNotesToSubMgmt(notesStr, reqCategories = null) {
     if (!notesStr || typeof notesStr !== 'string') return null;
     const subMgmt = {};
@@ -2086,7 +2114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = getReportColumnAFValue(r);
         mapAFAll[val] = (mapAFAll[val] || 0) + 1;
         
-        const status = getNormalizedMgmtStatus(r);
+        const status = getRolledUpMgmtStatus(r);
         const isAttended = status === 'resuelto' || status === 'proceso';
         if (isAttended) {
           mapAFAten[val] = (mapAFAten[val] || 0) + 1;
@@ -2402,7 +2430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isNeedSupport(r)) return false;
 
       const isSpecificCat = catFilter && catFilter !== 'all';
-      const st = isSpecificCat ? getNormalizedSubMgmtStatus(r, catFilter) : getNormalizedMgmtStatus(r);
+      const st = isSpecificCat ? getNormalizedSubMgmtStatus(r, catFilter) : getRolledUpMgmtStatus(r);
       const mgmt = state.supportManagement[String(r.documento || r.cedula).trim()] || {};
 
       let matchStatus = false;
@@ -2495,7 +2523,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = pageItems.map(r => {
       const doc = String(r.documento || r.cedula).trim();
       const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', operator: r.gestionOperator || 'Operador SST', updatedAt: r.gestionUpdatedAt || '' };
-      const st = getNormalizedMgmtStatus(r);
+      const st = getRolledUpMgmtStatus(r);
 
       const isTakenByOther = st === 'proceso' && mgmt.operator && mgmt.operator !== currentOperator;
       const isTakenByMe = st === 'proceso' && mgmt.operator === currentOperator;
@@ -2675,7 +2703,7 @@ document.addEventListener('DOMContentLoaded', () => {
     supportReports.forEach(r => {
       const doc = String(r.documento || r.cedula).trim();
       const mgmt = state.supportManagement[doc] || { status: r.gestionStatus || 'pendiente', notes: r.gestionNotes || '', updatedAt: r.gestionUpdatedAt || '', operator: r.gestionOperator || 'Operador SST' };
-      const st = getNormalizedMgmtStatus(r);
+      const st = getRolledUpMgmtStatus(r);
       const statusLabel = st === 'resuelto' ? '🟢 APOYO ENTREGADO / RESUELTO' : st === 'proceso' ? '🔵 EN GESTIÓN' : '🟡 PENDIENTE POR CONTACTAR';
       const realPhone = getBestPhoneNumber(r);
 
