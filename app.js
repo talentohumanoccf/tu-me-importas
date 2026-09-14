@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260911_1814';
+const APP_VERSION = '20260914_0952';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -2426,7 +2426,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Renderizado dinámico de las fichas KPI unificadas con el diseño avanzado de confrontación
     renderUnifiedKPICard('kpi-card-psicologico', 'psicologico', 'Apoyo Psicológico', '🧠', '#003366');
-    renderUnifiedKPICard('kpi-card-leve', 'leve', 'Pueden Requerir algún tipo de Apoyo', '🧠', '#D97706');
     renderUnifiedKPICard('kpi-card-familiar', 'familiar', 'Pérdida / Afectación Familiar', '🤍', '#B91C1C');
     renderUnifiedKPICard('kpi-card-alimentos', 'alimentos', 'Kits de Alimentos / Mercado', '📦', '#00A88F');
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Vivienda Inhabitable', '🏠', '#DC2626');
@@ -2446,16 +2445,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const resumenIntervenciones = document.getElementById('kpi-af-intervenciones-resumen');
       if (resumenIntervenciones) {
-        // Pérdida / Afectación Familiar queda FUERA del total. No tiene equipo
-        // propio: a esas personas las atendió psicología o trabajo social, y su
-        // "intervenido" sale del estado de la persona, así que sumarla seria
-        // contar dos veces la misma atención.
+        // Solo las disciplinas con equipo propio. Las fichas de segmento quedan
+        // fuera porque su "intervenido" se deriva del estado de la persona: a
+        // esa gente la atendió psicología, trabajo social o alimentos, y
+        // sumarlas contaba dos veces la misma atención.
         //
-        // "Pueden Requerir algún tipo de Apoyo" sigue dentro por decisión del
-        // equipo, aunque comparte la misma naturaleza de segmento.
+        // Pérdida / Afectación Familiar salió el 11/09/2026 y la de criticidad
+        // leve el 14/09/2026, cuando esa tarjeta se retiró del tablero.
         const clavesIntervencion = [
-          'psicologico', 'leve', 'alimentos',
-          'vivienda', 'social', 'medicamentos', 'juridico'
+          'psicologico', 'alimentos', 'vivienda',
+          'social', 'medicamentos', 'juridico'
         ];
 
         const totalIntervenciones = clavesIntervencion.reduce((acc, key) => {

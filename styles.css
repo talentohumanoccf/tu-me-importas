@@ -241,6 +241,44 @@ body {
   border-top: 4px solid #F59E0B;
 }
 
+/* El grupo de Atención Psicosocial usa el azul institucional para no
+   confundirse con el ámbar de Trabajo Social.
+   Ocupa solo dos columnas en vez de la fila entera (que es lo que hereda de
+   .kpi-group), para que la tarjeta de Gestión Jurídica quepa a su lado en
+   lugar de quedar sola en la fila siguiente. */
+/* Fila flexible para las tarjetas que no suman un numero entero de columnas
+   de la grilla. Cada una toma una parte del ancho y el grupo el doble, asi la
+   fila siempre queda llena sin depender de cuantas columnas calcule el grid. */
+.kpi-fila-flex {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.kpi-fila-flex > * {
+  flex: 1 1 210px;
+  margin-bottom: 0;
+}
+
+.kpi-fila-flex > .kpi-group {
+  flex: 2 1 380px;
+}
+
+.kpi-group-psicosocial {
+  background: linear-gradient(180deg, #F8FAFF 0%, #FFFFFF 100%);
+  border-top-color: #003366;
+}
+
+.kpi-group-psicosocial .kpi-group-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.kpi-group-psicosocial .kpi-group-title {
+  color: #003366;
+}
+
 .kpi-group-header {
   display: flex;
   align-items: center;

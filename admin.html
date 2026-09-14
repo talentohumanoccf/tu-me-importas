@@ -252,6 +252,10 @@
                 <!-- Se cargará dinámicamente con los casos reportados por cada línea de póliza -->
               </div>
             </div>
+            <!-- Las tres van juntas en una fila flexible: dentro de la grilla
+                 de columnas fijas sobraba espacio al final porque no sumaban un
+                 numero entero de columnas. Asi reparten el ancho entre ellas. -->
+            <div class="kpi-fila-flex">
             <!-- TARJETA: ALERTAS DE NOVEDADES RECIENTES -->
             <div id="kpi-card-novedades" class="kpi-card" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;">
               <div class="kpi-header" style="color:#D97706; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
@@ -267,20 +271,35 @@
                 Colaboradores con una situación registrada después de su reporte inicial.
               </div>
             </div>
-            <!-- TARJETA: SOLICITARON APOYO PSICOLÓGICO -->
-            <div id="kpi-card-psicologico" class="kpi-card" style="border-left: 5px solid #003366; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-            <!-- TARJETA: PUEDEN REQUERIR APOYO PSICOLÓGICO (CENSO AMARILLO) -->
-            <div id="kpi-card-leve" class="kpi-card" style="border-left: 5px solid #D97706; background: linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            <!-- ═══════════════════════════════════════════════════════════════
+                 GRUPO: ATENCIÓN PSICOSOCIAL
+                 Pérdida / Afectación Familiar se atiende desde psicología, no
+                 desde Trabajo Social, así que acompaña aquí a Apoyo Psicológico.
+                 Las tarjetas conservan sus ids y el renderizado en app.js no
+                 cambia: el contenedor solo las agrupa.
+                 ═══════════════════════════════════════════════════════════════ -->
+            <div class="kpi-group kpi-group-psicosocial">
+              <div class="kpi-group-header">
+                <span class="kpi-group-title">Atención Psicosocial</span>
+              </div>
+              <div class="kpi-group-grid">
+                <!-- TARJETA: SOLICITARON APOYO PSICOLÓGICO -->
+                <div id="kpi-card-psicologico" class="kpi-card" style="border-left: 5px solid #003366; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+                <!-- TARJETA: PERDIDA / AFECTACION FAMILIAR -->
+                <div id="kpi-card-familiar" class="kpi-card" style="border-left: 5px solid #B91C1C; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+              </div>
+            </div>
+
             <!-- TARJETA: GESTIÓN JURÍDICA -->
             <div id="kpi-card-juridico" class="kpi-card" style="border-left: 5px solid #7C3AED; background: linear-gradient(180deg, #FFFFFF 0%, #F5F3FF 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
+            </div>
 
             <!-- ═══════════════════════════════════════════════════════════════
                  GRUPO: EQUIPO DE TRABAJO SOCIAL
-                 Las cinco fichas de adentro son las mismas de siempre y conservan
-                 sus ids (kpi-card-social, -alimentos, -medicamentos, -vivienda,
-                 -familiar), así que el renderizado en app.js no cambia. El
-                 contenedor solo las envuelve para mostrar que las gestiona un
-                 mismo equipo.
+                 Las cuatro fichas de adentro conservan sus ids
+                 (kpi-card-social, -alimentos, -medicamentos, -vivienda), así que
+                 el renderizado en app.js no cambia. El contenedor solo las
+                 envuelve para mostrar que las gestiona un mismo equipo.
                  ═══════════════════════════════════════════════════════════════ -->
             <div class="kpi-group">
               <div class="kpi-group-header">
@@ -295,8 +314,6 @@
                 <div id="kpi-card-medicamentos" class="kpi-card" style="border-left: 5px solid #E63946; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
                 <!-- TARJETA: AFECTACIÓN DE VIVIENDA -->
                 <div id="kpi-card-vivienda" class="kpi-card" style="border-left: 5px solid #DC2626; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
-                <!-- TARJETA: PERDIDA / AFECTACION FAMILIAR -->
-                <div id="kpi-card-familiar" class="kpi-card" style="border-left: 5px solid #B91C1C; background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%); display:flex; flex-direction:column; justify-content:space-between; min-height:175px;"></div>
               </div>
             </div>
           </div>
@@ -788,6 +805,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260911_1814"></script>
+  <script src="app.js?v=20260914_0952"></script>
 </body>
 </html>
