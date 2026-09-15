@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260914_0952';
+const APP_VERSION = '20260915_0713';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -2445,15 +2445,22 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const resumenIntervenciones = document.getElementById('kpi-af-intervenciones-resumen');
       if (resumenIntervenciones) {
-        // Solo las disciplinas con equipo propio. Las fichas de segmento quedan
-        // fuera porque su "intervenido" se deriva del estado de la persona: a
-        // esa gente la atendió psicología, trabajo social o alimentos, y
-        // sumarlas contaba dos veces la misma atención.
+        // Pérdida / Afectación Familiar vuelve al total el 15/09/2026. Se habia
+        // sacado por considerarla un segmento sin equipo propio, pero de sus 81
+        // intervenciones 52 tienen etiqueta [FAMILIAR:...] escrita por quien
+        // hizo la atencion: son gestion real de ese frente y dejarlas fuera
+        // subcontaba el trabajo del equipo.
         //
-        // Pérdida / Afectación Familiar salió el 11/09/2026 y la de criticidad
-        // leve el 14/09/2026, cuando esa tarjeta se retiró del tablero.
+        // Las otras 29 cuentan porque la persona esta atendida en otra
+        // disciplina, asi que el total las suma dos veces. Es el precio de
+        // incluirla mientras la ficha siga derivando su estado del de la
+        // persona; se corrige el dia que se abra como disciplina propia, como
+        // se hizo con Vivienda.
+        //
+        // La de criticidad leve sigue fuera: no tiene ni una etiqueta propia y
+        // su tarjeta se retiro del tablero el 14/09/2026.
         const clavesIntervencion = [
-          'psicologico', 'alimentos', 'vivienda',
+          'psicologico', 'familiar', 'alimentos', 'vivienda',
           'social', 'medicamentos', 'juridico'
         ];
 
