@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260915_1457';
+const APP_VERSION = '20260915_1655';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -436,8 +436,26 @@ document.addEventListener('DOMContentLoaded', () => {
     return corta ? conMayuscula : conMayuscula + ' ' + aaaamm.slice(0, 4);
   }
 
+  // Un segmento es una ficha sin gestion propia: su estado sale del de la
+  // persona. Ya solo queda 'leve'.
+  //
+  // Familiar salio de aqui el 15/09/2026. Heredar el estado de la persona hacia
+  // que mostrara 28 "en proceso" que en realidad estaban abiertos en vivienda o
+  // alimentos, y cerrar sus 81 etiquetas no movia ese numero ni un caso.
   function esFichaDeSegmento(key) {
-    return key === 'leve' || key === 'familiar';
+    return key === 'leve';
+  }
+
+  // ¿Esta ficha aporta al estado global de la persona?
+  //
+  // Familiar lee su propia etiqueta pero NO aporta, y es deliberado: el equipo
+  // decidio no gestionar ese frente por la app, solo cerrarlo. Si aportara,
+  // cerrar sus 81 etiquetas marcaria como resuelta a gente que sigue abierta en
+  // vivienda, y al reves, una etiqueta de familiar sin cerrar arrastraria a
+  // 'proceso' a quien ya esta resuelto en todo lo demas. Leer su estado y
+  // aportar al de la persona son dos cosas distintas y aqui se separan.
+  function aportaAlEstadoDeLaPersona(key) {
+    return key !== 'general' && key !== 'familiar' && !esFichaDeSegmento(key);
   }
 
   function getFichaBucket(r, subKey) {
@@ -500,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // guardado, que es el único dato que existe sobre ella.
   function getRolledUpMgmtStatus(r) {
     const reales = getReportSubCategories(r)
-      .filter(cat => cat.key !== 'general' && !esFichaDeSegmento(cat.key));
+      .filter(cat => aportaAlEstadoDeLaPersona(cat.key));
 
     if (!reales.length) return getNormalizedMgmtStatus(r);
 
@@ -2144,6 +2162,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // El parámetro `subtitle` es opcional: si no se pasa, el encabezado se pinta
   // exactamente igual que antes.
+  // ¿Esta persona declaro la muerte de un familiar?
+  //
+  // Ademas de la encuesta y las novedades se mira la columna J, porque en varios
+  // casos el fallecimiento solo quedo escrito en la nota de quien atendio. El de
+  // 4512885, por ejemplo, solo aparece ahi: "Perdida de familiares, incluyendo
+  // su madre y dos tias".
+  //
+  // En la columna J NO valen 'perdida' a secas ni 'duelo', y no es un detalle:
+  //
+  //   - "perdida o afectacion familiar" es el nombre del frente y aparece en las
+  //     29 notas del cierre administrativo del 15/09/2026. Buscar 'perdida' ahi
+  //     encenderia esas 29 y el indicador pasaria de 3 a 39.
+  //   - "duelo" describe un proceso emocional que puede no venir de una muerte
+  //     reciente ni del sismo: hay una nota que dice "duelo previo a terremoto".
+  //
+  // Por eso en la columna J solo cuentan las palabras que nombran una muerte.
+  //
+  // El primer grado de consanguinidad no se puede deducir del texto con
+  // fiabilidad, asi que esto es una aproximacion deliberada: marca los casos
+  // para que el equipo los revise y los ajuste a mano. Los documentos quedan en
+  // el title de la tarjeta para eso.
+  function tienePerdidaHumanaDeclarada(r) {
+    if (!matchesCategory(r, 'familiar')) return false;
+
+    const doc = String(r.documento || r.cedula).trim();
+    const mgmt = state.supportManagement[doc] || {};
+    const notas = normalizeStr(mgmt.notes || r.gestionNotes || '');
+
+    // Marcas manuales, escritas por el equipo en la columna J. Mandan sobre todo
+    // lo demas, en los dos sentidos.
+    //
+    // Existen porque el primer grado de consanguinidad no se deduce del texto y
+    // la alternativa era pedirle al equipo que reescribiera la nota para
+    // esquivar el contador: cambiar "el fallecimiento de familiares" por un
+    // rodeo que no diga fallecimiento. Eso empeora la historia clinica para
+    // arreglar un indicador. Con la marca la nota dice la verdad y la decision
+    // queda escrita al lado, que ademas es auditable.
+    if (notas.includes('no aplica perdida humana')) return false;
+    if (notas.includes('si aplica perdida humana')) return true;
+
+    const estFam = normalizeStr(r.estadoFamilia || '');
+    if (estFam.includes('perdida') || estFam.includes('fallec')) return true;
+
+    const ap = getApoyoText(r);
+    if (ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo')) return true;
+
+    const MUERTE = ['fallec', 'murio', 'murieron', 'muerte', 'perdida de familiar',
+                    'perdida de su', 'perdio a su', 'qepd', 'sepelio'];
+    return MUERTE.some(p => notas.includes(p));
+  }
+
   function renderUnifiedKPICard(containerId, catKey, name, icon, color, subtitle) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -2235,15 +2304,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (catKey === 'familiar') {
-      const lossesCount = state.reports.filter(r => {
-        if (!matchesCategory(r, 'familiar')) return false;
-        const estFam = normalizeStr(r.estadoFamilia || '');
-        const ap = getApoyoText(r);
-        return estFam.includes('perdida') || estFam.includes('fallec') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo');
-      }).length;
+      const conPerdida = state.reports.filter(tienePerdidaHumanaDeclarada);
+      const lossesCount = conPerdida.length;
+      // El documento va en el title para poder revisar a mano quien entro, que
+      // es como el equipo acordo depurar este indicador.
+      const quienes = conPerdida.map(r => String(r.documento || r.cedula).trim()).join(', ');
 
       container.innerHTML += `
-        <div style="margin-top:10px; padding:8px; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:6px; font-size:0.72rem; color:#991B1B; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:4px; width:100%;">
+        <div title="${quienes ? 'Documentos: ' + quienes : 'Ningún caso declarado'}" style="margin-top:10px; padding:8px; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:6px; font-size:0.72rem; color:#991B1B; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:4px; width:100%;">
           <span>💀 Pérdidas Humanas declaradas:</span>
           <b style="font-size:0.95rem; color:#B91C1C; white-space:nowrap;">${lossesCount} casos</b>
         </div>
