@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260915_0713';
+const APP_VERSION = '20260915_0810';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -378,6 +378,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
+  // Fecha de hoy en el formato que viaja dentro de la etiqueta.
+  function hoyEtiqueta() {
+    const d = new Date();
+    return '' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+  }
+
+  // Fecha de APERTURA de una disciplina, en formato AAAAMMDD, o '' si no se
+  // conoce. Primero la que SST dejo en su etiqueta, y si no la del modulo.
+  //
+  // Es la fecha en que el frente se abrio y NO cambia al actualizar el estado:
+  // si guardara la ultima gestion, un caso abierto en agosto y cerrado en
+  // septiembre desapareceria de agosto, y los informes del mes pasado se
+  // vaciarian solos conforme el equipo avanza.
+  function getFechaIntervencion(r, subKey) {
+    const doc = String(r.documento || r.cedula).trim();
+    const mgmt = state.supportManagement[doc] || {};
+    const sst = mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].fecha;
+    if (sst) return sst;
+    const inter = mgmt.subMgmtInter && mgmt.subMgmtInter[subKey] && mgmt.subMgmtInter[subKey].fecha;
+    return inter || '';
+  }
+
   function esFichaDeSegmento(key) {
     return key === 'leve' || key === 'familiar';
   }
@@ -466,7 +488,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // varios renglones no coincidía y la etiqueta se perdía entera. Notas como
       // "[ALIMENTOS: RESUELTO] Misma dirección\nRequiere solo alimentos" quedaban
       // invisibles para el tablero y la disciplina aparecía sin gestión.
-      const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?\]\s*(.*?)(?:\s*\((.*?)\))?$/is);
+      // Tercer segmento opcional: la fecha de apertura en formato AAAAMMDD.
+      // Es opcional a proposito, para que las etiquetas escritas antes del
+      // 15/09/2026 se sigan leyendo exactamente igual.
+      const match = p.match(/\[([A-Z0-9_]+)(?::\s*([A-Z0-9_]+))?(?::\s*(\d{8}))?\]\s*(.*?)(?:\s*\((.*?)\))?$/is);
       if (match) {
         hasAnyBrackets = true;
         const rawKey = match[1].toLowerCase().trim();
@@ -480,9 +505,10 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (rawKey.includes('viv')) key = 'vivienda';
 
         const status = match[2] ? match[2].toLowerCase().trim() : 'proceso';
-        const notes = match[3] ? match[3].trim() : p.trim();
-        const operator = match[4] ? match[4].trim() : 'Operador SST';
-        subMgmt[key] = { status, notes, operator };
+        const fecha = match[3] ? match[3].trim() : '';
+        const notes = match[4] ? match[4].trim() : p.trim();
+        const operator = match[5] ? match[5].trim() : 'Operador SST';
+        subMgmt[key] = { status, fecha, notes, operator };
       }
     });
 
@@ -585,8 +611,13 @@ document.addEventListener('DOMContentLoaded', () => {
       state.supportManagement[doc].subMgmt = {};
     }
 
+    // La fecha de apertura se fija la primera vez y NO se toca despues: marca
+    // cuando se abrio el frente, no cuando se actualizo por ultima vez.
+    const fechaPrevia = (state.supportManagement[doc].subMgmt[subKey] || {}).fecha;
+
     state.supportManagement[doc].subMgmt[subKey] = {
       status: subStatus,
+      fecha: fechaPrevia || hoyEtiqueta(),
       notes: subNotes,
       operator: currentOperator,
       updatedAt: nowStr
@@ -609,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const entries = Object.entries(state.supportManagement[doc].subMgmt);
     const combinedNotesStr = entries
-      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}${v.fecha ? ':' + v.fecha : ''}] ${v.notes}`)
       .join(' || ');
 
     state.supportManagement[doc].notes = combinedNotesStr;
@@ -727,6 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             state.supportManagement[doc].subMgmt[subKey] = {
               status: state.supportManagement[doc].subMgmt[subKey]?.status || 'proceso',
+              fecha: state.supportManagement[doc].subMgmt[subKey]?.fecha || hoyEtiqueta(),
               notes: val,
               operator: state.supportManagement[doc].subMgmt[subKey]?.operator || currentOperator,
               updatedAt: new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" })
@@ -735,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Recalcular la nota combinada global de forma instantánea
             const entries = Object.entries(state.supportManagement[doc].subMgmt);
             const combinedNotesStr = entries
-              .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+              .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}${v.fecha ? ':' + v.fecha : ''}] ${v.notes}`)
               .join(' || ');
             
             state.supportManagement[doc].notes = combinedNotesStr;
@@ -775,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.supportManagement[doc].subMgmt = {};
           }
           if (!state.supportManagement[doc].subMgmt[subKey]) {
-            state.supportManagement[doc].subMgmt[subKey] = { status: 'pendiente', notes: '', operator: currentOperator, updatedAt: '' };
+            state.supportManagement[doc].subMgmt[subKey] = { status: 'pendiente', fecha: hoyEtiqueta(), notes: '', operator: currentOperator, updatedAt: '' };
           }
           
           state.supportManagement[doc].subMgmt[subKey].status = e.target.value;
@@ -1017,8 +1049,11 @@ document.addEventListener('DOMContentLoaded', () => {
           selectEl.value = 'proceso';
         }
 
+        const fechaPreviaCat = (state.supportManagement[doc].subMgmt[cat.key] || {}).fecha;
+
         state.supportManagement[doc].subMgmt[cat.key] = {
           status: subStatus,
+          fecha: fechaPreviaCat || hoyEtiqueta(),
           notes: subNotes,
           operator: currentOperator,
           updatedAt: nowStr
@@ -1061,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const entries = Object.entries(state.supportManagement[doc].subMgmt);
     const combinedNotesStr = entries
-      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}] ${v.notes}`)
+      .map(([k, v]) => `[${k.toUpperCase()}:${(v.status || 'proceso').toUpperCase()}${v.fecha ? ':' + v.fecha : ''}] ${v.notes}`)
       .join(' || ');
 
     state.supportManagement[doc].notes = combinedNotesStr;
