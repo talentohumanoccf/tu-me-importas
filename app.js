@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260915_0810';
+const APP_VERSION = '20260915_1457';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
     map: null,
     markers: [],
     googleSheetsUrl: localStorage.getItem('comfamiliar_sheets_url') || DEFAULT_SHEETS_URL,
+    // Mes de apertura por el que se filtran las fichas, en formato AAAAMM.
+    // Vacio = acumulado, que es como se venia viendo el tablero.
     refreshInterval: null,
     activeTab: sessionStorage.getItem('comfamiliar_active_tab') || 'main',
     isTypingActive: false,
@@ -394,10 +396,44 @@ document.addEventListener('DOMContentLoaded', () => {
   function getFechaIntervencion(r, subKey) {
     const doc = String(r.documento || r.cedula).trim();
     const mgmt = state.supportManagement[doc] || {};
-    const sst = mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].fecha;
-    if (sst) return sst;
-    const inter = mgmt.subMgmtInter && mgmt.subMgmtInter[subKey] && mgmt.subMgmtInter[subKey].fecha;
-    return inter || '';
+    const sst = (mgmt.subMgmt && mgmt.subMgmt[subKey] && mgmt.subMgmt[subKey].fecha) || '';
+    const inter = (mgmt.subMgmtInter && mgmt.subMgmtInter[subKey] && mgmt.subMgmtInter[subKey].fecha) || '';
+
+    // Cuando las dos fuentes tienen fecha gana la del MODULO, y aqui no aplica
+    // la precedencia del estado.
+    //
+    // La razon es de que tan buena es cada fecha, no de quien manda. La del
+    // modulo la registro por disciplina quien hizo el trabajo, en su propia
+    // columna. La de SST la reconstruimos nosotros en septiembre a partir de la
+    // fecha de la persona, porque la columna J nunca tuvo donde guardarla. Entre
+    // un dato de origen y uno derivado, gana el de origen.
+    return inter || sst;
+  }
+
+  // Meses en los que se abrio al menos una intervencion, del mas antiguo al
+  // mas reciente. Salen de los datos, asi que octubre aparece solo.
+  function getMesesConIntervenciones() {
+    const meses = {};
+    state.reports.forEach(r => {
+      if (!isNeedSupport(r)) return;
+      getReportSubCategories(r).forEach(cat => {
+        const f = getFechaIntervencion(r, cat.key);
+        if (f) meses[f.slice(0, 6)] = true;
+      });
+    });
+    return Object.keys(meses).sort();
+  }
+
+  // El arreglo de nombres vive dentro de la funcion a proposito. Como const de
+  // modulo quedaria expuesto a que algo lo use antes de que el cuerpo termine
+  // de inicializarse, que es justo el error que ya nos tumbo el tablero.
+  function etiquetaMes(aaaamm, corta) {
+    const NOMBRES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    if (!aaaamm) return 'Acumulado';
+    const nombre = NOMBRES[Number(aaaamm.slice(4, 6))] || aaaamm;
+    const conMayuscula = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+    return corta ? conMayuscula : conMayuscula + ' ' + aaaamm.slice(0, 4);
   }
 
   function esFichaDeSegmento(key) {
@@ -822,6 +858,31 @@ document.addEventListener('DOMContentLoaded', () => {
   window.triggerMgmtRender = function() { renderManagementDashboard(true); };
 
   // Consola ejecutiva de KPIs eliminada de la pestaña de Gestión SST.
+
+  // Plegado del panel de intervenciones por mes. Es gemelo del de graficas y
+  // guarda su estado en su propia llave, para que abrir uno no abra el otro.
+  window.toggleMesPanel = function() {
+    const container = document.getElementById('mes-panel-collapse-container');
+    const text = document.getElementById('text-toggle-mes-panel');
+    const arrow = document.getElementById('arrow-toggle-mes-panel');
+    const btn = document.getElementById('btn-toggle-mes-panel');
+
+    if (!container || !text || !arrow || !btn) return;
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.textContent = 'Ocultar Intervenciones por Mes de Apertura (Agosto / Septiembre)';
+      arrow.textContent = '▲';
+      btn.style.background = 'var(--secondary)';
+      localStorage.setItem('comfamiliar_mes_panel_expanded', 'true');
+    } else {
+      container.style.display = 'none';
+      text.textContent = 'Mostrar Intervenciones por Mes de Apertura (Agosto / Septiembre)';
+      arrow.textContent = '▼';
+      btn.style.background = 'var(--primary)';
+      localStorage.setItem('comfamiliar_mes_panel_expanded', 'false');
+    }
+  };
 
   window.toggleMgmtChartsPanel = function() {
     const container = document.getElementById('mgmt-charts-collapse-container');
@@ -1431,6 +1492,21 @@ document.addEventListener('DOMContentLoaded', () => {
  
       // Memoria de colapso de KPIs eliminada.
 
+      // Cargar estado de colapso del panel de intervenciones por mes
+      const isMesExpanded = localStorage.getItem('comfamiliar_mes_panel_expanded') === 'true';
+      const mesContainer = document.getElementById('mes-panel-collapse-container');
+      const mesText = document.getElementById('text-toggle-mes-panel');
+      const mesArrow = document.getElementById('arrow-toggle-mes-panel');
+      const btnMesToggle = document.getElementById('btn-toggle-mes-panel');
+
+      if (mesContainer && mesText && mesArrow && btnMesToggle) {
+        mesContainer.style.display = isMesExpanded ? 'block' : 'none';
+        mesText.textContent = (isMesExpanded ? 'Ocultar' : 'Mostrar') +
+          ' Intervenciones por Mes de Apertura (Agosto / Septiembre)';
+        mesArrow.textContent = isMesExpanded ? '▲' : '▼';
+        btnMesToggle.style.background = isMesExpanded ? 'var(--secondary)' : 'var(--primary)';
+      }
+
       // Cargar estado de colapso de gráficas de avance SST
       const isChartsExpanded = localStorage.getItem('comfamiliar_mgmt_charts_expanded') === 'true';
       const chartsContainer = document.getElementById('mgmt-charts-collapse-container');
@@ -2008,6 +2084,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return { grupos, total, intervenidos, totalCom, intervCom };
   }
 
+  // ¿Esta persona pertenece al universo de esa ficha?
+  //
+  // Vive aparte porque lo preguntan dos sitios —las tarjetas y el desglose por
+  // mes— y si cada uno lo resolviera por su cuenta las dos cifras se separarian
+  // en silencio. Vivienda no usa matchesCategory: su universo son los 342 con
+  // la vivienda inhabitable, no los que escribieron "vivienda" en la encuesta.
+  function perteneceALaFicha(r, categoryKey) {
+    if (categoryKey !== 'leve' && !isNeedSupport(r)) return false;
+    if (categoryKey === 'vivienda') {
+      const viv = (r.afectacionVivienda || '').toLowerCase();
+      return viv.includes('impiden') || viv.includes('no me permiten');
+    }
+    if (categoryKey === 'leve') return r.criticidad === 'amarillo';
+    return matchesCategory(r, categoryKey);
+  }
+
   function getConfrontationMetrics(categoryKey) {
     let solicitados = 0;
     let intervencionAtendida = 0;
@@ -2016,23 +2108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendientes = 0;
 
     state.reports.forEach(r => {
-      if (categoryKey !== 'leve' && !isNeedSupport(r)) return;
-      let isMatch = false;
-      if (categoryKey === 'vivienda') {
-        const viv = (r.afectacionVivienda || '').toLowerCase();
-        isMatch = (viv.includes('impiden') || viv.includes('no me permiten'));
-      } else if (categoryKey === 'leve') {
-        isMatch = (r.criticidad === 'amarillo');
-      } else {
-        isMatch = matchesCategory(r, categoryKey);
-      }
-
-      if (isMatch) {
+      if (perteneceALaFicha(r, categoryKey)) {
         solicitados++;
 
         // getFichaBucket ya distingue los segmentos de las disciplinas, así que
         // las siete fichas y el Centro de Gestión cuentan con el mismo criterio.
-        switch (getFichaBucket(r, categoryKey)) {
+        const cubo = getFichaBucket(r, categoryKey);
+
+        switch (cubo) {
           case 'atendido': intervencionAtendida++; break;
           case 'proceso': intervencionEnProceso++; break;
           case 'otras': enOtras++; break;
@@ -2278,6 +2361,159 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'Activo Comfamiliar';
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // INTERVENCIONES POR MES DE APERTURA
+  //
+  // Las siete fichas que cuentan intervenciones, en el mismo orden y con los
+  // mismos nombres e iconos que arriba. La lista vive dentro de una funcion y
+  // no como const de modulo: ya nos tumbo el tablero una vez tener una
+  // constante de arriba usada antes de que el cuerpo terminara de cargar.
+  function fichasDeIntervencion() {
+    return [
+      { key: 'psicologico',  nombre: 'Apoyo Psicológico',      icono: '🧠' },
+      { key: 'familiar',     nombre: 'Pérdida / Afect. Fam.',  icono: '🤍' },
+      { key: 'alimentos',    nombre: 'Kits de Alimentos',      icono: '📦' },
+      { key: 'vivienda',     nombre: 'Vivienda Inhabitable',   icono: '🏠' },
+      { key: 'social',       nombre: 'Trabajo Social',         icono: '🤝' },
+      { key: 'medicamentos', nombre: 'Medicamentos / Salud',   icono: '💊' },
+      { key: 'juridico',     nombre: 'Gestión Jurídica',       icono: '⚖️' }
+    ];
+  }
+
+  // Reparte las intervenciones de cada ficha entre los meses en que se abrieron.
+  //
+  // El universo y el criterio son EXACTAMENTE los de la tarjeta: misma funcion
+  // de pertenencia y mismo cubo. Por eso la fila de totales de este panel y el
+  // "intervenciones realizadas" de arriba dan el mismo numero, y si un dia no
+  // lo dieran seria porque cambio el dato, no porque cada uno cuente distinto.
+  function getIntervencionesPorMes() {
+    const meses = getMesesConIntervenciones();
+
+    const filas = fichasDeIntervencion().map(f => {
+      const porMes = {};
+      meses.forEach(m => { porMes[m] = 0; });
+      let sinFecha = 0;
+      let total = 0;
+
+      state.reports.forEach(r => {
+        if (!perteneceALaFicha(r, f.key)) return;
+        const cubo = getFichaBucket(r, f.key);
+        if (cubo !== 'atendido' && cubo !== 'proceso') return;
+
+        total++;
+        const mes = (getFechaIntervencion(r, f.key) || '').slice(0, 6);
+        // Sin fecha no se inventa un mes: se cuenta aparte y se declara al pie.
+        if (mes && porMes[mes] !== undefined) porMes[mes]++;
+        else sinFecha++;
+      });
+
+      return Object.assign({}, f, { porMes, sinFecha, total });
+    }).filter(f => f.total > 0);
+
+    const totalPorMes = {};
+    meses.forEach(m => { totalPorMes[m] = filas.reduce((a, f) => a + f.porMes[m], 0); });
+
+    return {
+      meses,
+      filas: filas.sort((a, b) => b.total - a.total),
+      totalPorMes,
+      totalSinFecha: filas.reduce((a, f) => a + f.sinFecha, 0),
+      total: filas.reduce((a, f) => a + f.total, 0)
+    };
+  }
+
+  // Un azul que se oscurece con el tiempo: el mes mas viejo queda claro y el mas
+  // reciente oscuro. Asi la leyenda se lee en orden cronologico sola y la escala
+  // sigue funcionando cuando entren octubre y noviembre.
+  function colorDelMes(indice, cuantos) {
+    const luz = cuantos <= 1 ? 42 : 68 - (indice * (36 / (cuantos - 1)));
+    return 'hsl(206, 72%, ' + Math.round(luz) + '%)';
+  }
+
+  function renderIntervencionesPorMes() {
+    const panel = document.getElementById('panel-intervenciones-mes');
+    if (!panel) return;
+
+    const d = getIntervencionesPorMes();
+    if (!d.meses.length || !d.filas.length) { panel.innerHTML = ''; return; }
+
+    // Todas las barras se miden contra el mismo maximo para que una barra larga
+    // signifique lo mismo en alimentos que en juridica.
+    let tope = 1;
+    d.filas.forEach(f => d.meses.forEach(m => { if (f.porMes[m] > tope) tope = f.porMes[m]; }));
+
+    const leyenda = d.meses.map((m, i) => `
+      <span style="display:inline-flex; align-items:center; gap:5px;">
+        <span style="width:11px; height:11px; border-radius:3px; background:${colorDelMes(i, d.meses.length)};"></span>
+        <span style="font-size:0.74rem; font-weight:800; color:var(--text-muted);">${etiquetaMes(m)}</span>
+      </span>`).join('');
+
+    const filas = d.filas.map(f => {
+      const barras = d.meses.map((m, i) => {
+        const v = f.porMes[m];
+        const ancho = v > 0 ? Math.max((v / tope) * 100, 1.5) : 0;
+        return `
+          <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px;">
+            <span style="width:26px; flex:none; font-size:0.66rem; font-weight:800; color:#94A3B8;">${etiquetaMes(m, true).toLowerCase().slice(0, 3)}</span>
+            <div style="flex:1; min-width:0; background:#F1F5F9; border-radius:4px; height:15px;">
+              <div style="width:${ancho}%; height:100%; border-radius:4px; background:${colorDelMes(i, d.meses.length)}; transition:width .35s ease;"></div>
+            </div>
+            <b style="width:38px; flex:none; text-align:right; font-size:0.78rem; font-weight:900; color:${v > 0 ? '#1E293B' : '#CBD5E1'};">${v}</b>
+          </div>`;
+      }).join('');
+
+      const nota = f.sinFecha > 0
+        ? `<span title="Intervenciones sin registro propio fechado" style="font-size:0.64rem; font-weight:700; color:#B45309; background:#FEF3C7; border-radius:8px; padding:1px 6px;">${f.sinFecha} sin fecha</span>`
+        : '';
+
+      return `
+        <div style="padding:9px 0; border-bottom:1px solid #F1F5F9;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:5px;">
+            <span style="font-size:0.78rem; font-weight:800; color:#334155;">${f.icono} ${f.nombre}</span>
+            <span style="display:inline-flex; align-items:baseline; gap:6px;">
+              ${nota}
+              <b style="font-size:0.82rem; font-weight:900; color:#0F172A;">${f.total}</b>
+            </span>
+          </div>
+          ${barras}
+        </div>`;
+    }).join('');
+
+    const totales = d.meses.map((m, i) => `
+      <span style="display:inline-flex; align-items:baseline; gap:5px;">
+        <span style="width:9px; height:9px; border-radius:2px; background:${colorDelMes(i, d.meses.length)}; align-self:center;"></span>
+        <span style="font-size:0.72rem; font-weight:700; color:var(--text-muted);">${etiquetaMes(m, true)}</span>
+        <b style="font-size:0.95rem; font-weight:900; color:#0F172A;">${d.totalPorMes[m]}</b>
+      </span>`).join('');
+
+    // El pie explica por que los meses no suman el total, en vez de dejar que
+    // alguien lo descubra restando y desconfie de todo el panel.
+    const pie = d.totalSinFecha > 0
+      ? `<div style="margin-top:9px; font-size:0.68rem; color:#94A3B8; line-height:1.4;">
+           Los meses suman ${d.total - d.totalSinFecha} de ${d.total}. Las ${d.totalSinFecha} restantes no tienen registro propio fechado:
+           cuentan como atendidas porque la persona lo está en otro frente, pero no pertenecen a ningún mes.
+         </div>`
+      : '';
+
+    panel.innerHTML = `
+      <div class="kpi-card" style="border-left:5px solid #0284C7; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:4px;">
+          <span style="font-size:0.85rem; font-weight:900; color:#0369A1;">📊 Intervenciones por mes de apertura</span>
+          <span style="display:inline-flex; align-items:center; gap:12px; flex-wrap:wrap;">${leyenda}</span>
+        </div>
+        <div style="font-size:0.68rem; color:#94A3B8; margin-bottom:8px;">
+          Cada intervención se cuenta en el mes en que se abrió el frente, no en el que se cerró.
+        </div>
+        ${filas}
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:10px;">
+          <span style="font-size:0.74rem; font-weight:900; color:#334155; text-transform:uppercase; letter-spacing:.4px;">Total</span>
+          <span style="display:inline-flex; align-items:baseline; gap:16px; flex-wrap:wrap;">${totales}</span>
+        </div>
+        ${pie}
+      </div>`;
+  }
+
+
   function updateKPIs() {
     const dataset = state.filteredReports;
     const total = dataset.length;
@@ -2467,6 +2703,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B', 'Atención y Orientación');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
+
+    renderIntervencionesPorMes();
 
     // ─────────────────────────────────────────────────────────────────────────
     // TOTAL DE INTERVENCIONES: suma de los "Intervenidos" de las fichas de arriba.

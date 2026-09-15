@@ -218,8 +218,8 @@
 
           <!-- SUBSECCIÓN 2: CONTROL DE INTERVENCIONES Y GESTIÓN OPERATIVA -->
           <div style="margin-top: 20px; margin-bottom: 12px;">
-            <h4 style="color: var(--primary); font-size: 0.9rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; display: flex; align-items: center; gap: 6px; margin: 0;">
-              ⚙️ Gestión Operativa e Intervenciones de Casos (SST)
+            <h4 style="color: var(--primary); font-size: 0.9rem; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; display: flex; align-items: center; gap: 8px; margin: 0; flex-wrap: wrap;">
+              <span>⚙️ Gestión Operativa e Intervenciones de Casos (SST)</span>
             </h4>
           </div>
           <div class="kpi-grid">
@@ -601,6 +601,27 @@
           </div>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════════════
+             INTERVENCIONES POR MES DE APERTURA (COLAPSIBLE)
+             Vive aqui y no entre las fichas porque responde otra pregunta: las
+             fichas dicen como va cada frente, esto dice cuando se hizo el
+             trabajo. Va plegado por defecto, igual que las graficas, y recuerda
+             su estado en localStorage con su propia llave.
+             El contenido lo pinta renderIntervencionesPorMes() en app.js.
+             ═══════════════════════════════════════════════════════════════ -->
+        <div style="margin-bottom: 20px;">
+          <button id="btn-toggle-mes-panel" onclick="window.toggleMesPanel && window.toggleMesPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              📊 <span id="text-toggle-mes-panel">Mostrar Intervenciones por Mes de Apertura (Agosto / Septiembre)</span>
+            </span>
+            <span id="arrow-toggle-mes-panel" style="font-size: 0.8rem; transition: transform 0.25s ease;">▼</span>
+          </button>
+        </div>
+
+        <div id="mes-panel-collapse-container" style="display: none; overflow: hidden; margin-bottom: 20px;">
+          <div id="panel-intervenciones-mes"></div>
+        </div>
+
         <!-- FILTROS DE SEGUIMIENTO CON MODO PENDIENTES POR DEFECTO -->
         <div class="filter-bar no-print" style="margin-bottom:16px;">
           <div>
@@ -805,6 +826,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260915_0810"></script>
+  <script src="app.js?v=20260915_1457"></script>
 </body>
 </html>
