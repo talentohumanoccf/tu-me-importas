@@ -546,6 +546,20 @@ function claveDisciplina(valor) {
  *
  * Devuelve { documento: { CLAVE_DISCIPLINA: 'RESUELTO' | 'PROCESO' | 'PENDIENTE' } }
  */
+/**
+ * Pasa una fecha de GESTION_DETALLE al formato AAAAMMDD que viaja dentro de la
+ * etiqueta. Devuelve cadena vacia si no se puede interpretar, para que la
+ * etiqueta salga sin tercer segmento en vez de con basura.
+ */
+function formatoFechaEtiqueta(valor) {
+  if (!valor) return '';
+  var d = (valor instanceof Date) ? valor : new Date(valor);
+  if (isNaN(d.getTime())) return '';
+  var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+  var dd = ('0' + d.getDate()).slice(-2);
+  return '' + d.getFullYear() + mm + dd;
+}
+
 function leerGestionDetalle(ss) {
   var mapa = {};
   try {
@@ -556,12 +570,17 @@ function leerGestionDetalle(ss) {
     // Las columnas se ubican por encabezado para no depender de su posicion.
     var lastCol = sh.getLastColumn();
     var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
-    var iDoc = -1, iDis = -1, iEst = -1;
+    var iDoc = -1, iDis = -1, iEst = -1, iFec = -1;
     for (var h = 0; h < headers.length; h++) {
       var head = String(headers[h] || '').toLowerCase();
       if (iDoc === -1 && head.indexOf('documento') !== -1) iDoc = h;
       if (iDis === -1 && head.indexOf('disciplina') !== -1) iDis = h;
       if (iEst === -1 && head.indexOf('estado') !== -1) iEst = h;
+      // "Fecha de Toma": cuando se abrio el caso de esa disciplina. Se prefiere
+      // sobre "Ultima Actualizacion" porque un caso abierto en agosto y cerrado
+      // en septiembre debe seguir contando en agosto; si se usara la fecha de
+      // cierre, el mes pasado se vaciaria solo conforme el equipo avanza.
+      if (iFec === -1 && head.indexOf('fecha') !== -1 && head.indexOf('toma') !== -1) iFec = h;
     }
     if (iDoc === -1 || iDis === -1 || iEst === -1) {
       console.log('GESTION_DETALLE sin los encabezados esperados, se omite.');
@@ -577,11 +596,20 @@ function leerGestionDetalle(ss) {
       var clave = claveDisciplina(data[i][iDis]);
       if (!clave) continue;
       var est = estados[String(data[i][iEst] || '').toLowerCase().trim()] || 'PENDIENTE';
+      var fec = iFec !== -1 ? formatoFechaEtiqueta(data[i][iFec]) : '';
       if (!mapa[doc]) mapa[doc] = {};
-      // Si dos filas caen en la misma clave (por ejemplo "Trabajo Social" y
-      // "Trabajo Social (vivienda inhabitable)"), gana la mas avanzada.
-      if (!mapa[doc][clave] || RANGO_ESTADO_DISC[est] > RANGO_ESTADO_DISC[mapa[doc][clave]]) {
-        mapa[doc][clave] = est;
+      if (!mapa[doc][clave]) mapa[doc][clave] = { estado: est, fecha: fec };
+      else {
+        // Si dos filas caen en la misma clave (por ejemplo "Trabajo Social" y
+        // "Trabajo Social (vivienda inhabitable)"), gana el estado mas avanzado
+        // pero se conserva la fecha MAS ANTIGUA, que es cuando se abrio el
+        // frente. Son dos criterios distintos a proposito.
+        if (RANGO_ESTADO_DISC[est] > RANGO_ESTADO_DISC[mapa[doc][clave].estado]) {
+          mapa[doc][clave].estado = est;
+        }
+        if (fec && (!mapa[doc][clave].fecha || fec < mapa[doc][clave].fecha)) {
+          mapa[doc][clave].fecha = fec;
+        }
       }
     }
   } catch (err) {
@@ -602,22 +630,33 @@ function leerGestionDetalle(ss) {
 function combinarInterdisciplinar(colM, detallePersona) {
   var etiquetas = {};
 
+  // GESTION_DETALLE trae { estado, fecha } por disciplina.
   if (detallePersona) {
     for (var d in detallePersona) {
-      etiquetas[d] = detallePersona[d];
+      etiquetas[d] = {
+        estado: detallePersona[d].estado || detallePersona[d],
+        fecha: detallePersona[d].fecha || ''
+      };
     }
   }
 
-  var encontradas = String(colM || '').match(/\[[A-Za-z0-9_]+:[A-Za-z0-9_]+\]/g) || [];
+  // La columna M la escribe el modulo con dos segmentos, pero el tercero se
+  // admite para que una etiqueta ya fechada no pierda su fecha al releerse.
+  var encontradas = String(colM || '').match(/\[[A-Za-z0-9_]+:[A-Za-z0-9_]+(?::\d{8})?\]/g) || [];
   for (var i = 0; i < encontradas.length; i++) {
     var partes = encontradas[i].replace(/\[/g, '').replace(/\]/g, '').split(':');
     var clave = claveDisciplina(partes[0]) || String(partes[0] || '').toUpperCase();
-    etiquetas[clave] = String(partes[1] || '').toUpperCase();
+    var previa = etiquetas[clave] || {};
+    etiquetas[clave] = {
+      estado: String(partes[1] || '').toUpperCase(),
+      fecha: partes[2] || previa.fecha || ''
+    };
   }
 
   var salida = [];
   for (var c in etiquetas) {
-    salida.push('[' + c + ':' + etiquetas[c] + ']');
+    var e = etiquetas[c];
+    salida.push('[' + c + ':' + e.estado + (e.fecha ? ':' + e.fecha : '') + ']');
   }
   return salida.join(' || ');
 }
