@@ -275,6 +275,13 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
+/* El grupo psicosocial pasó de dos a tres tarjetas el 16/09/2026 con la
+   apertura de Tejiendo Presente. Sin ampliarle la base, las tres se apretaban
+   contra el mínimo de 170px y la tercera se caía al siguiente renglón. */
+.kpi-fila-flex > .kpi-group-psicosocial {
+  flex: 3 1 560px;
+}
+
 .kpi-group-psicosocial .kpi-group-title {
   color: #003366;
 }

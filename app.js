@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260915_1655';
+const APP_VERSION = '20260916_1704';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -261,6 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (matchesCategory(r, 'vivienda')) {
       categories.push({ key: 'vivienda', name: 'Vivienda Inhabitable', icon: '🏠', color: '#DC2626' });
     }
+    // Tejiendo Presente: programa de Psicologia con lista propia, abierto el
+    // 16/09/2026. Va de ultimo para no desordenar las fichas que ya existian.
+    if (matchesCategory(r, 'tejiendo')) {
+      categories.push({ key: 'tejiendo', name: 'Tejiendo Presente', icon: '🧵', color: '#7C3AED' });
+    }
 
     if (categories.length === 0) {
       categories.push({ key: 'general', name: 'Seguimiento General SST', icon: '📋', color: '#64748B' });
@@ -455,7 +460,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // 'proceso' a quien ya esta resuelto en todo lo demas. Leer su estado y
   // aportar al de la persona son dos cosas distintas y aqui se separan.
   function aportaAlEstadoDeLaPersona(key) {
-    return key !== 'general' && key !== 'familiar' && !esFichaDeSegmento(key);
+    // Tejiendo Presente tampoco aporta: mientras el programa espere la
+    // indicacion para arrancar, sus 37 casos estan en pendiente, y dejarlos
+    // entrar bajaria de resuelto a proceso a 37 personas que no tienen nada
+    // abierto. El dia que el programa arranque eso seguiria siendo cierto: es un
+    // frente aparte, no parte del cierre de la emergencia de cada persona.
+    return key !== 'general' && key !== 'familiar' && key !== 'tejiendo' &&
+           !esFichaDeSegmento(key);
   }
 
   function getFichaBucket(r, subKey) {
@@ -728,6 +739,19 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`✅ Gestión de [${subKey.toUpperCase()}] guardada exitosamente.`, 'success');
   };
 
+  // ¿Esta persona esta en el programa Tejiendo Presente?
+  //
+  // A diferencia de las otras fichas, aqui la pertenencia NO sale de la
+  // encuesta: Psicologia armo la lista por fuera y llega como etiqueta en la
+  // columna J. Preguntarle al formulario dejaria fuera a quien respondio "estoy
+  // bien y seguro" y aun asi fue seleccionada, que es el caso de una de ellas.
+  function tieneRegistroTejiendo(r) {
+    const doc = String(r.documento || r.cedula).trim();
+    const mgmt = state.supportManagement[doc] || {};
+    return !!((mgmt.subMgmt && mgmt.subMgmt.tejiendo) ||
+              (mgmt.subMgmtInter && mgmt.subMgmtInter.tejiendo));
+  }
+
   function matchesCategory(r, category) {
     // `dec` es lo declarado marcando una opción; `ap` incluye además el relato
     // libre. Las cinco disciplinas que se enrutan por formulario usan `dec`, para
@@ -749,6 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cat.includes('med')) return dec.includes('medicament') || dec.includes('salud') || dec.includes('receta');
     if (cat.includes('aliment')) return dec.includes('aliment') || dec.includes('kit') || dec.includes('mercado') || dec.includes('vivere') || dec.includes('comida');
     if (cat.includes('juri')) return dec.includes('juri') || dec.includes('legal');
+    if (cat.includes('tejiendo')) return tieneRegistroTejiendo(r);
     // Vivienda no se declara como texto en la solicitud, sino en la pregunta de
     // afectación. Se usa el mismo criterio de la ficha KPI (getConfrontationMetrics)
     // para que el filtro del Centro de Gestión devuelva exactamente esos casos.
@@ -2109,6 +2134,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // en silencio. Vivienda no usa matchesCategory: su universo son los 342 con
   // la vivienda inhabitable, no los que escribieron "vivienda" en la encuesta.
   function perteneceALaFicha(r, categoryKey) {
+    // Tejiendo Presente no pasa por el filtro de "solicito apoyo": la lista la
+    // define Psicologia, no el formulario. Una de las 37 seleccionadas respondio
+    // "estoy bien y seguro" y aun asi pertenece al programa.
+    if (categoryKey === 'tejiendo') return tieneRegistroTejiendo(r);
     if (categoryKey !== 'leve' && !isNeedSupport(r)) return false;
     if (categoryKey === 'vivienda') {
       const viv = (r.afectacionVivienda || '').toLowerCase();
@@ -2216,6 +2245,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderUnifiedKPICard(containerId, catKey, name, icon, color, subtitle) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    if (catKey === 'tejiendo') {
+      renderTejiendoKPICard(container, name, icon, color);
+      return;
+    }
 
     if (catKey === 'vivienda') {
       renderViviendaKPICard(container, name, icon, color);
@@ -2326,6 +2360,74 @@ document.addEventListener('DOMContentLoaded', () => {
   // contratacion directa, que es el que cubre el programa de subsidios. Meter
   // eso en la tarjeta generica habria obligado a que las otras siete cargaran
   // con un desglose que no usan.
+
+  // Tarjeta propia de Tejiendo Presente.
+  //
+  // Tiene dos modos y cambia sola. Mientras nadie haya sido gestionado muestra
+  // el modo ESPERA; en cuanto aparezca la primera gestion pasa al modo normal.
+  //
+  // El modo espera existe porque la tarjeta generica diria "0% de cobertura" y
+  // "37 pendientes" en rojo, que se lee como un frente abandonado. Y es lo
+  // contrario: el programa esta listo y las personas seleccionadas, lo que falta
+  // es la indicacion del equipo para empezar. Un indicador que dice alarma donde
+  // hay trabajo terminado es peor que no tener indicador.
+  function renderTejiendoKPICard(container, name, icon, color) {
+    const m = getConfrontationMetrics('tejiendo');
+    const total = m.solicitados;
+    const gestionadas = m.totalIntervenidos;
+    const enEspera = total - gestionadas;
+    const arrancado = gestionadas > 0;
+    const pct = total > 0 ? Math.round((gestionadas / total) * 100) : 0;
+
+    const cabecera = arrancado
+      ? `<span style="background:${pct >= 80 ? '#D1FAE5' : pct >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pct >= 80 ? '#065F46' : pct >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pct}% Cobertura</span>`
+      : `<span title="Las personas ya están seleccionadas por Psicología. La gestión inicia cuando el equipo dé la indicación." style="background:#EDE9FE; color:#5B21B6; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">⏸️ Programa listo · sin iniciar</span>`;
+
+    const cuerpo = arrancado
+      ? `
+      <div style="display:flex; flex-direction:column; gap:3px; font-size:0.72rem; color:var(--text-muted); font-weight:700;">
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🟢 Atendidas</span><b style="color:#059669;">${m.intervencionAtendida}</b></div>
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🟡 En Proceso</span><b style="color:#D97706;">${m.intervencionEnProceso}</b></div>
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🔴 Sin iniciar</span><b style="color:#DC2626;">${enEspera}</b></div>
+      </div>`
+      : `
+      <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px; padding:7px 9px; font-size:0.7rem; color:#5B21B6; font-weight:700; line-height:1.35;">
+        Las personas ya están seleccionadas por Psicología.
+        La gestión inicia cuando el equipo dé la indicación.
+      </div>`;
+
+    container.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:10px;">
+        <strong style="color:${color}; font-size:0.92rem; display:flex; align-items:center; gap:6px; font-weight:800;">
+          <span>${icon}</span> ${name}
+        </strong>
+        ${cabecera}
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px; font-size:0.85rem;">
+        <div style="background:rgba(124,58,237,0.07); padding:6px 8px; border-radius:6px;">
+          <span style="color:#5B21B6; font-size:0.7rem; display:block; font-weight:700;">👥 Identificadas</span>
+          <b style="color:${color}; font-size:1.2rem;">${total.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:#5B21B6;">Personas</span>
+        </div>
+        <div style="background:${arrancado ? 'rgba(5,150,105,0.08)' : 'rgba(100,116,139,0.08)'}; padding:6px 8px; border-radius:6px;">
+          <span style="color:${arrancado ? '#065F46' : 'var(--text-muted)'}; font-size:0.7rem; display:block; font-weight:700;">${arrancado ? '✅ Gestionadas' : '⏳ En espera'}</span>
+          <b style="color:${arrancado ? '#059669' : 'var(--text-muted)'}; font-size:1.2rem;">${(arrancado ? gestionadas : enEspera).toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:${arrancado ? '#065F46' : 'var(--text-muted)'};">Personas</span>
+        </div>
+      </div>
+
+      ${arrancado ? `
+      <div style="background:#E2E8F0; height:6px; border-radius:3px; overflow:hidden; margin-bottom:8px; width:100%;">
+        <div style="background:linear-gradient(90deg, ${color} 0%, #059669 100%); width:${Math.max(pct, 3)}%; height:100%;"></div>
+      </div>` : ''}
+
+      ${cuerpo}
+
+      <div style="margin-top:6px; border-top:1px dashed var(--border); padding-top:5px; font-size:0.68rem; color:var(--text-muted); font-weight:700;" title="No diligenció la encuesta de emergencia, así que no está en el censo y no se puede registrar en el tablero.">
+        ⚠️ 1 persona del programa no está en el censo
+      </div>
+    `;
+  }
+
   function renderViviendaKPICard(container, name, icon, color) {
     const d = getDesglosePorVinculacion('vivienda');
     const total = d.total;
@@ -2444,7 +2546,8 @@ document.addEventListener('DOMContentLoaded', () => {
       { key: 'vivienda',     nombre: 'Vivienda Inhabitable',   icono: '🏠' },
       { key: 'social',       nombre: 'Trabajo Social',         icono: '🤝' },
       { key: 'medicamentos', nombre: 'Medicamentos / Salud',   icono: '💊' },
-      { key: 'juridico',     nombre: 'Gestión Jurídica',       icono: '⚖️' }
+      { key: 'juridico',     nombre: 'Gestión Jurídica',       icono: '⚖️' },
+      { key: 'tejiendo',     nombre: 'Tejiendo Presente',      icono: '🧵' }
     ];
   }
 
@@ -2770,6 +2873,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUnifiedKPICard('kpi-card-vivienda', 'vivienda', 'Vivienda Inhabitable', '🏠', '#DC2626');
     renderUnifiedKPICard('kpi-card-social', 'social', 'Trabajo Social', '🤝', '#F59E0B', 'Atención y Orientación');
     renderUnifiedKPICard('kpi-card-medicamentos', 'medicamentos', 'Medicamentos / Salud', '💊', '#E63946');
+    renderUnifiedKPICard('kpi-card-tejiendo', 'tejiendo', 'Tejiendo Presente', '🧵', '#7C3AED');
     renderUnifiedKPICard('kpi-card-juridico', 'juridico', 'Gestión Jurídica', '⚖️', '#7C3AED');
 
     renderIntervencionesPorMes();
@@ -2800,9 +2904,15 @@ document.addEventListener('DOMContentLoaded', () => {
         //
         // La de criticidad leve sigue fuera: no tiene ni una etiqueta propia y
         // su tarjeta se retiro del tablero el 14/09/2026.
+        //
+        // Tejiendo Presente entra desde el 16/09/2026. Es un frente propio del
+        // equipo de Psicologia pero independiente de la atencion psicologica de
+        // la emergencia, asi que sus gestiones son adicionales y no repiten las
+        // que ya estan contadas en esa ficha. Hoy suma cero: todas sus fichas
+        // estan en pendiente esperando la indicacion para arrancar.
         const clavesIntervencion = [
           'psicologico', 'familiar', 'alimentos', 'vivienda',
-          'social', 'medicamentos', 'juridico'
+          'social', 'medicamentos', 'juridico', 'tejiendo'
         ];
 
         const totalIntervenciones = clavesIntervencion.reduce((acc, key) => {
