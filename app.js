@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260916_1704';
+const APP_VERSION = '20260917_0738';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -2381,7 +2381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cabecera = arrancado
       ? `<span style="background:${pct >= 80 ? '#D1FAE5' : pct >= 40 ? '#FEF3C7' : '#FEE2E2'}; color:${pct >= 80 ? '#065F46' : pct >= 40 ? '#92400E' : '#991B1B'}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pct}% Cobertura</span>`
-      : `<span title="Las personas ya están seleccionadas por Psicología. La gestión inicia cuando el equipo dé la indicación." style="background:#EDE9FE; color:#5B21B6; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">⏸️ Programa listo · sin iniciar</span>`;
+      : `<span title="Las personas ya están seleccionadas por Trabajo Social. La gestión inicia cuando el equipo dé la indicación." style="background:#EDE9FE; color:#5B21B6; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">⏸️ Programa listo · sin iniciar</span>`;
 
     const cuerpo = arrancado
       ? `
@@ -2392,7 +2392,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`
       : `
       <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px; padding:7px 9px; font-size:0.7rem; color:#5B21B6; font-weight:700; line-height:1.35;">
-        Las personas ya están seleccionadas por Psicología.
+        Las personas ya están seleccionadas por Trabajo Social.
         La gestión inicia cuando el equipo dé la indicación.
       </div>`;
 
@@ -2422,9 +2422,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ${cuerpo}
 
-      <div style="margin-top:6px; border-top:1px dashed var(--border); padding-top:5px; font-size:0.68rem; color:var(--text-muted); font-weight:700;" title="No diligenció la encuesta de emergencia, así que no está en el censo y no se puede registrar en el tablero.">
-        ⚠️ 1 persona del programa no está en el censo
-      </div>
     `;
   }
 
