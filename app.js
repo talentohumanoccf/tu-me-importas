@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260917_0738';
+const APP_VERSION = '20260922_1408';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -1096,6 +1096,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.triggerExcelExportTelework = function() {
     exportTeleworkToExcel();
+  };
+
+  window.triggerExcelExportTeleworkRestricted = function() {
+    exportTeleworkRestrictedToExcel();
   };
 
   window.triggerManagementExcelExport = exportManagementMatrixToExcel;
@@ -3523,6 +3527,30 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTeleworkCrossAnalysis();
   }
 
+  // Clasifica a una persona para el cruce de viabilidad de teletrabajo.
+  //
+  // Vive aparte porque lo preguntan tres sitios: la tarjeta del tablero y los
+  // dos botones de descarga. Con la regla copiada en cada uno, el dia que
+  // cambiara el criterio de "vivienda bloqueada" los numeros de la tarjeta y de
+  // los archivos se habrian separado en silencio.
+  function clasificarTeletrabajo(r) {
+    const pres = normalizeStr(r.presencialidadObligatoria || '');
+    if (pres.includes('si')) return 'presencial';
+    if (!pres.includes('no')) return 'sin dato';
+
+    const cond = normalizeStr(r.condicionesOptimas || '');
+    const vivienda = normalizeStr(r.afectacionVivienda || '');
+    const lugarSeguro = normalizeStr(r.lugarSeguro || '');
+
+    // ¿La vivienda es inhabitable, no es segura o está en criticidad Alta (rojo)?
+    const bloqueoVivienda = vivienda.includes('no me permiten habitarla') ||
+                            vivienda.includes('impiden habitarla') ||
+                            lugarSeguro === 'no' ||
+                            normalizeStr(r.criticidad || '') === 'rojo';
+
+    return (cond.includes('si') && !bloqueoVivienda) ? 'viable' : 'restringido';
+  }
+
   function renderTeleworkCrossAnalysis() {
     const container = document.getElementById('analytics-teletrabajo-cruce');
     if (!container) return;
@@ -3536,28 +3564,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const total = dataset.length;
 
     dataset.forEach(r => {
-      const pres = normalizeStr(r.presencialidadObligatoria || '');
-      const cond = normalizeStr(r.condicionesOptimas || '');
-      const vivienda = normalizeStr(r.afectacionVivienda || '');
-      const lugarSeguro = normalizeStr(r.lugarSeguro || '');
-
-      // ¿La vivienda es inhabitable, no es segura o está en criticidad Alta (rojo)?
-      const isCritical = normalizeStr(r.criticidad || '') === 'rojo';
-      const isHousingBlocked = vivienda.includes('no me permiten habitarla') || 
-                               vivienda.includes('impiden habitarla') || 
-                               lugarSeguro === 'no' ||
-                               isCritical;
-
-      if (pres.includes('no')) {
-        if (cond.includes('si') && !isHousingBlocked) {
-          teleworkReady++;
-        } else {
-          teleworkRestricted++;
-        }
-      } else if (pres.includes('si')) {
-        presentialMandatory++;
-      } else {
-        sinDato++;
+      switch (clasificarTeletrabajo(r)) {
+        case 'viable': teleworkReady++; break;
+        case 'restringido': teleworkRestricted++; break;
+        case 'presencial': presentialMandatory++; break;
+        default: sinDato++;
       }
     });
 
@@ -3580,11 +3591,16 @@ document.addEventListener('DOMContentLoaded', () => {
           </button>
         </div>
 
-        <div style="background:rgba(245,158,11,0.08); padding:12px; border-radius:8px; border-left:4px solid #F59E0B;">
-          <span style="font-size:0.75rem; color:#92400E; font-weight:700; display:block;">⚠️ TELETRABAJO CON RESTRICCIÓN</span>
-          <b style="font-size:1.6rem; color:#92400E;">${teleworkRestricted.toLocaleString('es-CO')}</b>
-          <span style="font-size:0.8rem; color:#B45309; display:block; font-weight:600; margin-top:2px;">${pctRestricted}% del total de censados</span>
-          <small style="font-size:0.7rem; color:#92400E; display:block; margin-top:4px;">No requieren presencialidad, pero están sin luz o internet.</small>
+        <div style="background:rgba(245,158,11,0.08); padding:12px; border-radius:8px; border-left:4px solid #F59E0B; display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <span style="font-size:0.75rem; color:#92400E; font-weight:700; display:block;">⚠️ TELETRABAJO CON RESTRICCIÓN</span>
+            <b style="font-size:1.6rem; color:#92400E;">${teleworkRestricted.toLocaleString('es-CO')}</b>
+            <span style="font-size:0.8rem; color:#B45309; display:block; font-weight:600; margin-top:2px;">${pctRestricted}% del total de censados</span>
+            <small style="font-size:0.7rem; color:#92400E; display:block; margin-top:4px;">No requieren presencialidad, pero están sin luz o internet.</small>
+          </div>
+          <button onclick="window.triggerExcelExportTeleworkRestricted && window.triggerExcelExportTeleworkRestricted()" style="margin-top:8px; background:#F59E0B; color:#FFF; border:none; border-radius:4px; padding:6px 10px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:3px; box-shadow:0 2px 4px rgba(245,158,11,0.2); width:fit-content; align-self:flex-start;">
+            📥 Descargar Listado (.xls)
+          </button>
         </div>
 
         <div style="background:rgba(59,130,246,0.08); padding:12px; border-radius:8px; border-left:4px solid #3B82F6;">
@@ -3847,31 +3863,32 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDashboard(forceRender);
   }
 
-  function exportTeleworkToExcel() {
-    const teleworkReadyReports = state.reports.filter(r => {
-      const pres = normalizeStr(r.presencialidadObligatoria || '');
-      const cond = normalizeStr(r.condicionesOptimas || '');
-      const vivienda = normalizeStr(r.afectacionVivienda || '');
-      const lugarSeguro = normalizeStr(r.lugarSeguro || '');
+  // Las dos descargas del cruce de teletrabajo.
+  //
+  // Salen de state.filteredReports y no de state.reports, que es lo que usaba la
+  // de "viable". Con los reportes completos, un filtro activo dejaba la tarjeta
+  // diciendo un numero y el archivo trayendo otro, sin que nada lo advirtiera.
+  // El boton descarga lo que la tarjeta muestra.
+  function exportTeletrabajoPorClase(clase, etiqueta, archivo) {
+    const seleccion = state.filteredReports.filter(r => clasificarTeletrabajo(r) === clase);
 
-      const isCritical = normalizeStr(r.criticidad || '') === 'rojo';
-      const isHousingBlocked = vivienda.includes('no me permiten habitarla') || 
-                               vivienda.includes('impiden habitarla') || 
-                               lugarSeguro === 'no' ||
-                               isCritical;
-
-      return pres.includes('no') && cond.includes('si') && !isHousingBlocked;
-    });
-
-    if (teleworkReadyReports.length === 0) {
-      alert('⚠️ No hay colaboradores clasificados con Teletrabajo Viable (Óptimo) para exportar.');
+    if (seleccion.length === 0) {
+      alert('⚠️ No hay colaboradores clasificados como ' + etiqueta + ' para exportar.');
       return;
     }
 
-    const dateStr = new Date().toISOString().slice(0,10);
-    const cleanFileName = `Reporte_Teletrabajo_Viable_Optimo_${dateStr}.xls`;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    exportDataToExcelFile(seleccion, archivo + '_' + dateStr + '.xls');
+  }
 
-    exportDataToExcelFile(teleworkReadyReports, cleanFileName);
+  function exportTeleworkToExcel() {
+    exportTeletrabajoPorClase('viable', 'Teletrabajo Viable (Óptimo)',
+                              'Reporte_Teletrabajo_Viable_Optimo');
+  }
+
+  function exportTeleworkRestrictedToExcel() {
+    exportTeletrabajoPorClase('restringido', 'Teletrabajo con Restricción',
+                              'Reporte_Teletrabajo_Con_Restriccion');
   }
 
   function exportFilteredToExcel() {
