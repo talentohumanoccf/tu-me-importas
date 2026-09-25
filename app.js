@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260922_1408';
+const APP_VERSION = '20260925_1101';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     supportManagement: JSON.parse(localStorage.getItem('comfamiliar_support_management')) || {},
     donationsData: JSON.parse(localStorage.getItem('comfamiliar_donations_data')) || null,
     polizasData: JSON.parse(localStorage.getItem('comfamiliar_polizas_data')) || null,
+    viviendaDetalle: JSON.parse(localStorage.getItem('comfamiliar_vivienda_detalle')) || null,
     pagination: {
       mainPage: Number(sessionStorage.getItem('comfamiliar_main_page')) || 1,
       mainPageSize: 25,
@@ -2019,6 +2020,14 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('comfamiliar_polizas_data', JSON.stringify(result.polizas));
     }
 
+    // Metricas de la consola de vivienda en terreno. Solo se guardan si el
+    // servidor las trae con exito: si el libro externo quedo inaccesible, se
+    // conserva la ultima copia buena en vez de dejar el panel en ceros.
+    if (result && result.viviendaDetalle && result.viviendaDetalle.status === 'success') {
+      state.viviendaDetalle = result.viviendaDetalle;
+      localStorage.setItem('comfamiliar_vivienda_detalle', JSON.stringify(result.viviendaDetalle));
+    }
+
     state.reports = preprocessReports(Array.from(mapReports.values()));
     
     // Homologación automática sin daño a datos
@@ -2375,6 +2384,110 @@ document.addEventListener('DOMContentLoaded', () => {
   // contrario: el programa esta listo y las personas seleccionadas, lo que falta
   // es la indicacion del equipo para empezar. Un indicador que dice alarma donde
   // hay trabajo terminado es peor que no tener indicador.
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // GESTIÓN DETALLADA DE VIVIENDA
+  //
+  // Las cifras las calcula el .gs leyendo el libro de la consola de vivienda y
+  // llegan ya agregadas en el payload. Aqui solo se pintan.
+  //
+  // Va en un modal y no dentro de la tarjeta a proposito: son once cifras de un
+  // proceso paralelo, con su propio universo (los 258 activos de Comfamiliar, no
+  // los 341 afectados de la ficha). Meterlas en la tarjeta invitaria a sumarlas
+  // con las de arriba, que miden otra cosa.
+  function abrirModalViviendaDetalle() {
+    const d = state.viviendaDetalle;
+    const fondo = document.getElementById('modal-vivienda-detalle');
+    const cuerpo = document.getElementById('modal-vivienda-cuerpo');
+    if (!fondo || !cuerpo) return;
+
+    if (!d || !d.cartera || !d.detalle) {
+      cuerpo.innerHTML = `
+        <div style="padding:22px; text-align:center; color:var(--text-muted); font-size:0.85rem; line-height:1.5;">
+          <div style="font-size:2rem; margin-bottom:8px;">🛠️</div>
+          <b style="color:var(--text-main);">Todavía no hay métricas disponibles</b><br>
+          El tablero no ha recibido los datos de la consola de vivienda.
+          Vuelve a cargar la página; si persiste, revisa que el libro de la consola
+          siga siendo accesible para la cuenta que publica el tablero.
+        </div>`;
+      fondo.style.display = 'flex';
+      return;
+    }
+
+    const c = d.cartera;
+    const t = d.detalle;
+    const contactados = c.total - c.pendientes;
+    const pctContacto = c.total > 0 ? Math.round((contactados / c.total) * 100) : 0;
+    const pctAtendidos = t.total > 0 ? Math.round((t.atendidos / t.total) * 100) : 0;
+
+    const caja = (color, fondoCaja, icono, etiqueta, valor) => `
+      <div style="background:${fondoCaja}; border-radius:8px; padding:9px 11px; flex:1 1 118px; min-width:0;">
+        <span style="display:block; font-size:0.68rem; font-weight:800; color:${color}; line-height:1.25;">${icono} ${etiqueta}</span>
+        <b style="font-size:1.4rem; color:${color}; font-weight:900; letter-spacing:-0.5px;">${Number(valor).toLocaleString('es-CO')}</b>
+      </div>`;
+
+    const fecha = d.actualizado
+      ? new Date(d.actualizado).toLocaleString('es-CO', { timeZone: 'America/Bogota' })
+      : '';
+
+    cuerpo.innerHTML = `
+      <div style="text-align:left;">
+        <div style="margin-bottom:6px;">
+          <span style="font-size:0.72rem; font-weight:900; color:#0369A1; text-transform:uppercase; letter-spacing:0.5px;">Alcance de la gestión</span>
+          <p style="margin:2px 0 9px 0; font-size:0.72rem; color:var(--text-muted); line-height:1.4;">
+            Universo de <b>${Number(c.total).toLocaleString('es-CO')} activos de Comfamiliar</b> con afectación de vivienda, contactados para caracterizar su situación.
+          </p>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          ${caja('#0369A1', 'rgba(2,132,199,0.08)', '📋', 'En cartera', c.total)}
+          ${caja('#475569', 'rgba(100,116,139,0.10)', '⏳', 'Pendientes de llamar', c.pendientes)}
+          ${caja('#B45309', 'rgba(245,158,11,0.10)', '📞', 'En llamada ahora', c.enLlamada)}
+          ${caja('#B91C1C', 'rgba(220,38,38,0.08)', '❌', 'No contestaron', c.noContesta)}
+          ${caja('#047857', 'rgba(5,150,105,0.10)', '✅', 'Encuestados / agendados', c.encuestados)}
+        </div>
+        <div style="background:#E2E8F0; height:8px; border-radius:4px; overflow:hidden; margin-bottom:4px;">
+          <div style="width:${Math.max(pctContacto, 2)}%; height:100%; background:linear-gradient(90deg,#0284C7 0%,#059669 100%);"></div>
+        </div>
+        <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; margin-bottom:16px;">
+          ${pctContacto}% de la cartera ya contactada
+        </div>
+
+        <div style="border-top:1px solid var(--border); padding-top:12px;">
+          <span style="font-size:0.72rem; font-weight:900; color:#B91C1C; text-transform:uppercase; letter-spacing:0.5px;">Caracterización de los afectados</span>
+          <p style="margin:2px 0 9px 0; font-size:0.72rem; color:var(--text-muted); line-height:1.4;">
+            De los encuestados, <b>${Number(t.total).toLocaleString('es-CO')}</b> completaron la caracterización y quedaron priorizados para visita.
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            ${caja('#B91C1C', 'rgba(220,38,38,0.08)', '🔴', 'Prioridad 1 · 24h', t.prioridad1)}
+            ${caja('#B45309', 'rgba(245,158,11,0.10)', '🟡', 'Prioridad 2', t.prioridad2)}
+            ${caja('#047857', 'rgba(5,150,105,0.10)', '🟢', 'Prioridad 3', t.prioridad3)}
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${caja('#6D28D9', 'rgba(124,58,237,0.08)', '📅', 'Visitas agendadas', t.agendadas)}
+            ${caja('#047857', 'rgba(5,150,105,0.10)', '✅', 'Atendidos / resueltos', t.atendidos)}
+            ${caja('#475569', 'rgba(100,116,139,0.10)', '⏳', 'Por agendar', t.porAgendar)}
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; margin-top:8px;">
+            ${pctAtendidos}% de los caracterizados ya tiene la visita cerrada
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px dashed var(--border); margin-top:14px; padding-top:9px;">
+          <span style="font-size:0.66rem; color:#94A3B8; font-weight:700;">${fecha ? 'Actualizado: ' + fecha : ''}</span>
+          <span style="font-size:0.66rem; color:#94A3B8; font-weight:700;">Fuente: consola de gestión detallada de vivienda</span>
+        </div>
+      </div>`;
+
+    fondo.style.display = 'flex';
+  }
+
+  window.abrirViviendaDetalle = abrirModalViviendaDetalle;
+
+  window.cerrarViviendaDetalle = function() {
+    const fondo = document.getElementById('modal-vivienda-detalle');
+    if (fondo) fondo.style.display = 'none';
+  };
+
   function renderTejiendoKPICard(container, name, icon, color) {
     const m = getConfrontationMetrics('tejiendo');
     const total = m.solicitados;
@@ -2496,6 +2609,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <span>👥 Otras vinculaciones</span>
         <b style="color:var(--text-main);">${otrosTotal} afectados · ${otrosGest} en gestión</b>
       </div>` : ''}
+
+      <button onclick="window.abrirViviendaDetalle && window.abrirViviendaDetalle()" title="Ver el avance del contacto y de las visitas de campo" style="margin-top:8px; width:100%; background:#0284C7; color:#FFF; border:none; border-radius:6px; padding:6px 10px; font-size:0.72rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-shadow:0 2px 5px rgba(2,132,199,0.2);">
+        📊 Ver gestión detallada de vivienda
+      </button>
     `;
   }
 

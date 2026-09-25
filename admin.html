@@ -321,6 +321,27 @@
           </div>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════════════
+             MODAL: GESTIÓN DETALLADA DE VIVIENDA
+             Lo abre el botón de la tarjeta de Vivienda Inhabitable. El contenido
+             lo pinta abrirModalViviendaDetalle() en app.js con las métricas que
+             el .gs trae del libro de la consola de vivienda.
+             ═══════════════════════════════════════════════════════════════ -->
+        <div id="modal-vivienda-detalle" class="modal-backdrop no-print" style="display:none;" onclick="if(event.target===this) window.cerrarViviendaDetalle && window.cerrarViviendaDetalle()">
+          <div class="modal-card" style="max-width: 640px; text-align:left; padding:20px 22px; max-height:88vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px;">
+              <div>
+                <h3 style="margin:0; color:var(--primary); font-size:1.02rem; font-weight:900; display:flex; align-items:center; gap:7px;">
+                  🏠 Gestión Detallada de Vivienda
+                </h3>
+                <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">Contacto telefónico y visitas de campo</span>
+              </div>
+              <button onclick="window.cerrarViviendaDetalle && window.cerrarViviendaDetalle()" title="Cerrar" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; border-radius:6px; width:30px; height:30px; font-size:1rem; font-weight:800; cursor:pointer; flex:none; line-height:1;">×</button>
+            </div>
+            <div id="modal-vivienda-cuerpo"></div>
+          </div>
+        </div>
+
         <!-- MAPA DE EMERGENCIA COLAPSIBLE -->
         <div style="margin: 20px 0 10px 0;">
           <button id="btn-toggle-main-map" onclick="window.toggleMainMapPanel && window.toggleMainMapPanel()" class="btn-search" style="background: var(--primary); color: #FFF; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; font-size: 0.92rem; font-weight: 800; border-radius: var(--radius-md); border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s ease-in-out;">
@@ -828,6 +849,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="mock-data.js"></script>
-  <script src="app.js?v=20260922_1408"></script>
+  <script src="app.js?v=20260925_1101"></script>
 </body>
 </html>

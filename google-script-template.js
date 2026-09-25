@@ -199,6 +199,27 @@ function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) 
     }
   }
 
+  // Metricas de la consola de vivienda en terreno, con el mismo interruptor que
+  // pólizas y por la misma razon: es otra lectura de un libro externo con
+  // openById, y una falla de autorizacion ahi aborta TODA la peticion, no solo
+  // esta parte. Si el libro queda inaccesible y el tablero deja de cargar, crear
+  // la propiedad de script VIVIENDA_DETALLE_HABILITADO en "false" y limpiar la
+  // cache con limpiarCacheReportes(). El tablero vuelve sin desplegar de nuevo.
+  var VIVIENDA_DETALLE_HABILITADO = true;
+  try {
+    var flagViv = PropertiesService.getScriptProperties().getProperty("VIVIENDA_DETALLE_HABILITADO");
+    if (String(flagViv).toLowerCase() === "false") VIVIENDA_DETALLE_HABILITADO = false;
+  } catch (fvErr) {}
+
+  var viviendaDetalleData = { status: "error" };
+  if (VIVIENDA_DETALLE_HABILITADO) {
+    try {
+      viviendaDetalleData = obtenerMetricasViviendaDetalle();
+    } catch (vErr) {
+      console.log("Error al cargar las metricas de vivienda en terreno: " + vErr.toString());
+    }
+  }
+
   // El listado se envia UNA sola vez. Antes iba duplicado como 'reports' y como
   // 'data', lo que llevaba la respuesta a ~7 MB y la sacaba del limite de tamano
   // de Apps Script. El frontend lee 'reports' (app.js:1536); 'data' solo se usa
@@ -209,7 +230,8 @@ function obtenerReportesCacheadosOMaterializar(sheetReportes, sheetGestion, ss) 
     total: reportsArray.length,
     reports: reportsArray,
     donations: donationsData,
-    polizas: polizasData
+    polizas: polizasData,
+    viviendaDetalle: viviendaDetalleData
   });
 
   try {
@@ -1390,5 +1412,270 @@ function registrarAccesoAdmin(ss, adminName) {
     return { status: "success", message: "Acceso registrado correctamente." };
   } catch (err) {
     return { status: "error", message: err.toString() };
+  }
+}
+
+/**
+ * Metricas de la gestion detallada de vivienda en terreno.
+ *
+ * Lee el libro de la consola de vivienda ("Base encuesta Afectaciones") y
+ * devuelve UNICAMENTE las cifras agregadas: doce numeros y una marca de tiempo.
+ * No se traen registros de personas. El payload del tablero ya ronda los 3,5 MB
+ * y un listado mas lo empujaria contra el limite de tamano de Apps Script.
+ *
+ * LAS REGLAS SON LAS DE LA CONSOLA, NO UNAS PROPIAS
+ *
+ *   Estan copiadas de obtenerCasos() y de las dos funciones de metricas de
+ *   index.html en el proyecto de vivienda. Se verificaron contra los datos:
+ *   las doce cifras coinciden exactamente con lo que muestra esa consola.
+ *
+ *   Tres detalles que no son obvios y sin los cuales los numeros no dan:
+ *
+ *   1. El universo de afectados no son las filas de Respuestas_Afectados. Se
+ *      descartan las pruebas y las ajenas a la base oficial de colaboradores, y
+ *      los duplicados por cedula se consolidan.
+ *
+ *   2. La consolidacion conserva el PRIMER registro. El siguiente solo puede
+ *      mejorarle el score, llevandose su prioridad, o adelantarle el estado de
+ *      la visita. Quedarse con el ultimo daba prioridad 1 = 65 en vez de 66.
+ *
+ *   3. La contactabilidad se lee de la columna Estado Contacto, que la consola
+ *      repara en segundo plano al cruzar con las respuestas. Se replica ademas
+ *      un defecto suyo de clasificacion, documentado abajo.
+ */
+
+/**
+ * ID del libro de la consola de vivienda.
+ *
+ * Vive en la propiedad de script VIVIENDA_DETALLE_ID, no en el codigo: asi se
+ * cambia sin desplegar de nuevo y el id no queda en el repositorio.
+ *
+ * Se saca de la URL del Sheets: docs.google.com/spreadsheets/d/<ESTO>/edit
+ */
+function obtenerIdLibroViviendaDetalle_() {
+  try {
+    var prop = PropertiesService.getScriptProperties().getProperty("VIVIENDA_DETALLE_ID");
+    if (prop && String(prop).trim()) return String(prop).trim();
+  } catch (e) {}
+
+  // Sin la propiedad no hay nada que abrir. Se avisa con nombre propio en vez de
+  // dejar que openById falle con un id inventado: ese error dice "documento no
+  // encontrado" y manda a buscar un problema de permisos que no existe.
+  throw new Error(
+    "Falta la propiedad de script VIVIENDA_DETALLE_ID con el id del libro de la " +
+    "consola de vivienda. Se agrega en Configuracion del proyecto -> Propiedades " +
+    "de la secuencia de comandos. El id sale de la URL del Sheets, entre /d/ y /edit.");
+}
+
+/** Localiza la hoja de la cartera con la misma estrategia que usa la consola. */
+function hojaCarteraVivienda_(ss) {
+  var sh = ss.getSheetByName("Base_Colaboradores") || ss.getSheetByName("Colaboradores");
+  if (sh) return sh;
+  var todas = ss.getSheets();
+  for (var i = 0; i < todas.length; i++) {
+    var nombre = todas[i].getName().toLowerCase();
+    if (nombre.indexOf("respuesta") === -1 && nombre.indexOf("form") === -1 &&
+        nombre.indexOf("resumen") === -1 && nombre.indexOf("pendiente") === -1) {
+      return todas[i];
+    }
+  }
+  return null;
+}
+
+/** Localiza la hoja de respuestas con la misma estrategia que usa la consola. */
+function hojaRespuestasVivienda_(ss) {
+  var sh = ss.getSheetByName("Respuestas_Afectados");
+  if (sh) return sh;
+  var todas = ss.getSheets();
+  for (var i = 0; i < todas.length; i++) {
+    if (todas[i].getName().toLowerCase().indexOf("respuesta") !== -1) return todas[i];
+  }
+  return null;
+}
+
+/** Indice de la primera columna cuyo encabezado contenga alguna de las claves. */
+function colPorNombre_(headers, claves) {
+  for (var q = 0; q < claves.length; q++) {
+    for (var i = 0; i < headers.length; i++) {
+      if (String(headers[i]).toLowerCase().indexOf(claves[q].toLowerCase()) !== -1) return i;
+    }
+  }
+  return -1;
+}
+
+function obtenerMetricasViviendaDetalle() {
+  var DURACION_BLOQUEO_MS = 15 * 60 * 1000;
+  var ahora = new Date().getTime();
+  var soloDigitos = function (v) { return String(v || "").replace(/[^0-9]/g, ""); };
+  var bajo = function (v) { return String(v || "").toLowerCase(); };
+
+  var ss = SpreadsheetApp.openById(obtenerIdLibroViviendaDetalle_());
+  var shCartera = hojaCarteraVivienda_(ss);
+  var shResp = hojaRespuestasVivienda_(ss);
+  if (!shCartera || !shResp) throw new Error("No se encontraron las hojas de la consola de vivienda");
+
+  // ---------- universo oficial y respuestas ----------
+  var datosCartera = shCartera.getDataRange().getValues();
+  var hC = datosCartera[0].map(function (h) { return String(h).trim(); });
+  var cDoc = colPorNombre_(hC, ["documento", "cedula"]);
+  var cObs = colPorNombre_(hC, ["observaciones"]);
+  var cEstado = colPorNombre_(hC, ["estado contacto"]);
+  var cLockT = colPorNombre_(hC, ["bloqueo timestamp", "bloqueo time"]);
+  var cLockU = colPorNombre_(hC, ["bloqueo profesional", "bloqueo user"]);
+
+  var oficiales = {};
+  var totalCartera = 0;
+  for (var i = 1; i < datosCartera.length; i++) {
+    var obs = cObs !== -1 ? String(datosCartera[i][cObs] || "") : "";
+    if (obs.indexOf("Auto-reporte web incorporado") !== -1 ||
+        obs.indexOf("Auto-reporte web registrado") !== -1) continue;
+    var d = cDoc !== -1 ? soloDigitos(datosCartera[i][cDoc]) : "";
+    if (d) { oficiales[d] = true; totalCartera++; }
+  }
+
+  // ---------- casos caracterizados ----------
+  var datosResp = shResp.getDataRange().getValues();
+  var hR = datosResp[0].map(function (h) { return String(h).trim(); });
+  var rDoc = colPorNombre_(hR, ["documento", "cedula"]);
+  var rNom = colPorNombre_(hR, ["nombre completo", "nombre"]);
+  var rPrio = colPorNombre_(hR, ["nivel prioridad"]);
+  var rEstV = colPorNombre_(hR, ["estado visita"]);
+  var rScore = colPorNombre_(hR, ["score vulnerabilidad"]);
+
+  var casos = {};
+  for (var j = 1; j < datosResp.length; j++) {
+    var fila = datosResp[j];
+    var doc = rDoc !== -1 ? String(fila[rDoc] || "").trim() : "";
+    var nombre = rNom !== -1 ? String(fila[rNom] || "").trim() : "";
+    if (!doc && !nombre) continue;
+    if (nombre.indexOf("[PRUEBA]") !== -1 || doc.indexOf("9999") !== -1) continue;
+
+    var dLimpio = soloDigitos(doc);
+    if (!dLimpio || !oficiales[dLimpio]) continue;   // ajeno a la cartera oficial
+
+    var caso = {
+      prioridad: rPrio !== -1 ? String(fila[rPrio] || "Por evaluar") : "Por evaluar",
+      estadoVisita: rEstV !== -1 ? String(fila[rEstV] || "Pendiente de Agendar") : "Pendiente de Agendar",
+      score: rScore !== -1 ? (Number(fila[rScore]) || 0) : 0
+    };
+
+    if (casos[dLimpio]) {
+      // Manda el primero; el siguiente solo puede mejorarlo.
+      var previo = casos[dLimpio];
+      var estAct = bajo(caso.estadoVisita), estPrev = bajo(previo.estadoVisita);
+      if ((estAct.indexOf("realizada") !== -1 || estAct.indexOf("agendada") !== -1) &&
+          estPrev.indexOf("realizada") === -1 && estPrev.indexOf("agendada") === -1) {
+        previo.estadoVisita = caso.estadoVisita;
+      }
+      if (caso.score > previo.score) {
+        previo.score = caso.score;
+        previo.prioridad = caso.prioridad;
+      }
+    } else {
+      casos[dLimpio] = caso;
+    }
+  }
+
+  var p1 = 0, p2 = 0, p3 = 0, agendadas = 0, atendidos = 0, cerrados = 0, porAgendar = 0;
+  var totalAfectados = 0;
+  for (var k in casos) {
+    if (!Object.prototype.hasOwnProperty.call(casos, k)) continue;
+    totalAfectados++;
+    var c = casos[k];
+    if (c.prioridad.indexOf("Prioridad 1") !== -1) p1++;
+    else if (c.prioridad.indexOf("Prioridad 2") !== -1) p2++;
+    else p3++;
+
+    var ev = bajo(c.estadoVisita);
+    if (ev.indexOf("atendido") !== -1 || ev.indexOf("realizada") !== -1) atendidos++;
+    else if (ev.indexOf("agendada") !== -1) agendadas++;
+    else if (ev.indexOf("cerrado") !== -1 || ev.indexOf("trámite") !== -1) cerrados++;
+    else porAgendar++;
+  }
+
+  // ---------- contactabilidad de la cartera ----------
+  var pendientes = 0, enLlamada = 0, noContesta = 0, encuestados = 0;
+  for (var m = 1; m < datosCartera.length; m++) {
+    var obsM = cObs !== -1 ? String(datosCartera[m][cObs] || "") : "";
+    if (obsM.indexOf("Auto-reporte web incorporado") !== -1 ||
+        obsM.indexOf("Auto-reporte web registrado") !== -1) continue;
+    var docM = cDoc !== -1 ? soloDigitos(datosCartera[m][cDoc]) : "";
+    if (!docM) continue;
+
+    var est = cEstado !== -1 ? bajo(datosCartera[m][cEstado]) : "";
+
+    var bloqueado = false;
+    if (cLockT !== -1 && cLockU !== -1) {
+      var lt = String(datosCartera[m][cLockT] || "").trim();
+      var lu = String(datosCartera[m][cLockU] || "").trim();
+      if (lt && lu) {
+        var fecha = new Date(lt);
+        if (!isNaN(fecha.getTime()) && (ahora - fecha.getTime()) < DURACION_BLOQUEO_MS) bloqueado = true;
+      }
+    }
+
+    // La consola busca "agendado" en masculino pero escribe "Visita Agendada" en
+    // femenino, asi que cuenta como pendiente de llamar a quien ya tiene visita
+    // agendada. Hoy son dos personas (43977469 y 42155516).
+    //
+    // Se replica el defecto A PROPOSITO para que este panel y la consola digan
+    // el mismo numero; dos tableros que se contradicen son peores que un numero
+    // corrido en dos. Cuando alla cambien "agendado" por "agendad", basta poner
+    // esta constante en false y los dos quedan en 25 y 232.
+    var REPLICAR_DEFECTO_AGENDADA = true;
+    var claveAgendado = REPLICAR_DEFECTO_AGENDADA ? "agendado" : "agendad";
+
+    var esEncuestado = est.indexOf("encuestado") !== -1 || est.indexOf(claveAgendado) !== -1 ||
+                       est.indexOf("atendido") !== -1 || est.indexOf("realizada") !== -1 ||
+                       est.indexOf("realizado") !== -1 || est.indexOf("respondido") !== -1 ||
+                       est.indexOf("auto-reporte") !== -1;
+
+    if (esEncuestado) encuestados++;
+    else if (bloqueado || est.indexOf("llamada") !== -1) enLlamada++;
+    else if (est.indexOf("no contesta") !== -1) noContesta++;
+    else pendientes++;
+  }
+
+  return {
+    status: "success",
+    actualizado: new Date().toISOString(),
+    cartera: {
+      total: totalCartera,
+      pendientes: pendientes,
+      enLlamada: enLlamada,
+      noContesta: noContesta,
+      encuestados: encuestados
+    },
+    detalle: {
+      total: totalAfectados,
+      prioridad1: p1,
+      prioridad2: p2,
+      prioridad3: p3,
+      agendadas: agendadas,
+      atendidos: atendidos + cerrados,
+      porAgendar: porAgendar
+    }
+  };
+}
+
+/**
+ * Comprobacion manual desde el editor, antes de tocar el tablero.
+ * Ejecutar y revisar el registro: si aqui sale bien, el payload saldra bien.
+ */
+function probarMetricasViviendaDetalle() {
+  try {
+    var m = obtenerMetricasViviendaDetalle();
+    Logger.log("ACCESO OK");
+    Logger.log("CARTERA   total %s | pendientes %s | en llamada %s | no contesta %s | encuestados %s",
+               m.cartera.total, m.cartera.pendientes, m.cartera.enLlamada,
+               m.cartera.noContesta, m.cartera.encuestados);
+    Logger.log("DETALLE   afectados %s | P1 %s | P2 %s | P3 %s | agendadas %s | atendidos %s | por agendar %s",
+               m.detalle.total, m.detalle.prioridad1, m.detalle.prioridad2, m.detalle.prioridad3,
+               m.detalle.agendadas, m.detalle.atendidos, m.detalle.porAgendar);
+    return m;
+  } catch (e) {
+    Logger.log("FALLO: " + e.toString());
+    Logger.log("Revisar el ID del libro y que la cuenta que despliega tenga acceso.");
+    throw e;
   }
 }
