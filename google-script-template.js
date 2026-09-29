@@ -1435,9 +1435,14 @@ function registrarAccesoAdmin(ss, adminName) {
  *      descartan las pruebas y las ajenas a la base oficial de colaboradores, y
  *      los duplicados por cedula se consolidan.
  *
- *   2. La consolidacion conserva el PRIMER registro. El siguiente solo puede
- *      mejorarle el score, llevandose su prioridad, o adelantarle el estado de
- *      la visita. Quedarse con el ultimo daba prioridad 1 = 65 en vez de 66.
+ *   2. La consolidacion conserva el PRIMER registro, pero no del todo: el
+ *      siguiente puede mejorarle el score, llevandose su prioridad, o
+ *      adelantarle el estado de la visita. Quedarse con el ultimo daba
+ *      prioridad 1 = 65 en vez de 66.
+ *
+ *      Y los bienes y los apoyos SI se acumulan entre los duplicados, en vez de
+ *      quedarse con los del primero. Sin eso daba Fondo de Solidaridad 47 y
+ *      Retiro de cesantias 17, contra 48 y 18 de la consola.
  *
  *   3. La contactabilidad se lee de la columna Estado Contacto, que la consola
  *      repara en segundo plano al cruzar con las respuestas. Se replica ademas
@@ -1541,6 +1546,8 @@ function obtenerMetricasViviendaDetalle() {
   var rPrio = colPorNombre_(hR, ["nivel prioridad"]);
   var rEstV = colPorNombre_(hR, ["estado visita"]);
   var rScore = colPorNombre_(hR, ["score vulnerabilidad"]);
+  var rBienes = colPorNombre_(hR, ["bienes afectados", "bienes"]);
+  var rApoyos = colPorNombre_(hR, ["apoyos requeridos", "apoyos y servicios"]);
 
   var casos = {};
   for (var j = 1; j < datosResp.length; j++) {
@@ -1556,11 +1563,13 @@ function obtenerMetricasViviendaDetalle() {
     var caso = {
       prioridad: rPrio !== -1 ? String(fila[rPrio] || "Por evaluar") : "Por evaluar",
       estadoVisita: rEstV !== -1 ? String(fila[rEstV] || "Pendiente de Agendar") : "Pendiente de Agendar",
-      score: rScore !== -1 ? (Number(fila[rScore]) || 0) : 0
+      score: rScore !== -1 ? (Number(fila[rScore]) || 0) : 0,
+      bienes: rBienes !== -1 ? String(fila[rBienes] || "") : "",
+      apoyos: rApoyos !== -1 ? String(fila[rApoyos] || "") : ""
     };
 
     if (casos[dLimpio]) {
-      // Manda el primero; el siguiente solo puede mejorarlo.
+      // Manda el primero, pero el siguiente puede mejorarlo.
       var previo = casos[dLimpio];
       var estAct = bajo(caso.estadoVisita), estPrev = bajo(previo.estadoVisita);
       if ((estAct.indexOf("realizada") !== -1 || estAct.indexOf("agendada") !== -1) &&
@@ -1571,6 +1580,20 @@ function obtenerMetricasViviendaDetalle() {
         previo.score = caso.score;
         previo.prioridad = caso.prioridad;
       }
+
+      // Bienes y apoyos se ACUMULAN entre los registros de la misma cedula, no
+      // se quedan con los del primero. Es lo que hace la consola, y tiene
+      // sentido: quien lleno la encuesta dos veces pudo pedir cosas distintas
+      // cada vez, y las dos son necesidades reales de esa familia.
+      //
+      // Sin esto daba Fondo de Solidaridad 47 y Retiro de cesantias 17, contra
+      // 48 y 18 de la consola.
+      if (caso.bienes && previo.bienes.indexOf(caso.bienes) === -1) {
+        previo.bienes = (previo.bienes ? previo.bienes + ", " : "") + caso.bienes;
+      }
+      if (caso.apoyos && previo.apoyos.indexOf(caso.apoyos) === -1) {
+        previo.apoyos = (previo.apoyos ? previo.apoyos + ", " : "") + caso.apoyos;
+      }
     } else {
       casos[dLimpio] = caso;
     }
@@ -1578,10 +1601,39 @@ function obtenerMetricasViviendaDetalle() {
 
   var p1 = 0, p2 = 0, p3 = 0, agendadas = 0, atendidos = 0, cerrados = 0, porAgendar = 0;
   var totalAfectados = 0;
+
+  // Los dos censos cuentan FAMILIAS, no unidades: una familia que pidio dos
+  // neveras suma una. Y una misma familia aparece en varias casillas, asi que
+  // las columnas no suman el total de afectados ni entre ellas.
+  //
+  // La consolidacion de duplicados no fusiona estas dos columnas: manda lo que
+  // haya declarado el primer registro de la cedula, igual que alla.
+  var bien = { neveras: 0, estufas: 0, camas: 0, ropa: 0, tecnicas: 0, perdidaTotal: 0 };
+  var apoyo = { arriendo: 0, solidaridad: 0, psicologico: 0, cesantias: 0,
+                credito: 0, tejiendo: 0, juridica: 0, tecnicas: 0 };
+
   for (var k in casos) {
     if (!Object.prototype.hasOwnProperty.call(casos, k)) continue;
     totalAfectados++;
     var c = casos[k];
+
+    var b = bajo(c.bienes);
+    if (b.indexOf("nevera") !== -1) bien.neveras++;
+    if (b.indexOf("estufa") !== -1) bien.estufas++;
+    if (b.indexOf("cama") !== -1 || b.indexOf("colchón") !== -1 || b.indexOf("colchon") !== -1) bien.camas++;
+    if (b.indexOf("ropa") !== -1) bien.ropa++;
+    if (b.indexOf("técnic") !== -1 || b.indexOf("tecnic") !== -1) bien.tecnicas++;
+    if (b.indexOf("total") !== -1) bien.perdidaTotal++;
+
+    var a = bajo(c.apoyos);
+    if (a.indexOf("arrendamiento") !== -1) apoyo.arriendo++;
+    if (a.indexOf("solidaridad") !== -1) apoyo.solidaridad++;
+    if (a.indexOf("psicol") !== -1 || a.indexOf("emocional") !== -1) apoyo.psicologico++;
+    if (a.indexOf("cesant") !== -1) apoyo.cesantias++;
+    if (a.indexOf("crédit") !== -1 || a.indexOf("credit") !== -1) apoyo.credito++;
+    if (a.indexOf("tejiendo") !== -1) apoyo.tejiendo++;
+    if (a.indexOf("jurídic") !== -1 || a.indexOf("juridic") !== -1) apoyo.juridica++;
+    if (a.indexOf("técnic") !== -1 || a.indexOf("tecnic") !== -1) apoyo.tecnicas++;
     if (c.prioridad.indexOf("Prioridad 1") !== -1) p1++;
     else if (c.prioridad.indexOf("Prioridad 2") !== -1) p2++;
     else p3++;
@@ -1654,7 +1706,9 @@ function obtenerMetricasViviendaDetalle() {
       agendadas: agendadas,
       atendidos: atendidos + cerrados,
       porAgendar: porAgendar
-    }
+    },
+    bienes: bien,
+    apoyos: apoyo
   };
 }
 
@@ -1672,6 +1726,12 @@ function probarMetricasViviendaDetalle() {
     Logger.log("DETALLE   afectados %s | P1 %s | P2 %s | P3 %s | agendadas %s | atendidos %s | por agendar %s",
                m.detalle.total, m.detalle.prioridad1, m.detalle.prioridad2, m.detalle.prioridad3,
                m.detalle.agendadas, m.detalle.atendidos, m.detalle.porAgendar);
+    Logger.log("ENSERES   neveras %s | estufas %s | camas %s | ropa %s | ayudas tecnicas %s | perdida total %s",
+               m.bienes.neveras, m.bienes.estufas, m.bienes.camas, m.bienes.ropa,
+               m.bienes.tecnicas, m.bienes.perdidaTotal);
+    Logger.log("APOYOS    arriendo %s | solidaridad %s | psicologico %s | cesantias %s | credito %s | tejiendo %s | juridica %s | ayudas tecnicas %s",
+               m.apoyos.arriendo, m.apoyos.solidaridad, m.apoyos.psicologico, m.apoyos.cesantias,
+               m.apoyos.credito, m.apoyos.tejiendo, m.apoyos.juridica, m.apoyos.tecnicas);
     return m;
   } catch (e) {
     Logger.log("FALLO: " + e.toString());

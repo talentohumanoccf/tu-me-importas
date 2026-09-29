@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260925_1101';
+const APP_VERSION = '20260929_0938';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -2426,6 +2426,44 @@ document.addEventListener('DOMContentLoaded', () => {
         <b style="font-size:1.4rem; color:${color}; font-weight:900; letter-spacing:-0.5px;">${Number(valor).toLocaleString('es-CO')}</b>
       </div>`;
 
+    // Los dos censos cuentan FAMILIAS que pidieron cada cosa, no unidades. Una
+    // misma familia aparece en varias casillas, asi que las columnas no suman ni
+    // el total de afectados ni entre ellas: se advierte al pie de cada bloque
+    // para que nadie las sume.
+    //
+    // Los ceros se pintan apagados: un 0 en rojo al lado de cifras altas se lee
+    // como una alerta cuando solo significa que nadie pidio eso.
+    // Si el servidor no manda los censos, los bloques NO se pintan.
+    //
+    // Antes se usaba `d.bienes || {}` y cada casilla caia en cero. El problema es
+    // que el cero es un valor legitimo aqui —hoy nadie pidio ayudas tecnicas ni
+    // Tejiendo Presente—, asi que una fila de ceros se lee como un censo real
+    // donde nadie pidio nada, en vez de como "esto todavia no llega". Pasa
+    // siempre que el .gs desplegado sea anterior a esta version.
+    const b = d.bienes;
+    const a = d.apoyos;
+
+    const bloqueCenso = (titulo, color, items) => `
+      <div style="border-top:1px solid var(--border); margin-top:14px; padding-top:12px;">
+        <span style="font-size:0.72rem; font-weight:900; color:${color}; text-transform:uppercase; letter-spacing:0.5px;">${titulo}</span>
+        <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:8px;">
+          ${items.map(([icono, etiqueta, valor]) => {
+            const n = Number(valor) || 0;
+            return `
+            <div style="flex:1 1 128px; min-width:0; background:${n > 0 ? 'rgba(2,132,199,0.05)' : 'rgba(100,116,139,0.05)'}; border:1px solid ${n > 0 ? '#E0F2FE' : '#E2E8F0'}; border-radius:8px; padding:7px 9px; display:flex; align-items:center; gap:7px;">
+              <span style="font-size:1rem; opacity:${n > 0 ? 1 : 0.35};">${icono}</span>
+              <span style="min-width:0;">
+                <b style="display:block; font-size:1.05rem; font-weight:900; line-height:1.1; color:${n > 0 ? '#0F172A' : '#CBD5E1'};">${n.toLocaleString('es-CO')}</b>
+                <span style="font-size:0.64rem; font-weight:700; color:var(--text-muted); line-height:1.2; display:block;">${etiqueta}</span>
+              </span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="font-size:0.64rem; color:#94A3B8; font-weight:700; margin-top:6px;">
+          Familias que lo requieren. Una familia puede aparecer en varias casillas, así que no se suman.
+        </div>
+      </div>`;
+
     const fecha = d.actualizado
       ? new Date(d.actualizado).toLocaleString('es-CO', { timeZone: 'America/Bogota' })
       : '';
@@ -2471,6 +2509,25 @@ document.addEventListener('DOMContentLoaded', () => {
             ${pctAtendidos}% de los caracterizados ya tiene la visita cerrada
           </div>
         </div>
+
+        ${!b ? '' : bloqueCenso('Censo de bienes y enseres requeridos', '#B45309', [
+          ['🧊', 'Neveras', b.neveras], ['🔥', 'Estufas', b.estufas],
+          ['🛏️', 'Camas / Colchón', b.camas], ['👕', 'Ropa / Enseres', b.ropa],
+          ['♿', 'Ayudas Técnicas', b.tecnicas], ['⚠️', 'Pérdida Total', b.perdidaTotal]
+        ])}
+
+        ${!a ? '' : bloqueCenso('Censo de apoyos y servicios institucionales', '#6D28D9', [
+          ['🏠', 'Subsidio Arriendo', a.arriendo], ['🤝', 'Fondo Solidaridad', a.solidaridad],
+          ['🧠', 'Apoyo Psicológico', a.psicologico], ['💰', 'Retiro Cesantías', a.cesantias],
+          ['💳', 'Crédito Emergencia', a.credito], ['🧵', 'Tejiendo Presente', a.tejiendo],
+          ['⚖️', 'Asesoría Jurídica', a.juridica], ['♿', 'Ayudas Técnicas', a.tecnicas]
+        ])}
+
+        ${(b && a) ? '' : `
+        <div style="margin-top:14px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:9px 11px; font-size:0.7rem; color:#92400E; font-weight:700; line-height:1.4;">
+          ⚠️ Los censos de bienes y de apoyos institucionales no están llegando del servidor.
+          Suele ser que el Apps Script publicado es anterior a esta versión del tablero.
+        </div>`}
 
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px dashed var(--border); margin-top:14px; padding-top:9px;">
           <span style="font-size:0.66rem; color:#94A3B8; font-weight:700;">${fecha ? 'Actualizado: ' + fecha : ''}</span>
