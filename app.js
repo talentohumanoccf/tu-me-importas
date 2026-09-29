@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260929_0938';
+const APP_VERSION = '20260929_1117';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -2418,7 +2418,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const t = d.detalle;
     const contactados = c.total - c.pendientes;
     const pctContacto = c.total > 0 ? Math.round((contactados / c.total) * 100) : 0;
-    const pctAtendidos = t.total > 0 ? Math.round((t.atendidos / t.total) * 100) : 0;
 
     const caja = (color, fondoCaja, icono, etiqueta, valor) => `
       <div style="background:${fondoCaja}; border-radius:8px; padding:9px 11px; flex:1 1 118px; min-width:0;">
@@ -2499,14 +2498,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ${caja('#B91C1C', 'rgba(220,38,38,0.08)', '🔴', 'Prioridad 1 · 24h', t.prioridad1)}
             ${caja('#B45309', 'rgba(245,158,11,0.10)', '🟡', 'Prioridad 2', t.prioridad2)}
             ${caja('#047857', 'rgba(5,150,105,0.10)', '🟢', 'Prioridad 3', t.prioridad3)}
-          </div>
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            ${caja('#6D28D9', 'rgba(124,58,237,0.08)', '📅', 'Visitas agendadas', t.agendadas)}
-            ${caja('#047857', 'rgba(5,150,105,0.10)', '✅', 'Atendidos / resueltos', t.atendidos)}
-            ${caja('#475569', 'rgba(100,116,139,0.10)', '⏳', 'Por agendar', t.porAgendar)}
-          </div>
-          <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; margin-top:8px;">
-            ${pctAtendidos}% de los caracterizados ya tiene la visita cerrada
           </div>
         </div>
 
