@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260930_1138';
+const APP_VERSION = '20260930_1404';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -753,6 +753,37 @@ document.addEventListener('DOMContentLoaded', () => {
               (mgmt.subMgmtInter && mgmt.subMgmtInter.tejiendo));
   }
 
+  // ¿La ficha de Vivienda cubre solo a los activos de Comfamiliar?
+  //
+  // Se pidio el 30/09/2026, cuando el frente paso a la consola de gestion
+  // detallada, cuya cartera son exactamente esos 257. Los otros 84 afectados
+  // —prestadores, Aprosalud y otras vinculaciones— quedan fuera de la ficha.
+  //
+  // ES REVERSIBLE Y NO DESTRUYE NADA: es una regla de calculo, no un cambio de
+  // datos. Las etiquetas de vivienda de esos 84 siguen escritas en la columna J
+  // y esas personas siguen en el censo. Para volver a incluirlos basta poner
+  // esta constante en false; ningun dato hay que recuperar.
+  //
+  // El precio de tenerlo activo: 47 de esos 84 no tienen ningun otro frente
+  // abierto, asi que desaparecen del Centro de Gestion. Su gestion de vivienda
+  // sigue registrada en la hoja, pero deja de verse en el panel.
+  // Universo de la ficha de Vivienda. Vive en un solo sitio porque lo preguntan
+  // dos: matchesCategory, que alimenta el Centro de Gestion, y perteneceALaFicha,
+  // que alimenta las tarjetas. Ya estaba duplicado antes de este cambio.
+  //
+  // El interruptor va DENTRO de la funcion, no como const de modulo. Una
+  // constante de arriba usada por matchesCategory se lee durante el arranque,
+  // antes de que el cuerpo termine de inicializarse, y lanza un ReferenceError
+  // que deja el tablero en blanco. Ya paso dos veces.
+  function esCasoDeVivienda(r) {
+    const VIVIENDA_SOLO_ACTIVOS_COMFAMILIAR = true;   // <-- poner en false para volver a incluir a los no activos
+
+    const viv = normalizeStr(r.afectacionVivienda || '');
+    if (!viv.includes('impiden') && !viv.includes('no me permiten')) return false;
+    if (!VIVIENDA_SOLO_ACTIVOS_COMFAMILIAR) return true;
+    return normalizeStr(getReportColumnAFValue(r)).includes('activo comfamiliar');
+  }
+
   function matchesCategory(r, category) {
     // `dec` es lo declarado marcando una opción; `ap` incluye además el relato
     // libre. Las cinco disciplinas que se enrutan por formulario usan `dec`, para
@@ -778,10 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Vivienda no se declara como texto en la solicitud, sino en la pregunta de
     // afectación. Se usa el mismo criterio de la ficha KPI (getConfrontationMetrics)
     // para que el filtro del Centro de Gestión devuelva exactamente esos casos.
-    if (cat.includes('viv')) {
-      const viv = normalizeStr(r.afectacionVivienda || '');
-      return viv.includes('impiden') || viv.includes('no me permiten');
-    }
+    if (cat.includes('viv')) return esCasoDeVivienda(r);
     if (cat.includes('famili') || cat.includes('perdi')) {
       const estFam = normalizeStr(r.estadoFamilia || '');
       const hasFamSupportText = ap.includes('famili') || ap.includes('perdi') || ap.includes('fallec') || ap.includes('luto') || ap.includes('duelo');
@@ -2152,10 +2180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // "estoy bien y seguro" y aun asi pertenece al programa.
     if (categoryKey === 'tejiendo') return tieneRegistroTejiendo(r);
     if (categoryKey !== 'leve' && !isNeedSupport(r)) return false;
-    if (categoryKey === 'vivienda') {
-      const viv = (r.afectacionVivienda || '').toLowerCase();
-      return viv.includes('impiden') || viv.includes('no me permiten');
-    }
+    if (categoryKey === 'vivienda') return esCasoDeVivienda(r);
     if (categoryKey === 'leve') return r.criticidad === 'amarillo';
     return matchesCategory(r, categoryKey);
   }
@@ -2604,8 +2629,11 @@ document.addEventListener('DOMContentLoaded', () => {
       pendientes += d.grupos[g].pendiente;
     });
 
-    const fondo = pct >= 80 ? '#D1FAE5' : pct >= 40 ? '#FEF3C7' : '#FEE2E2';
-    const tinta = pct >= 80 ? '#065F46' : pct >= 40 ? '#92400E' : '#991B1B';
+    // El color sale de pctCom, que es el numero que la insignia pinta. Antes
+    // salia de pct: con el interruptor de solo-activos encendido dan lo mismo,
+    // pero al apagarlo el color habria descrito una cifra distinta de la escrita.
+    const fondo = pctCom >= 80 ? '#D1FAE5' : pctCom >= 40 ? '#FEF3C7' : '#FEE2E2';
+    const tinta = pctCom >= 80 ? '#065F46' : pctCom >= 40 ? '#92400E' : '#991B1B';
 
     // El desglose completo por vinculacion estiraba la tarjeta y descuadraba
     // toda la fila del tablero. Como el subgrupo de Comfamiliar ya va en la
@@ -2625,8 +2653,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>${icon}</span> ${name}
         </strong>
         <div style="display:flex; flex-wrap:wrap; gap:4px;">
-          <span style="background:${fondo}; color:${tinta}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pct}% Cobertura</span>
-          <span title="Cobertura sobre los colaboradores con contratación directa, que es el alcance del programa de subsidios" style="background:rgba(0,51,102,0.08); color:var(--primary); font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pctCom}% en activos Comfamiliar</span>
+          <span title="Cobertura sobre los activos de Comfamiliar con vivienda inhabitable, que es el alcance del programa de gestión detallada" style="background:${fondo}; color:${tinta}; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap;">${pctCom}% en activos Comfamiliar</span>
         </div>
       </div>
 
@@ -2634,7 +2661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="background:rgba(0,51,102,0.05); padding:6px 8px; border-radius:6px;">
           <span style="color:var(--text-muted); font-size:0.7rem; display:block; font-weight:700;">📋 Solicitados</span>
           <b style="color:var(--primary); font-size:1.2rem;">${total.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:var(--text-muted);">Casos</span>
-          <span style="display:block; font-size:0.68rem; color:var(--text-muted); font-weight:700; margin-top:1px;">${d.totalCom.toLocaleString('es-CO')} activos Comfamiliar</span>
+          <span style="display:block; font-size:0.68rem; color:var(--text-muted); font-weight:700; margin-top:1px;">activos Comfamiliar</span>
         </div>
         <div style="background:rgba(5,150,105,0.08); padding:6px 8px; border-radius:6px;">
           <span style="color:#065F46; font-size:0.7rem; display:block; font-weight:700;">✅ Intervenidos</span>
