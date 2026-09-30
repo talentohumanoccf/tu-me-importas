@@ -7,7 +7,7 @@
 // Version del tablero. Se pinta en la cabecera para poder confirmar, a simple
 // vista, si el navegador ya tomo los cambios o sigue con una copia en cache.
 // Debe coincidir con el ?v= del <script> en admin.html.
-const APP_VERSION = '20260929_1117';
+const APP_VERSION = '20260930_1138';
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNJliFTyGi0a5ehJP2XEhYcC_1rJG_bicc39qfBhXXQKdGmvMH_lw2RLcLqFA0u3a2/exec';
@@ -2495,7 +2495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             De los encuestados, <b>${Number(t.total).toLocaleString('es-CO')}</b> completaron la caracterización y quedaron priorizados para visita.
           </p>
           <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-            ${caja('#B91C1C', 'rgba(220,38,38,0.08)', '🔴', 'Prioridad 1 · 24h', t.prioridad1)}
+            ${caja('#B91C1C', 'rgba(220,38,38,0.08)', '🔴', 'Prioridad 1', t.prioridad1)}
             ${caja('#B45309', 'rgba(245,158,11,0.10)', '🟡', 'Prioridad 2', t.prioridad2)}
             ${caja('#047857', 'rgba(5,150,105,0.10)', '🟢', 'Prioridad 3', t.prioridad3)}
           </div>
@@ -2593,7 +2593,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderViviendaKPICard(container, name, icon, color) {
     const d = getDesglosePorVinculacion('vivienda');
     const total = d.total;
-    const pct = total > 0 ? Math.round((d.intervenidos / total) * 100) : 100;
+    const intervenidos = d.intervenidos;
+    const pct = total > 0 ? Math.round((intervenidos / total) * 100) : 100;
     const pctCom = d.totalCom > 0 ? Math.round((d.intervCom / d.totalCom) * 100) : 100;
 
     let atendidos = 0, proceso = 0, pendientes = 0;
@@ -2637,8 +2638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div style="background:rgba(5,150,105,0.08); padding:6px 8px; border-radius:6px;">
           <span style="color:#065F46; font-size:0.7rem; display:block; font-weight:700;">✅ Intervenidos</span>
-          <b style="color:#059669; font-size:1.2rem;">${d.intervenidos.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:#065F46;">Casos</span>
-          <span style="display:block; font-size:0.68rem; color:#047857; font-weight:700; margin-top:1px;">${d.intervCom.toLocaleString('es-CO')} activos Comfamiliar</span>
+          <b style="color:#059669; font-size:1.2rem;">${intervenidos.toLocaleString('es-CO')}</b> <span style="font-size:0.7rem; color:#065F46;">Casos</span>
         </div>
       </div>
 
@@ -2647,7 +2647,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div style="display:flex; flex-direction:column; gap:3px; font-size:0.72rem; color:var(--text-muted); font-weight:700;">
-        <div style="display:flex; justify-content:space-between; gap:8px;"><span>🟢 Atendidos</span><b style="color:#059669;">${atendidos}</b></div>
+        <div title="Los activos de Comfamiliar quedan cubiertos por el programa de gestión detallada. El avance real de contacto y visitas está en el modal de abajo." style="display:flex; justify-content:space-between; gap:8px;"><span>🟢 Cubiertos</span><b style="color:#059669;">${atendidos}</b></div>
         <div style="display:flex; justify-content:space-between; gap:8px;"><span>🟡 En Proceso</span><b style="color:#D97706;">${proceso}</b></div>
         <div style="display:flex; justify-content:space-between; gap:8px;"><span>🔴 Pendientes</span><b style="color:#DC2626;">${pendientes}</b></div>
       </div>
@@ -3464,6 +3464,31 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         const displayNotes = stripBracketPrefix(subNotes);
         const subOp = (subMgmtObj && subMgmtObj.operator) ? subMgmtObj.operator : (mgmt.operator || 'Sin asignar');
+
+        // Vivienda dejo de gestionarse desde aqui el 30/09/2026: ese frente pasa
+        // por la consola de gestion detallada, con su propio flujo de llamadas y
+        // visitas. Se deja en solo lectura en vez de esconderla, porque la
+        // historia registrada sigue siendo util para quien atiende las otras
+        // disciplinas de la misma persona.
+        const soloLectura = (cat.key === 'vivienda');
+
+        if (soloLectura) {
+          return `
+          <div style="background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; padding:10px; margin-bottom:8px; opacity:0.92;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:4px;">
+              <strong style="color:var(--text-muted); font-size:0.84rem; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                <span>${cat.icon}</span> ${cat.name}
+                <span title="Este frente se gestiona en la consola de vivienda, no desde aquí" style="background:#E0F2FE; color:#0369A1; border:1px solid #BAE6FD; font-size:0.66rem; font-weight:800; padding:1px 6px; border-radius:8px;">🔒 se gestiona aparte</span>
+              </strong>
+              <span class="mgmt-status-select ${subSt}" style="padding:3px 8px; font-size:0.78rem; border-radius:6px; font-weight:800;">${subSt === 'resuelto' ? '🟢 Atendido / Resuelto' : subSt === 'proceso' ? '🔵 En Gestión' : '🟡 Pendiente'}</span>
+            </div>
+            ${displayNotes ? `<div style="font-size:0.8rem; color:var(--text-muted); background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:6px; white-space:pre-wrap;">${displayNotes}</div>` : ''}
+            <div style="margin-top:6px; font-size:0.72rem; color:var(--text-muted);">
+              👤 <b>${subOp}</b> · El seguimiento de vivienda se lleva en la consola de gestión detallada.
+            </div>
+          </div>
+        `;
+        }
 
         return `
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
